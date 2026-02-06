@@ -1,0 +1,758 @@
+<!DOCTYPE html>
+
+<html>
+
+<head>
+
+<meta charset="utf-8" />
+<meta name="generator" content="pandoc" />
+<meta http-equiv="X-UA-Compatible" content="IE=EDGE" />
+
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+
+
+
+<title>Getting Started with tidylearn</title>
+
+<script>// Pandoc 2.9 adds attributes on both header and div. We remove the former (to
+// be compatible with the behavior of Pandoc < 2.8).
+document.addEventListener('DOMContentLoaded', function(e) {
+  var hs = document.querySelectorAll("div.section[class*='level'] > :first-child");
+  var i, h, a;
+  for (i = 0; i < hs.length; i++) {
+    h = hs[i];
+    if (!/^h[1-6]$/i.test(h.tagName)) continue;  // it should be a header h1-h6
+    a = h.attributes;
+    while (a.length > 0) h.removeAttribute(a[0].name);
+  }
+});
+</script>
+
+<style type="text/css">
+code{white-space: pre-wrap;}
+span.smallcaps{font-variant: small-caps;}
+span.underline{text-decoration: underline;}
+div.column{display: inline-block; vertical-align: top; width: 50%;}
+div.hanging-indent{margin-left: 1.5em; text-indent: -1.5em;}
+ul.task-list{list-style: none;}
+</style>
+
+
+
+<style type="text/css">
+code {
+white-space: pre;
+}
+.sourceCode {
+overflow: visible;
+}
+</style>
+<style type="text/css" data-origin="pandoc">
+html { -webkit-text-size-adjust: 100%; }
+pre > code.sourceCode { white-space: pre; position: relative; }
+pre > code.sourceCode > span { display: inline-block; line-height: 1.25; }
+pre > code.sourceCode > span:empty { height: 1.2em; }
+.sourceCode { overflow: visible; }
+code.sourceCode > span { color: inherit; text-decoration: inherit; }
+div.sourceCode { margin: 1em 0; }
+pre.sourceCode { margin: 0; }
+@media screen {
+div.sourceCode { overflow: auto; }
+}
+@media print {
+pre > code.sourceCode { white-space: pre-wrap; }
+pre > code.sourceCode > span { text-indent: -5em; padding-left: 5em; }
+}
+pre.numberSource code
+{ counter-reset: source-line 0; }
+pre.numberSource code > span
+{ position: relative; left: -4em; counter-increment: source-line; }
+pre.numberSource code > span > a:first-child::before
+{ content: counter(source-line);
+position: relative; left: -1em; text-align: right; vertical-align: baseline;
+border: none; display: inline-block;
+-webkit-touch-callout: none; -webkit-user-select: none;
+-khtml-user-select: none; -moz-user-select: none;
+-ms-user-select: none; user-select: none;
+padding: 0 4px; width: 4em;
+color: #aaaaaa;
+}
+pre.numberSource { margin-left: 3em; border-left: 1px solid #aaaaaa; padding-left: 4px; }
+div.sourceCode
+{ }
+@media screen {
+pre > code.sourceCode > span > a:first-child::before { text-decoration: underline; }
+}
+code span.al { color: #ff0000; font-weight: bold; } 
+code span.an { color: #60a0b0; font-weight: bold; font-style: italic; } 
+code span.at { color: #7d9029; } 
+code span.bn { color: #40a070; } 
+code span.bu { color: #008000; } 
+code span.cf { color: #007020; font-weight: bold; } 
+code span.ch { color: #4070a0; } 
+code span.cn { color: #880000; } 
+code span.co { color: #60a0b0; font-style: italic; } 
+code span.cv { color: #60a0b0; font-weight: bold; font-style: italic; } 
+code span.do { color: #ba2121; font-style: italic; } 
+code span.dt { color: #902000; } 
+code span.dv { color: #40a070; } 
+code span.er { color: #ff0000; font-weight: bold; } 
+code span.ex { } 
+code span.fl { color: #40a070; } 
+code span.fu { color: #06287e; } 
+code span.im { color: #008000; font-weight: bold; } 
+code span.in { color: #60a0b0; font-weight: bold; font-style: italic; } 
+code span.kw { color: #007020; font-weight: bold; } 
+code span.op { color: #666666; } 
+code span.ot { color: #007020; } 
+code span.pp { color: #bc7a00; } 
+code span.sc { color: #4070a0; } 
+code span.ss { color: #bb6688; } 
+code span.st { color: #4070a0; } 
+code span.va { color: #19177c; } 
+code span.vs { color: #4070a0; } 
+code span.wa { color: #60a0b0; font-weight: bold; font-style: italic; } 
+</style>
+<script>
+// apply pandoc div.sourceCode style to pre.sourceCode instead
+(function() {
+  var sheets = document.styleSheets;
+  for (var i = 0; i < sheets.length; i++) {
+    if (sheets[i].ownerNode.dataset["origin"] !== "pandoc") continue;
+    try { var rules = sheets[i].cssRules; } catch (e) { continue; }
+    var j = 0;
+    while (j < rules.length) {
+      var rule = rules[j];
+      // check if there is a div.sourceCode rule
+      if (rule.type !== rule.STYLE_RULE || rule.selectorText !== "div.sourceCode") {
+        j++;
+        continue;
+      }
+      var style = rule.style.cssText;
+      // check if color or background-color is set
+      if (rule.style.color === '' && rule.style.backgroundColor === '') {
+        j++;
+        continue;
+      }
+      // replace div.sourceCode by a pre.sourceCode rule
+      sheets[i].deleteRule(j);
+      sheets[i].insertRule('pre.sourceCode{' + style + '}', j);
+    }
+  }
+})();
+</script>
+
+
+
+
+<style type="text/css">body {
+background-color: #fff;
+margin: 1em auto;
+max-width: 700px;
+overflow: visible;
+padding-left: 2em;
+padding-right: 2em;
+font-family: "Open Sans", "Helvetica Neue", Helvetica, Arial, sans-serif;
+font-size: 14px;
+line-height: 1.35;
+}
+#TOC {
+clear: both;
+margin: 0 0 10px 10px;
+padding: 4px;
+width: 400px;
+border: 1px solid #CCCCCC;
+border-radius: 5px;
+background-color: #f6f6f6;
+font-size: 13px;
+line-height: 1.3;
+}
+#TOC .toctitle {
+font-weight: bold;
+font-size: 15px;
+margin-left: 5px;
+}
+#TOC ul {
+padding-left: 40px;
+margin-left: -1.5em;
+margin-top: 5px;
+margin-bottom: 5px;
+}
+#TOC ul ul {
+margin-left: -2em;
+}
+#TOC li {
+line-height: 16px;
+}
+table {
+margin: 1em auto;
+border-width: 1px;
+border-color: #DDDDDD;
+border-style: outset;
+border-collapse: collapse;
+}
+table th {
+border-width: 2px;
+padding: 5px;
+border-style: inset;
+}
+table td {
+border-width: 1px;
+border-style: inset;
+line-height: 18px;
+padding: 5px 5px;
+}
+table, table th, table td {
+border-left-style: none;
+border-right-style: none;
+}
+table thead, table tr.even {
+background-color: #f7f7f7;
+}
+p {
+margin: 0.5em 0;
+}
+blockquote {
+background-color: #f6f6f6;
+padding: 0.25em 0.75em;
+}
+hr {
+border-style: solid;
+border: none;
+border-top: 1px solid #777;
+margin: 28px 0;
+}
+dl {
+margin-left: 0;
+}
+dl dd {
+margin-bottom: 13px;
+margin-left: 13px;
+}
+dl dt {
+font-weight: bold;
+}
+ul {
+margin-top: 0;
+}
+ul li {
+list-style: circle outside;
+}
+ul ul {
+margin-bottom: 0;
+}
+pre, code {
+background-color: #f7f7f7;
+border-radius: 3px;
+color: #333;
+white-space: pre-wrap; 
+}
+pre {
+border-radius: 3px;
+margin: 5px 0px 10px 0px;
+padding: 10px;
+}
+pre:not([class]) {
+background-color: #f7f7f7;
+}
+code {
+font-family: Consolas, Monaco, 'Courier New', monospace;
+font-size: 85%;
+}
+p > code, li > code {
+padding: 2px 0px;
+}
+div.figure {
+text-align: center;
+}
+img {
+background-color: #FFFFFF;
+padding: 2px;
+border: 1px solid #DDDDDD;
+border-radius: 3px;
+border: 1px solid #CCCCCC;
+margin: 0 5px;
+}
+h1 {
+margin-top: 0;
+font-size: 35px;
+line-height: 40px;
+}
+h2 {
+border-bottom: 4px solid #f7f7f7;
+padding-top: 10px;
+padding-bottom: 2px;
+font-size: 145%;
+}
+h3 {
+border-bottom: 2px solid #f7f7f7;
+padding-top: 10px;
+font-size: 120%;
+}
+h4 {
+border-bottom: 1px solid #f7f7f7;
+margin-left: 8px;
+font-size: 105%;
+}
+h5, h6 {
+border-bottom: 1px solid #ccc;
+font-size: 105%;
+}
+a {
+color: #0033dd;
+text-decoration: none;
+}
+a:hover {
+color: #6666ff; }
+a:visited {
+color: #800080; }
+a:visited:hover {
+color: #BB00BB; }
+a[href^="http:"] {
+text-decoration: underline; }
+a[href^="https:"] {
+text-decoration: underline; }
+
+code > span.kw { color: #555; font-weight: bold; } 
+code > span.dt { color: #902000; } 
+code > span.dv { color: #40a070; } 
+code > span.bn { color: #d14; } 
+code > span.fl { color: #d14; } 
+code > span.ch { color: #d14; } 
+code > span.st { color: #d14; } 
+code > span.co { color: #888888; font-style: italic; } 
+code > span.ot { color: #007020; } 
+code > span.al { color: #ff0000; font-weight: bold; } 
+code > span.fu { color: #900; font-weight: bold; } 
+code > span.er { color: #a61717; background-color: #e3d2d2; } 
+</style>
+
+
+
+
+</head>
+
+<body>
+
+
+
+
+<h1 class="title toc-ignore">Getting Started with tidylearn</h1>
+
+
+
+<div id="introduction" class="section level2">
+<h2>Introduction</h2>
+<p><code>tidylearn</code> provides a <strong>unified
+tidyverse-compatible interface</strong> to R’s machine learning
+ecosystem. It wraps proven packages like glmnet, randomForest, xgboost,
+e1071, cluster, and dbscan - you get the reliability of established
+implementations with the convenience of a consistent, tidy API.</p>
+<p><strong>What tidylearn does:</strong></p>
+<ul>
+<li>Provides one consistent interface (<code>tl_model()</code>) to 20+
+ML algorithms</li>
+<li>Returns tidy tibbles instead of varied output formats</li>
+<li>Offers unified ggplot2-based visualization across all methods</li>
+<li>Enables pipe-friendly workflows</li>
+</ul>
+<p><strong>What tidylearn is NOT:</strong></p>
+<ul>
+<li>A reimplementation of ML algorithms (uses established packages under
+the hood)</li>
+<li>A replacement for the underlying packages (you can access the raw
+model via <code>model$fit</code>)</li>
+</ul>
+</div>
+<div id="installation" class="section level2">
+<h2>Installation</h2>
+<div class="sourceCode" id="cb1"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb1-1"><a href="#cb1-1" tabindex="-1"></a><span class="co"># Install from CRAN</span></span>
+<span id="cb1-2"><a href="#cb1-2" tabindex="-1"></a><span class="fu">install.packages</span>(<span class="st">&quot;tidylearn&quot;</span>)</span>
+<span id="cb1-3"><a href="#cb1-3" tabindex="-1"></a></span>
+<span id="cb1-4"><a href="#cb1-4" tabindex="-1"></a><span class="co"># Or install development version from GitHub</span></span>
+<span id="cb1-5"><a href="#cb1-5" tabindex="-1"></a><span class="co"># devtools::install_github(&quot;ces0491/tidylearn&quot;)</span></span></code></pre></div>
+<div class="sourceCode" id="cb2"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb2-1"><a href="#cb2-1" tabindex="-1"></a><span class="fu">library</span>(tidylearn)</span>
+<span id="cb2-2"><a href="#cb2-2" tabindex="-1"></a><span class="fu">library</span>(dplyr)</span></code></pre></div>
+</div>
+<div id="the-unified-interface" class="section level2">
+<h2>The Unified Interface</h2>
+<p>The core of tidylearn is the <code>tl_model()</code> function, which
+dispatches to the appropriate underlying package based on the method you
+specify. The wrapped packages include stats, glmnet, randomForest,
+xgboost, gbm, e1071, nnet, rpart, cluster, and dbscan.</p>
+<div id="supervised-learning" class="section level3">
+<h3>Supervised Learning</h3>
+<div id="classification" class="section level4">
+<h4>Classification</h4>
+<div class="sourceCode" id="cb3"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb3-1"><a href="#cb3-1" tabindex="-1"></a><span class="co"># Classification with logistic regression</span></span>
+<span id="cb3-2"><a href="#cb3-2" tabindex="-1"></a>model_logistic <span class="ot">&lt;-</span> <span class="fu">tl_model</span>(iris, Species <span class="sc">~</span> ., <span class="at">method =</span> <span class="st">&quot;logistic&quot;</span>)</span>
+<span id="cb3-3"><a href="#cb3-3" tabindex="-1"></a><span class="co">#&gt; Warning: glm.fit: algorithm did not converge</span></span>
+<span id="cb3-4"><a href="#cb3-4" tabindex="-1"></a><span class="co">#&gt; Warning: glm.fit: fitted probabilities numerically 0 or 1 occurred</span></span>
+<span id="cb3-5"><a href="#cb3-5" tabindex="-1"></a><span class="fu">print</span>(model_logistic)</span>
+<span id="cb3-6"><a href="#cb3-6" tabindex="-1"></a><span class="co">#&gt; tidylearn Model</span></span>
+<span id="cb3-7"><a href="#cb3-7" tabindex="-1"></a><span class="co">#&gt; ===============</span></span>
+<span id="cb3-8"><a href="#cb3-8" tabindex="-1"></a><span class="co">#&gt; Paradigm: supervised </span></span>
+<span id="cb3-9"><a href="#cb3-9" tabindex="-1"></a><span class="co">#&gt; Method: logistic </span></span>
+<span id="cb3-10"><a href="#cb3-10" tabindex="-1"></a><span class="co">#&gt; Task: Classification </span></span>
+<span id="cb3-11"><a href="#cb3-11" tabindex="-1"></a><span class="co">#&gt; Formula: Species ~ . </span></span>
+<span id="cb3-12"><a href="#cb3-12" tabindex="-1"></a><span class="co">#&gt; </span></span>
+<span id="cb3-13"><a href="#cb3-13" tabindex="-1"></a><span class="co">#&gt; Training observations: 150</span></span></code></pre></div>
+<div class="sourceCode" id="cb4"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb4-1"><a href="#cb4-1" tabindex="-1"></a><span class="co"># Make predictions</span></span>
+<span id="cb4-2"><a href="#cb4-2" tabindex="-1"></a>predictions <span class="ot">&lt;-</span> <span class="fu">predict</span>(model_logistic)</span>
+<span id="cb4-3"><a href="#cb4-3" tabindex="-1"></a><span class="fu">head</span>(predictions)</span>
+<span id="cb4-4"><a href="#cb4-4" tabindex="-1"></a><span class="co">#&gt; # A tibble: 6 × 1</span></span>
+<span id="cb4-5"><a href="#cb4-5" tabindex="-1"></a><span class="co">#&gt;      .pred</span></span>
+<span id="cb4-6"><a href="#cb4-6" tabindex="-1"></a><span class="co">#&gt;      &lt;dbl&gt;</span></span>
+<span id="cb4-7"><a href="#cb4-7" tabindex="-1"></a><span class="co">#&gt; 1 2.22e-16</span></span>
+<span id="cb4-8"><a href="#cb4-8" tabindex="-1"></a><span class="co">#&gt; 2 2.22e-16</span></span>
+<span id="cb4-9"><a href="#cb4-9" tabindex="-1"></a><span class="co">#&gt; 3 2.22e-16</span></span>
+<span id="cb4-10"><a href="#cb4-10" tabindex="-1"></a><span class="co">#&gt; 4 1.88e-12</span></span>
+<span id="cb4-11"><a href="#cb4-11" tabindex="-1"></a><span class="co">#&gt; 5 2.22e-16</span></span>
+<span id="cb4-12"><a href="#cb4-12" tabindex="-1"></a><span class="co">#&gt; 6 2.22e-16</span></span></code></pre></div>
+</div>
+<div id="regression" class="section level4">
+<h4>Regression</h4>
+<div class="sourceCode" id="cb5"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb5-1"><a href="#cb5-1" tabindex="-1"></a><span class="co"># Regression with linear model</span></span>
+<span id="cb5-2"><a href="#cb5-2" tabindex="-1"></a>model_linear <span class="ot">&lt;-</span> <span class="fu">tl_model</span>(mtcars, mpg <span class="sc">~</span> wt <span class="sc">+</span> hp, <span class="at">method =</span> <span class="st">&quot;linear&quot;</span>)</span>
+<span id="cb5-3"><a href="#cb5-3" tabindex="-1"></a><span class="fu">print</span>(model_linear)</span>
+<span id="cb5-4"><a href="#cb5-4" tabindex="-1"></a><span class="co">#&gt; tidylearn Model</span></span>
+<span id="cb5-5"><a href="#cb5-5" tabindex="-1"></a><span class="co">#&gt; ===============</span></span>
+<span id="cb5-6"><a href="#cb5-6" tabindex="-1"></a><span class="co">#&gt; Paradigm: supervised </span></span>
+<span id="cb5-7"><a href="#cb5-7" tabindex="-1"></a><span class="co">#&gt; Method: linear </span></span>
+<span id="cb5-8"><a href="#cb5-8" tabindex="-1"></a><span class="co">#&gt; Task: Regression </span></span>
+<span id="cb5-9"><a href="#cb5-9" tabindex="-1"></a><span class="co">#&gt; Formula: mpg ~ wt + hp </span></span>
+<span id="cb5-10"><a href="#cb5-10" tabindex="-1"></a><span class="co">#&gt; </span></span>
+<span id="cb5-11"><a href="#cb5-11" tabindex="-1"></a><span class="co">#&gt; Training observations: 32</span></span></code></pre></div>
+<div class="sourceCode" id="cb6"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb6-1"><a href="#cb6-1" tabindex="-1"></a><span class="co"># Predictions</span></span>
+<span id="cb6-2"><a href="#cb6-2" tabindex="-1"></a>predictions_reg <span class="ot">&lt;-</span> <span class="fu">predict</span>(model_linear)</span>
+<span id="cb6-3"><a href="#cb6-3" tabindex="-1"></a><span class="fu">head</span>(predictions_reg)</span>
+<span id="cb6-4"><a href="#cb6-4" tabindex="-1"></a><span class="co">#&gt; # A tibble: 6 × 1</span></span>
+<span id="cb6-5"><a href="#cb6-5" tabindex="-1"></a><span class="co">#&gt;   .pred</span></span>
+<span id="cb6-6"><a href="#cb6-6" tabindex="-1"></a><span class="co">#&gt;   &lt;dbl&gt;</span></span>
+<span id="cb6-7"><a href="#cb6-7" tabindex="-1"></a><span class="co">#&gt; 1  23.6</span></span>
+<span id="cb6-8"><a href="#cb6-8" tabindex="-1"></a><span class="co">#&gt; 2  22.6</span></span>
+<span id="cb6-9"><a href="#cb6-9" tabindex="-1"></a><span class="co">#&gt; 3  25.3</span></span>
+<span id="cb6-10"><a href="#cb6-10" tabindex="-1"></a><span class="co">#&gt; 4  21.3</span></span>
+<span id="cb6-11"><a href="#cb6-11" tabindex="-1"></a><span class="co">#&gt; 5  18.3</span></span>
+<span id="cb6-12"><a href="#cb6-12" tabindex="-1"></a><span class="co">#&gt; 6  20.5</span></span></code></pre></div>
+</div>
+</div>
+<div id="unsupervised-learning" class="section level3">
+<h3>Unsupervised Learning</h3>
+<div id="dimensionality-reduction" class="section level4">
+<h4>Dimensionality Reduction</h4>
+<div class="sourceCode" id="cb7"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb7-1"><a href="#cb7-1" tabindex="-1"></a><span class="co"># Principal Component Analysis</span></span>
+<span id="cb7-2"><a href="#cb7-2" tabindex="-1"></a>model_pca <span class="ot">&lt;-</span> <span class="fu">tl_model</span>(iris[, <span class="dv">1</span><span class="sc">:</span><span class="dv">4</span>], <span class="at">method =</span> <span class="st">&quot;pca&quot;</span>)</span>
+<span id="cb7-3"><a href="#cb7-3" tabindex="-1"></a><span class="fu">print</span>(model_pca)</span>
+<span id="cb7-4"><a href="#cb7-4" tabindex="-1"></a><span class="co">#&gt; tidylearn Model</span></span>
+<span id="cb7-5"><a href="#cb7-5" tabindex="-1"></a><span class="co">#&gt; ===============</span></span>
+<span id="cb7-6"><a href="#cb7-6" tabindex="-1"></a><span class="co">#&gt; Paradigm: unsupervised </span></span>
+<span id="cb7-7"><a href="#cb7-7" tabindex="-1"></a><span class="co">#&gt; Method: pca </span></span>
+<span id="cb7-8"><a href="#cb7-8" tabindex="-1"></a><span class="co">#&gt; Technique: pca </span></span>
+<span id="cb7-9"><a href="#cb7-9" tabindex="-1"></a><span class="co">#&gt; </span></span>
+<span id="cb7-10"><a href="#cb7-10" tabindex="-1"></a><span class="co">#&gt; Training observations: 150</span></span></code></pre></div>
+<div class="sourceCode" id="cb8"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb8-1"><a href="#cb8-1" tabindex="-1"></a><span class="co"># Transform data</span></span>
+<span id="cb8-2"><a href="#cb8-2" tabindex="-1"></a>transformed <span class="ot">&lt;-</span> <span class="fu">predict</span>(model_pca)</span>
+<span id="cb8-3"><a href="#cb8-3" tabindex="-1"></a><span class="fu">head</span>(transformed)</span>
+<span id="cb8-4"><a href="#cb8-4" tabindex="-1"></a><span class="co">#&gt; # A tibble: 6 × 5</span></span>
+<span id="cb8-5"><a href="#cb8-5" tabindex="-1"></a><span class="co">#&gt;   .obs_id   PC1    PC2     PC3      PC4</span></span>
+<span id="cb8-6"><a href="#cb8-6" tabindex="-1"></a><span class="co">#&gt;   &lt;chr&gt;   &lt;dbl&gt;  &lt;dbl&gt;   &lt;dbl&gt;    &lt;dbl&gt;</span></span>
+<span id="cb8-7"><a href="#cb8-7" tabindex="-1"></a><span class="co">#&gt; 1 1       -2.26 -0.478  0.127   0.0241 </span></span>
+<span id="cb8-8"><a href="#cb8-8" tabindex="-1"></a><span class="co">#&gt; 2 2       -2.07  0.672  0.234   0.103  </span></span>
+<span id="cb8-9"><a href="#cb8-9" tabindex="-1"></a><span class="co">#&gt; 3 3       -2.36  0.341 -0.0441  0.0283 </span></span>
+<span id="cb8-10"><a href="#cb8-10" tabindex="-1"></a><span class="co">#&gt; 4 4       -2.29  0.595 -0.0910 -0.0657 </span></span>
+<span id="cb8-11"><a href="#cb8-11" tabindex="-1"></a><span class="co">#&gt; 5 5       -2.38 -0.645 -0.0157 -0.0358 </span></span>
+<span id="cb8-12"><a href="#cb8-12" tabindex="-1"></a><span class="co">#&gt; 6 6       -2.07 -1.48  -0.0269  0.00659</span></span></code></pre></div>
+</div>
+<div id="clustering" class="section level4">
+<h4>Clustering</h4>
+<div class="sourceCode" id="cb9"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb9-1"><a href="#cb9-1" tabindex="-1"></a><span class="co"># K-means clustering</span></span>
+<span id="cb9-2"><a href="#cb9-2" tabindex="-1"></a>model_kmeans <span class="ot">&lt;-</span> <span class="fu">tl_model</span>(iris[, <span class="dv">1</span><span class="sc">:</span><span class="dv">4</span>], <span class="at">method =</span> <span class="st">&quot;kmeans&quot;</span>, <span class="at">k =</span> <span class="dv">3</span>)</span>
+<span id="cb9-3"><a href="#cb9-3" tabindex="-1"></a><span class="fu">print</span>(model_kmeans)</span>
+<span id="cb9-4"><a href="#cb9-4" tabindex="-1"></a><span class="co">#&gt; tidylearn Model</span></span>
+<span id="cb9-5"><a href="#cb9-5" tabindex="-1"></a><span class="co">#&gt; ===============</span></span>
+<span id="cb9-6"><a href="#cb9-6" tabindex="-1"></a><span class="co">#&gt; Paradigm: unsupervised </span></span>
+<span id="cb9-7"><a href="#cb9-7" tabindex="-1"></a><span class="co">#&gt; Method: kmeans </span></span>
+<span id="cb9-8"><a href="#cb9-8" tabindex="-1"></a><span class="co">#&gt; Technique: kmeans </span></span>
+<span id="cb9-9"><a href="#cb9-9" tabindex="-1"></a><span class="co">#&gt; </span></span>
+<span id="cb9-10"><a href="#cb9-10" tabindex="-1"></a><span class="co">#&gt; Training observations: 150</span></span></code></pre></div>
+<div class="sourceCode" id="cb10"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb10-1"><a href="#cb10-1" tabindex="-1"></a><span class="co"># Get cluster assignments</span></span>
+<span id="cb10-2"><a href="#cb10-2" tabindex="-1"></a>clusters <span class="ot">&lt;-</span> model_kmeans<span class="sc">$</span>fit<span class="sc">$</span>clusters</span>
+<span id="cb10-3"><a href="#cb10-3" tabindex="-1"></a><span class="fu">head</span>(clusters)</span>
+<span id="cb10-4"><a href="#cb10-4" tabindex="-1"></a><span class="co">#&gt; # A tibble: 6 × 2</span></span>
+<span id="cb10-5"><a href="#cb10-5" tabindex="-1"></a><span class="co">#&gt;   .obs_id cluster</span></span>
+<span id="cb10-6"><a href="#cb10-6" tabindex="-1"></a><span class="co">#&gt;   &lt;chr&gt;     &lt;int&gt;</span></span>
+<span id="cb10-7"><a href="#cb10-7" tabindex="-1"></a><span class="co">#&gt; 1 1             3</span></span>
+<span id="cb10-8"><a href="#cb10-8" tabindex="-1"></a><span class="co">#&gt; 2 2             3</span></span>
+<span id="cb10-9"><a href="#cb10-9" tabindex="-1"></a><span class="co">#&gt; 3 3             3</span></span>
+<span id="cb10-10"><a href="#cb10-10" tabindex="-1"></a><span class="co">#&gt; 4 4             3</span></span>
+<span id="cb10-11"><a href="#cb10-11" tabindex="-1"></a><span class="co">#&gt; 5 5             3</span></span>
+<span id="cb10-12"><a href="#cb10-12" tabindex="-1"></a><span class="co">#&gt; 6 6             3</span></span></code></pre></div>
+<div class="sourceCode" id="cb11"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb11-1"><a href="#cb11-1" tabindex="-1"></a><span class="co"># Compare with actual species</span></span>
+<span id="cb11-2"><a href="#cb11-2" tabindex="-1"></a><span class="fu">table</span>(clusters<span class="sc">$</span>cluster, iris<span class="sc">$</span>Species)</span>
+<span id="cb11-3"><a href="#cb11-3" tabindex="-1"></a><span class="co">#&gt;    </span></span>
+<span id="cb11-4"><a href="#cb11-4" tabindex="-1"></a><span class="co">#&gt;     setosa versicolor virginica</span></span>
+<span id="cb11-5"><a href="#cb11-5" tabindex="-1"></a><span class="co">#&gt;   1      0          2        36</span></span>
+<span id="cb11-6"><a href="#cb11-6" tabindex="-1"></a><span class="co">#&gt;   2      0         48        14</span></span>
+<span id="cb11-7"><a href="#cb11-7" tabindex="-1"></a><span class="co">#&gt;   3     50          0         0</span></span></code></pre></div>
+</div>
+</div>
+</div>
+<div id="data-preprocessing" class="section level2">
+<h2>Data Preprocessing</h2>
+<p>tidylearn provides comprehensive preprocessing functions:</p>
+<div class="sourceCode" id="cb12"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb12-1"><a href="#cb12-1" tabindex="-1"></a><span class="co"># Prepare data with multiple preprocessing steps</span></span>
+<span id="cb12-2"><a href="#cb12-2" tabindex="-1"></a>processed <span class="ot">&lt;-</span> <span class="fu">tl_prepare_data</span>(</span>
+<span id="cb12-3"><a href="#cb12-3" tabindex="-1"></a>  iris,</span>
+<span id="cb12-4"><a href="#cb12-4" tabindex="-1"></a>  Species <span class="sc">~</span> .,</span>
+<span id="cb12-5"><a href="#cb12-5" tabindex="-1"></a>  <span class="at">impute_method =</span> <span class="st">&quot;mean&quot;</span>,</span>
+<span id="cb12-6"><a href="#cb12-6" tabindex="-1"></a>  <span class="at">scale_method =</span> <span class="st">&quot;standardize&quot;</span>,</span>
+<span id="cb12-7"><a href="#cb12-7" tabindex="-1"></a>  <span class="at">encode_categorical =</span> <span class="cn">FALSE</span></span>
+<span id="cb12-8"><a href="#cb12-8" tabindex="-1"></a>)</span>
+<span id="cb12-9"><a href="#cb12-9" tabindex="-1"></a><span class="co">#&gt; Scaling numeric features using method: standardize</span></span></code></pre></div>
+<div class="sourceCode" id="cb13"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb13-1"><a href="#cb13-1" tabindex="-1"></a><span class="co"># Check preprocessing steps applied</span></span>
+<span id="cb13-2"><a href="#cb13-2" tabindex="-1"></a><span class="fu">names</span>(processed<span class="sc">$</span>preprocessing_steps)</span>
+<span id="cb13-3"><a href="#cb13-3" tabindex="-1"></a><span class="co">#&gt; [1] &quot;scaling&quot;</span></span></code></pre></div>
+<div class="sourceCode" id="cb14"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb14-1"><a href="#cb14-1" tabindex="-1"></a><span class="co"># Use processed data for modeling</span></span>
+<span id="cb14-2"><a href="#cb14-2" tabindex="-1"></a>model_processed <span class="ot">&lt;-</span> <span class="fu">tl_model</span>(processed<span class="sc">$</span>data, Species <span class="sc">~</span> ., <span class="at">method =</span> <span class="st">&quot;forest&quot;</span>)</span></code></pre></div>
+</div>
+<div id="train-test-splitting" class="section level2">
+<h2>Train-Test Splitting</h2>
+<div class="sourceCode" id="cb15"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb15-1"><a href="#cb15-1" tabindex="-1"></a><span class="co"># Simple random split</span></span>
+<span id="cb15-2"><a href="#cb15-2" tabindex="-1"></a>split <span class="ot">&lt;-</span> <span class="fu">tl_split</span>(iris, <span class="at">prop =</span> <span class="fl">0.7</span>, <span class="at">seed =</span> <span class="dv">123</span>)</span>
+<span id="cb15-3"><a href="#cb15-3" tabindex="-1"></a></span>
+<span id="cb15-4"><a href="#cb15-4" tabindex="-1"></a><span class="co"># Train model</span></span>
+<span id="cb15-5"><a href="#cb15-5" tabindex="-1"></a>model_train <span class="ot">&lt;-</span> <span class="fu">tl_model</span>(split<span class="sc">$</span>train, Species <span class="sc">~</span> ., <span class="at">method =</span> <span class="st">&quot;logistic&quot;</span>)</span>
+<span id="cb15-6"><a href="#cb15-6" tabindex="-1"></a><span class="co">#&gt; Warning: glm.fit: algorithm did not converge</span></span>
+<span id="cb15-7"><a href="#cb15-7" tabindex="-1"></a><span class="co">#&gt; Warning: glm.fit: fitted probabilities numerically 0 or 1 occurred</span></span>
+<span id="cb15-8"><a href="#cb15-8" tabindex="-1"></a></span>
+<span id="cb15-9"><a href="#cb15-9" tabindex="-1"></a><span class="co"># Test predictions</span></span>
+<span id="cb15-10"><a href="#cb15-10" tabindex="-1"></a>predictions_test <span class="ot">&lt;-</span> <span class="fu">predict</span>(model_train, <span class="at">new_data =</span> split<span class="sc">$</span>test)</span>
+<span id="cb15-11"><a href="#cb15-11" tabindex="-1"></a><span class="fu">head</span>(predictions_test)</span>
+<span id="cb15-12"><a href="#cb15-12" tabindex="-1"></a><span class="co">#&gt; # A tibble: 6 × 1</span></span>
+<span id="cb15-13"><a href="#cb15-13" tabindex="-1"></a><span class="co">#&gt;      .pred</span></span>
+<span id="cb15-14"><a href="#cb15-14" tabindex="-1"></a><span class="co">#&gt;      &lt;dbl&gt;</span></span>
+<span id="cb15-15"><a href="#cb15-15" tabindex="-1"></a><span class="co">#&gt; 1 2.22e-16</span></span>
+<span id="cb15-16"><a href="#cb15-16" tabindex="-1"></a><span class="co">#&gt; 2 2.22e-16</span></span>
+<span id="cb15-17"><a href="#cb15-17" tabindex="-1"></a><span class="co">#&gt; 3 2.22e-16</span></span>
+<span id="cb15-18"><a href="#cb15-18" tabindex="-1"></a><span class="co">#&gt; 4 2.22e-16</span></span>
+<span id="cb15-19"><a href="#cb15-19" tabindex="-1"></a><span class="co">#&gt; 5 2.22e-16</span></span>
+<span id="cb15-20"><a href="#cb15-20" tabindex="-1"></a><span class="co">#&gt; 6 2.22e-16</span></span></code></pre></div>
+<div class="sourceCode" id="cb16"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb16-1"><a href="#cb16-1" tabindex="-1"></a><span class="co"># Stratified split (maintains class proportions)</span></span>
+<span id="cb16-2"><a href="#cb16-2" tabindex="-1"></a>split_strat <span class="ot">&lt;-</span> <span class="fu">tl_split</span>(iris, <span class="at">prop =</span> <span class="fl">0.7</span>, <span class="at">stratify =</span> <span class="st">&quot;Species&quot;</span>, <span class="at">seed =</span> <span class="dv">123</span>)</span>
+<span id="cb16-3"><a href="#cb16-3" tabindex="-1"></a></span>
+<span id="cb16-4"><a href="#cb16-4" tabindex="-1"></a><span class="co"># Check proportions are maintained</span></span>
+<span id="cb16-5"><a href="#cb16-5" tabindex="-1"></a><span class="fu">prop.table</span>(<span class="fu">table</span>(split_strat<span class="sc">$</span>train<span class="sc">$</span>Species))</span>
+<span id="cb16-6"><a href="#cb16-6" tabindex="-1"></a><span class="co">#&gt; </span></span>
+<span id="cb16-7"><a href="#cb16-7" tabindex="-1"></a><span class="co">#&gt;     setosa versicolor  virginica </span></span>
+<span id="cb16-8"><a href="#cb16-8" tabindex="-1"></a><span class="co">#&gt;  0.3333333  0.3333333  0.3333333</span></span>
+<span id="cb16-9"><a href="#cb16-9" tabindex="-1"></a><span class="fu">prop.table</span>(<span class="fu">table</span>(split_strat<span class="sc">$</span>test<span class="sc">$</span>Species))</span>
+<span id="cb16-10"><a href="#cb16-10" tabindex="-1"></a><span class="co">#&gt; </span></span>
+<span id="cb16-11"><a href="#cb16-11" tabindex="-1"></a><span class="co">#&gt;     setosa versicolor  virginica </span></span>
+<span id="cb16-12"><a href="#cb16-12" tabindex="-1"></a><span class="co">#&gt;  0.3333333  0.3333333  0.3333333</span></span>
+<span id="cb16-13"><a href="#cb16-13" tabindex="-1"></a><span class="fu">prop.table</span>(<span class="fu">table</span>(iris<span class="sc">$</span>Species))</span>
+<span id="cb16-14"><a href="#cb16-14" tabindex="-1"></a><span class="co">#&gt; </span></span>
+<span id="cb16-15"><a href="#cb16-15" tabindex="-1"></a><span class="co">#&gt;     setosa versicolor  virginica </span></span>
+<span id="cb16-16"><a href="#cb16-16" tabindex="-1"></a><span class="co">#&gt;  0.3333333  0.3333333  0.3333333</span></span></code></pre></div>
+</div>
+<div id="wrapped-packages" class="section level2">
+<h2>Wrapped Packages</h2>
+<p>tidylearn provides a unified interface to these established R
+packages:</p>
+<div id="supervised-methods" class="section level3">
+<h3>Supervised Methods</h3>
+<table>
+<thead>
+<tr class="header">
+<th>Method</th>
+<th>Underlying Package</th>
+<th>Function Called</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td><code>&quot;linear&quot;</code></td>
+<td>stats</td>
+<td><code>lm()</code></td>
+</tr>
+<tr class="even">
+<td><code>&quot;polynomial&quot;</code></td>
+<td>stats</td>
+<td><code>lm()</code> with <code>poly()</code></td>
+</tr>
+<tr class="odd">
+<td><code>&quot;logistic&quot;</code></td>
+<td>stats</td>
+<td><code>glm(..., family = binomial)</code></td>
+</tr>
+<tr class="even">
+<td><code>&quot;ridge&quot;</code>, <code>&quot;lasso&quot;</code>,
+<code>&quot;elastic_net&quot;</code></td>
+<td>glmnet</td>
+<td><code>glmnet()</code></td>
+</tr>
+<tr class="odd">
+<td><code>&quot;tree&quot;</code></td>
+<td>rpart</td>
+<td><code>rpart()</code></td>
+</tr>
+<tr class="even">
+<td><code>&quot;forest&quot;</code></td>
+<td>randomForest</td>
+<td><code>randomForest()</code></td>
+</tr>
+<tr class="odd">
+<td><code>&quot;boost&quot;</code></td>
+<td>gbm</td>
+<td><code>gbm()</code></td>
+</tr>
+<tr class="even">
+<td><code>&quot;xgboost&quot;</code></td>
+<td>xgboost</td>
+<td><code>xgb.train()</code></td>
+</tr>
+<tr class="odd">
+<td><code>&quot;svm&quot;</code></td>
+<td>e1071</td>
+<td><code>svm()</code></td>
+</tr>
+<tr class="even">
+<td><code>&quot;nn&quot;</code></td>
+<td>nnet</td>
+<td><code>nnet()</code></td>
+</tr>
+<tr class="odd">
+<td><code>&quot;deep&quot;</code></td>
+<td>keras</td>
+<td><code>keras_model_sequential()</code></td>
+</tr>
+</tbody>
+</table>
+</div>
+<div id="unsupervised-methods" class="section level3">
+<h3>Unsupervised Methods</h3>
+<table>
+<thead>
+<tr class="header">
+<th>Method</th>
+<th>Underlying Package</th>
+<th>Function Called</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td><code>&quot;pca&quot;</code></td>
+<td>stats</td>
+<td><code>prcomp()</code></td>
+</tr>
+<tr class="even">
+<td><code>&quot;mds&quot;</code></td>
+<td>stats, MASS, smacof</td>
+<td><code>cmdscale()</code>, <code>isoMDS()</code>, etc.</td>
+</tr>
+<tr class="odd">
+<td><code>&quot;kmeans&quot;</code></td>
+<td>stats</td>
+<td><code>kmeans()</code></td>
+</tr>
+<tr class="even">
+<td><code>&quot;pam&quot;</code></td>
+<td>cluster</td>
+<td><code>pam()</code></td>
+</tr>
+<tr class="odd">
+<td><code>&quot;clara&quot;</code></td>
+<td>cluster</td>
+<td><code>clara()</code></td>
+</tr>
+<tr class="even">
+<td><code>&quot;hclust&quot;</code></td>
+<td>stats</td>
+<td><code>hclust()</code></td>
+</tr>
+<tr class="odd">
+<td><code>&quot;dbscan&quot;</code></td>
+<td>dbscan</td>
+<td><code>dbscan()</code></td>
+</tr>
+</tbody>
+</table>
+</div>
+<div id="accessing-the-underlying-model" class="section level3">
+<h3>Accessing the Underlying Model</h3>
+<p>You always have access to the raw model from the underlying package
+via <code>$fit</code>:</p>
+<div class="sourceCode" id="cb17"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb17-1"><a href="#cb17-1" tabindex="-1"></a><span class="co"># Example: Access the raw randomForest object</span></span>
+<span id="cb17-2"><a href="#cb17-2" tabindex="-1"></a>model_forest <span class="ot">&lt;-</span> <span class="fu">tl_model</span>(iris, Species <span class="sc">~</span> ., <span class="at">method =</span> <span class="st">&quot;forest&quot;</span>)</span>
+<span id="cb17-3"><a href="#cb17-3" tabindex="-1"></a><span class="fu">class</span>(model_forest<span class="sc">$</span>fit)  <span class="co"># This is the randomForest object</span></span>
+<span id="cb17-4"><a href="#cb17-4" tabindex="-1"></a><span class="co">#&gt; [1] &quot;randomForest.formula&quot; &quot;randomForest&quot;</span></span>
+<span id="cb17-5"><a href="#cb17-5" tabindex="-1"></a></span>
+<span id="cb17-6"><a href="#cb17-6" tabindex="-1"></a><span class="co"># Use package-specific functions if needed</span></span>
+<span id="cb17-7"><a href="#cb17-7" tabindex="-1"></a><span class="co"># randomForest::varImpPlot(model_forest$fit)</span></span></code></pre></div>
+</div>
+</div>
+<div id="next-steps" class="section level2">
+<h2>Next Steps</h2>
+<p>Now that you understand the basics, explore:</p>
+<ol style="list-style-type: decimal">
+<li><strong>Supervised Learning</strong> - Dive deeper into
+classification and regression</li>
+<li><strong>Unsupervised Learning</strong> - Explore clustering and
+dimensionality reduction</li>
+<li><strong>Integration Workflows</strong> - Combine supervised and
+unsupervised learning</li>
+<li><strong>AutoML</strong> - Automated machine learning with
+<code>tl_auto_ml()</code></li>
+</ol>
+</div>
+<div id="summary" class="section level2">
+<h2>Summary</h2>
+<p>tidylearn is a <strong>wrapper package</strong> that provides:</p>
+<ul>
+<li><strong>Unified Interface</strong>: One function
+(<code>tl_model()</code>) that dispatches to proven packages like
+glmnet, randomForest, xgboost, e1071, and others</li>
+<li><strong>Transparency</strong>: Access raw model objects via
+<code>model$fit</code> for package-specific functionality</li>
+<li><strong>Tidy Output</strong>: All results are tibbles for easy
+manipulation with dplyr and ggplot2</li>
+<li><strong>Consistent Visualization</strong>: Unified ggplot2-based
+plots regardless of model type</li>
+</ul>
+<p>The underlying algorithms are unchanged - tidylearn simply makes them
+easier to use together.</p>
+<div class="sourceCode" id="cb18"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb18-1"><a href="#cb18-1" tabindex="-1"></a><span class="co"># Quick example combining everything</span></span>
+<span id="cb18-2"><a href="#cb18-2" tabindex="-1"></a>data_split <span class="ot">&lt;-</span> <span class="fu">tl_split</span>(iris, <span class="at">prop =</span> <span class="fl">0.7</span>, <span class="at">stratify =</span> <span class="st">&quot;Species&quot;</span>, <span class="at">seed =</span> <span class="dv">42</span>)</span>
+<span id="cb18-3"><a href="#cb18-3" tabindex="-1"></a>data_prep <span class="ot">&lt;-</span> <span class="fu">tl_prepare_data</span>(data_split<span class="sc">$</span>train, Species <span class="sc">~</span> ., <span class="at">scale_method =</span> <span class="st">&quot;standardize&quot;</span>)</span>
+<span id="cb18-4"><a href="#cb18-4" tabindex="-1"></a><span class="co">#&gt; Scaling numeric features using method: standardize</span></span>
+<span id="cb18-5"><a href="#cb18-5" tabindex="-1"></a>model_final <span class="ot">&lt;-</span> <span class="fu">tl_model</span>(data_prep<span class="sc">$</span>data, Species <span class="sc">~</span> ., <span class="at">method =</span> <span class="st">&quot;forest&quot;</span>)</span>
+<span id="cb18-6"><a href="#cb18-6" tabindex="-1"></a>test_preds <span class="ot">&lt;-</span> <span class="fu">predict</span>(model_final, <span class="at">new_data =</span> data_split<span class="sc">$</span>test)</span>
+<span id="cb18-7"><a href="#cb18-7" tabindex="-1"></a></span>
+<span id="cb18-8"><a href="#cb18-8" tabindex="-1"></a><span class="fu">print</span>(model_final)</span>
+<span id="cb18-9"><a href="#cb18-9" tabindex="-1"></a><span class="co">#&gt; tidylearn Model</span></span>
+<span id="cb18-10"><a href="#cb18-10" tabindex="-1"></a><span class="co">#&gt; ===============</span></span>
+<span id="cb18-11"><a href="#cb18-11" tabindex="-1"></a><span class="co">#&gt; Paradigm: supervised </span></span>
+<span id="cb18-12"><a href="#cb18-12" tabindex="-1"></a><span class="co">#&gt; Method: forest </span></span>
+<span id="cb18-13"><a href="#cb18-13" tabindex="-1"></a><span class="co">#&gt; Task: Classification </span></span>
+<span id="cb18-14"><a href="#cb18-14" tabindex="-1"></a><span class="co">#&gt; Formula: Species ~ . </span></span>
+<span id="cb18-15"><a href="#cb18-15" tabindex="-1"></a><span class="co">#&gt; </span></span>
+<span id="cb18-16"><a href="#cb18-16" tabindex="-1"></a><span class="co">#&gt; Training observations: 105</span></span></code></pre></div>
+</div>
+
+
+
+<!-- code folding -->
+
+
+<!-- dynamically load mathjax for compatibility with self-contained -->
+<script>
+  (function () {
+    var script = document.createElement("script");
+    script.type = "text/javascript";
+    script.src  = "https://mathjax.rstudio.com/latest/MathJax.js?config=TeX-AMS-MML_HTMLorMML";
+    document.getElementsByTagName("head")[0].appendChild(script);
+  })();
+</script>
+
+</body>
+</html>

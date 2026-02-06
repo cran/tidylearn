@@ -1,0 +1,253 @@
+---
+title: "Getting Started with tidylearn"
+output: rmarkdown::html_vignette
+vignette: >
+  %\VignetteIndexEntry{Getting Started with tidylearn}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+---
+
+```{r, include = FALSE}
+knitr::opts_chunk$set(
+  collapse = TRUE,
+  comment = "#>",
+  fig.width = 7,
+  fig.height = 5
+)
+```
+
+## Introduction
+
+`tidylearn` provides a **unified tidyverse-compatible interface** to R's machine
+learning ecosystem. It wraps proven packages like glmnet, randomForest, xgboost,
+e1071, cluster, and dbscan - you get the reliability of established
+implementations with the convenience of a consistent, tidy API.
+
+**What tidylearn does:**
+
+- Provides one consistent interface (`tl_model()`) to 20+ ML algorithms
+- Returns tidy tibbles instead of varied output formats
+- Offers unified ggplot2-based visualization across all methods
+- Enables pipe-friendly workflows
+
+**What tidylearn is NOT:**
+
+- A reimplementation of ML algorithms (uses established packages under the hood)
+- A replacement for the underlying packages (you can access the raw model via
+  `model$fit`)
+
+## Installation
+
+```{r, eval = FALSE}
+# Install from CRAN
+install.packages("tidylearn")
+
+# Or install development version from GitHub
+# devtools::install_github("ces0491/tidylearn")
+```
+
+```{r setup}
+library(tidylearn)
+library(dplyr)
+```
+
+## The Unified Interface
+
+The core of tidylearn is the `tl_model()` function, which dispatches to the
+appropriate underlying package based on the method you specify. The wrapped
+packages include stats, glmnet, randomForest, xgboost, gbm, e1071, nnet, rpart,
+cluster, and dbscan.
+
+### Supervised Learning
+
+#### Classification
+
+```{r}
+# Classification with logistic regression
+model_logistic <- tl_model(iris, Species ~ ., method = "logistic")
+print(model_logistic)
+```
+
+```{r}
+# Make predictions
+predictions <- predict(model_logistic)
+head(predictions)
+```
+
+#### Regression
+
+```{r}
+# Regression with linear model
+model_linear <- tl_model(mtcars, mpg ~ wt + hp, method = "linear")
+print(model_linear)
+```
+
+```{r}
+# Predictions
+predictions_reg <- predict(model_linear)
+head(predictions_reg)
+```
+
+### Unsupervised Learning
+
+#### Dimensionality Reduction
+
+```{r}
+# Principal Component Analysis
+model_pca <- tl_model(iris[, 1:4], method = "pca")
+print(model_pca)
+```
+
+```{r}
+# Transform data
+transformed <- predict(model_pca)
+head(transformed)
+```
+
+#### Clustering
+
+```{r}
+# K-means clustering
+model_kmeans <- tl_model(iris[, 1:4], method = "kmeans", k = 3)
+print(model_kmeans)
+```
+
+```{r}
+# Get cluster assignments
+clusters <- model_kmeans$fit$clusters
+head(clusters)
+```
+
+```{r}
+# Compare with actual species
+table(clusters$cluster, iris$Species)
+```
+
+## Data Preprocessing
+
+tidylearn provides comprehensive preprocessing functions:
+
+```{r}
+# Prepare data with multiple preprocessing steps
+processed <- tl_prepare_data(
+  iris,
+  Species ~ .,
+  impute_method = "mean",
+  scale_method = "standardize",
+  encode_categorical = FALSE
+)
+```
+
+```{r}
+# Check preprocessing steps applied
+names(processed$preprocessing_steps)
+```
+
+```{r}
+# Use processed data for modeling
+model_processed <- tl_model(processed$data, Species ~ ., method = "forest")
+```
+
+## Train-Test Splitting
+
+```{r}
+# Simple random split
+split <- tl_split(iris, prop = 0.7, seed = 123)
+
+# Train model
+model_train <- tl_model(split$train, Species ~ ., method = "logistic")
+
+# Test predictions
+predictions_test <- predict(model_train, new_data = split$test)
+head(predictions_test)
+```
+
+```{r}
+# Stratified split (maintains class proportions)
+split_strat <- tl_split(iris, prop = 0.7, stratify = "Species", seed = 123)
+
+# Check proportions are maintained
+prop.table(table(split_strat$train$Species))
+prop.table(table(split_strat$test$Species))
+prop.table(table(iris$Species))
+```
+
+## Wrapped Packages
+
+tidylearn provides a unified interface to these established R packages:
+
+### Supervised Methods
+
+| Method | Underlying Package | Function Called |
+|--------|-------------------|-----------------|
+| `"linear"` | stats | `lm()` |
+| `"polynomial"` | stats | `lm()` with `poly()` |
+| `"logistic"` | stats | `glm(..., family = binomial)` |
+| `"ridge"`, `"lasso"`, `"elastic_net"` | glmnet | `glmnet()` |
+| `"tree"` | rpart | `rpart()` |
+| `"forest"` | randomForest | `randomForest()` |
+| `"boost"` | gbm | `gbm()` |
+| `"xgboost"` | xgboost | `xgb.train()` |
+| `"svm"` | e1071 | `svm()` |
+| `"nn"` | nnet | `nnet()` |
+| `"deep"` | keras | `keras_model_sequential()` |
+
+### Unsupervised Methods
+
+| Method | Underlying Package | Function Called |
+|--------|-------------------|-----------------|
+| `"pca"` | stats | `prcomp()` |
+| `"mds"` | stats, MASS, smacof | `cmdscale()`, `isoMDS()`, etc. |
+| `"kmeans"` | stats | `kmeans()` |
+| `"pam"` | cluster | `pam()` |
+| `"clara"` | cluster | `clara()` |
+| `"hclust"` | stats | `hclust()` |
+| `"dbscan"` | dbscan | `dbscan()` |
+
+### Accessing the Underlying Model
+
+You always have access to the raw model from the underlying package via `$fit`:
+
+```{r}
+# Example: Access the raw randomForest object
+model_forest <- tl_model(iris, Species ~ ., method = "forest")
+class(model_forest$fit)  # This is the randomForest object
+
+# Use package-specific functions if needed
+# randomForest::varImpPlot(model_forest$fit)
+```
+
+## Next Steps
+
+Now that you understand the basics, explore:
+
+1. **Supervised Learning** - Dive deeper into classification and regression
+2. **Unsupervised Learning** - Explore clustering and dimensionality reduction
+3. **Integration Workflows** - Combine supervised and unsupervised learning
+4. **AutoML** - Automated machine learning with `tl_auto_ml()`
+
+## Summary
+
+tidylearn is a **wrapper package** that provides:
+
+- **Unified Interface**: One function (`tl_model()`) that dispatches to proven
+  packages like glmnet, randomForest, xgboost, e1071, and others
+- **Transparency**: Access raw model objects via `model$fit` for package-specific
+  functionality
+- **Tidy Output**: All results are tibbles for easy manipulation with dplyr and
+  ggplot2
+- **Consistent Visualization**: Unified ggplot2-based plots regardless of model
+  type
+
+The underlying algorithms are unchanged - tidylearn simply makes them easier to
+use together.
+
+```{r}
+# Quick example combining everything
+data_split <- tl_split(iris, prop = 0.7, stratify = "Species", seed = 42)
+data_prep <- tl_prepare_data(data_split$train, Species ~ ., scale_method = "standardize")
+model_final <- tl_model(data_prep$data, Species ~ ., method = "forest")
+test_preds <- predict(model_final, new_data = data_split$test)
+
+print(model_final)
+```

@@ -1,0 +1,771 @@
+<!DOCTYPE html>
+
+<html>
+
+<head>
+
+<meta charset="utf-8" />
+<meta name="generator" content="pandoc" />
+<meta http-equiv="X-UA-Compatible" content="IE=EDGE" />
+
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+
+
+
+<title>Automated Machine Learning with tidylearn</title>
+
+<script>// Pandoc 2.9 adds attributes on both header and div. We remove the former (to
+// be compatible with the behavior of Pandoc < 2.8).
+document.addEventListener('DOMContentLoaded', function(e) {
+  var hs = document.querySelectorAll("div.section[class*='level'] > :first-child");
+  var i, h, a;
+  for (i = 0; i < hs.length; i++) {
+    h = hs[i];
+    if (!/^h[1-6]$/i.test(h.tagName)) continue;  // it should be a header h1-h6
+    a = h.attributes;
+    while (a.length > 0) h.removeAttribute(a[0].name);
+  }
+});
+</script>
+
+<style type="text/css">
+code{white-space: pre-wrap;}
+span.smallcaps{font-variant: small-caps;}
+span.underline{text-decoration: underline;}
+div.column{display: inline-block; vertical-align: top; width: 50%;}
+div.hanging-indent{margin-left: 1.5em; text-indent: -1.5em;}
+ul.task-list{list-style: none;}
+</style>
+
+
+
+<style type="text/css">
+code {
+white-space: pre;
+}
+.sourceCode {
+overflow: visible;
+}
+</style>
+<style type="text/css" data-origin="pandoc">
+html { -webkit-text-size-adjust: 100%; }
+pre > code.sourceCode { white-space: pre; position: relative; }
+pre > code.sourceCode > span { display: inline-block; line-height: 1.25; }
+pre > code.sourceCode > span:empty { height: 1.2em; }
+.sourceCode { overflow: visible; }
+code.sourceCode > span { color: inherit; text-decoration: inherit; }
+div.sourceCode { margin: 1em 0; }
+pre.sourceCode { margin: 0; }
+@media screen {
+div.sourceCode { overflow: auto; }
+}
+@media print {
+pre > code.sourceCode { white-space: pre-wrap; }
+pre > code.sourceCode > span { text-indent: -5em; padding-left: 5em; }
+}
+pre.numberSource code
+{ counter-reset: source-line 0; }
+pre.numberSource code > span
+{ position: relative; left: -4em; counter-increment: source-line; }
+pre.numberSource code > span > a:first-child::before
+{ content: counter(source-line);
+position: relative; left: -1em; text-align: right; vertical-align: baseline;
+border: none; display: inline-block;
+-webkit-touch-callout: none; -webkit-user-select: none;
+-khtml-user-select: none; -moz-user-select: none;
+-ms-user-select: none; user-select: none;
+padding: 0 4px; width: 4em;
+color: #aaaaaa;
+}
+pre.numberSource { margin-left: 3em; border-left: 1px solid #aaaaaa; padding-left: 4px; }
+div.sourceCode
+{ }
+@media screen {
+pre > code.sourceCode > span > a:first-child::before { text-decoration: underline; }
+}
+code span.al { color: #ff0000; font-weight: bold; } 
+code span.an { color: #60a0b0; font-weight: bold; font-style: italic; } 
+code span.at { color: #7d9029; } 
+code span.bn { color: #40a070; } 
+code span.bu { color: #008000; } 
+code span.cf { color: #007020; font-weight: bold; } 
+code span.ch { color: #4070a0; } 
+code span.cn { color: #880000; } 
+code span.co { color: #60a0b0; font-style: italic; } 
+code span.cv { color: #60a0b0; font-weight: bold; font-style: italic; } 
+code span.do { color: #ba2121; font-style: italic; } 
+code span.dt { color: #902000; } 
+code span.dv { color: #40a070; } 
+code span.er { color: #ff0000; font-weight: bold; } 
+code span.ex { } 
+code span.fl { color: #40a070; } 
+code span.fu { color: #06287e; } 
+code span.im { color: #008000; font-weight: bold; } 
+code span.in { color: #60a0b0; font-weight: bold; font-style: italic; } 
+code span.kw { color: #007020; font-weight: bold; } 
+code span.op { color: #666666; } 
+code span.ot { color: #007020; } 
+code span.pp { color: #bc7a00; } 
+code span.sc { color: #4070a0; } 
+code span.ss { color: #bb6688; } 
+code span.st { color: #4070a0; } 
+code span.va { color: #19177c; } 
+code span.vs { color: #4070a0; } 
+code span.wa { color: #60a0b0; font-weight: bold; font-style: italic; } 
+</style>
+<script>
+// apply pandoc div.sourceCode style to pre.sourceCode instead
+(function() {
+  var sheets = document.styleSheets;
+  for (var i = 0; i < sheets.length; i++) {
+    if (sheets[i].ownerNode.dataset["origin"] !== "pandoc") continue;
+    try { var rules = sheets[i].cssRules; } catch (e) { continue; }
+    var j = 0;
+    while (j < rules.length) {
+      var rule = rules[j];
+      // check if there is a div.sourceCode rule
+      if (rule.type !== rule.STYLE_RULE || rule.selectorText !== "div.sourceCode") {
+        j++;
+        continue;
+      }
+      var style = rule.style.cssText;
+      // check if color or background-color is set
+      if (rule.style.color === '' && rule.style.backgroundColor === '') {
+        j++;
+        continue;
+      }
+      // replace div.sourceCode by a pre.sourceCode rule
+      sheets[i].deleteRule(j);
+      sheets[i].insertRule('pre.sourceCode{' + style + '}', j);
+    }
+  }
+})();
+</script>
+
+
+
+
+<style type="text/css">body {
+background-color: #fff;
+margin: 1em auto;
+max-width: 700px;
+overflow: visible;
+padding-left: 2em;
+padding-right: 2em;
+font-family: "Open Sans", "Helvetica Neue", Helvetica, Arial, sans-serif;
+font-size: 14px;
+line-height: 1.35;
+}
+#TOC {
+clear: both;
+margin: 0 0 10px 10px;
+padding: 4px;
+width: 400px;
+border: 1px solid #CCCCCC;
+border-radius: 5px;
+background-color: #f6f6f6;
+font-size: 13px;
+line-height: 1.3;
+}
+#TOC .toctitle {
+font-weight: bold;
+font-size: 15px;
+margin-left: 5px;
+}
+#TOC ul {
+padding-left: 40px;
+margin-left: -1.5em;
+margin-top: 5px;
+margin-bottom: 5px;
+}
+#TOC ul ul {
+margin-left: -2em;
+}
+#TOC li {
+line-height: 16px;
+}
+table {
+margin: 1em auto;
+border-width: 1px;
+border-color: #DDDDDD;
+border-style: outset;
+border-collapse: collapse;
+}
+table th {
+border-width: 2px;
+padding: 5px;
+border-style: inset;
+}
+table td {
+border-width: 1px;
+border-style: inset;
+line-height: 18px;
+padding: 5px 5px;
+}
+table, table th, table td {
+border-left-style: none;
+border-right-style: none;
+}
+table thead, table tr.even {
+background-color: #f7f7f7;
+}
+p {
+margin: 0.5em 0;
+}
+blockquote {
+background-color: #f6f6f6;
+padding: 0.25em 0.75em;
+}
+hr {
+border-style: solid;
+border: none;
+border-top: 1px solid #777;
+margin: 28px 0;
+}
+dl {
+margin-left: 0;
+}
+dl dd {
+margin-bottom: 13px;
+margin-left: 13px;
+}
+dl dt {
+font-weight: bold;
+}
+ul {
+margin-top: 0;
+}
+ul li {
+list-style: circle outside;
+}
+ul ul {
+margin-bottom: 0;
+}
+pre, code {
+background-color: #f7f7f7;
+border-radius: 3px;
+color: #333;
+white-space: pre-wrap; 
+}
+pre {
+border-radius: 3px;
+margin: 5px 0px 10px 0px;
+padding: 10px;
+}
+pre:not([class]) {
+background-color: #f7f7f7;
+}
+code {
+font-family: Consolas, Monaco, 'Courier New', monospace;
+font-size: 85%;
+}
+p > code, li > code {
+padding: 2px 0px;
+}
+div.figure {
+text-align: center;
+}
+img {
+background-color: #FFFFFF;
+padding: 2px;
+border: 1px solid #DDDDDD;
+border-radius: 3px;
+border: 1px solid #CCCCCC;
+margin: 0 5px;
+}
+h1 {
+margin-top: 0;
+font-size: 35px;
+line-height: 40px;
+}
+h2 {
+border-bottom: 4px solid #f7f7f7;
+padding-top: 10px;
+padding-bottom: 2px;
+font-size: 145%;
+}
+h3 {
+border-bottom: 2px solid #f7f7f7;
+padding-top: 10px;
+font-size: 120%;
+}
+h4 {
+border-bottom: 1px solid #f7f7f7;
+margin-left: 8px;
+font-size: 105%;
+}
+h5, h6 {
+border-bottom: 1px solid #ccc;
+font-size: 105%;
+}
+a {
+color: #0033dd;
+text-decoration: none;
+}
+a:hover {
+color: #6666ff; }
+a:visited {
+color: #800080; }
+a:visited:hover {
+color: #BB00BB; }
+a[href^="http:"] {
+text-decoration: underline; }
+a[href^="https:"] {
+text-decoration: underline; }
+
+code > span.kw { color: #555; font-weight: bold; } 
+code > span.dt { color: #902000; } 
+code > span.dv { color: #40a070; } 
+code > span.bn { color: #d14; } 
+code > span.fl { color: #d14; } 
+code > span.ch { color: #d14; } 
+code > span.st { color: #d14; } 
+code > span.co { color: #888888; font-style: italic; } 
+code > span.ot { color: #007020; } 
+code > span.al { color: #ff0000; font-weight: bold; } 
+code > span.fu { color: #900; font-weight: bold; } 
+code > span.er { color: #a61717; background-color: #e3d2d2; } 
+</style>
+
+
+
+
+</head>
+
+<body>
+
+
+
+
+<h1 class="title toc-ignore">Automated Machine Learning with
+tidylearn</h1>
+
+
+
+<div class="sourceCode" id="cb1"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb1-1"><a href="#cb1-1" tabindex="-1"></a><span class="fu">library</span>(tidylearn)</span>
+<span id="cb1-2"><a href="#cb1-2" tabindex="-1"></a><span class="fu">library</span>(dplyr)</span>
+<span id="cb1-3"><a href="#cb1-3" tabindex="-1"></a><span class="co">#&gt; </span></span>
+<span id="cb1-4"><a href="#cb1-4" tabindex="-1"></a><span class="co">#&gt; Attaching package: &#39;dplyr&#39;</span></span>
+<span id="cb1-5"><a href="#cb1-5" tabindex="-1"></a><span class="co">#&gt; The following objects are masked from &#39;package:stats&#39;:</span></span>
+<span id="cb1-6"><a href="#cb1-6" tabindex="-1"></a><span class="co">#&gt; </span></span>
+<span id="cb1-7"><a href="#cb1-7" tabindex="-1"></a><span class="co">#&gt;     filter, lag</span></span>
+<span id="cb1-8"><a href="#cb1-8" tabindex="-1"></a><span class="co">#&gt; The following objects are masked from &#39;package:base&#39;:</span></span>
+<span id="cb1-9"><a href="#cb1-9" tabindex="-1"></a><span class="co">#&gt; </span></span>
+<span id="cb1-10"><a href="#cb1-10" tabindex="-1"></a><span class="co">#&gt;     intersect, setdiff, setequal, union</span></span>
+<span id="cb1-11"><a href="#cb1-11" tabindex="-1"></a><span class="fu">library</span>(ggplot2)</span>
+<span id="cb1-12"><a href="#cb1-12" tabindex="-1"></a><span class="co">#&gt; Warning: package &#39;ggplot2&#39; was built under R version 4.5.2</span></span></code></pre></div>
+<div id="introduction" class="section level2">
+<h2>Introduction</h2>
+<p>Automated Machine Learning (AutoML) streamlines the model development
+process by automatically trying multiple approaches and selecting the
+best one. tidylearn’s <code>tl_auto_ml()</code> function explores
+various modeling strategies including dimensionality reduction,
+clustering, and different supervised methods.</p>
+<p><strong>Note:</strong> AutoML orchestrates the wrapped packages
+(glmnet, randomForest, xgboost, etc.) rather than implementing new
+algorithms. Each model in the leaderboard wraps an established package,
+and you can access the raw model objects via <code>model$fit</code>.</p>
+</div>
+<div id="basic-usage" class="section level2">
+<h2>Basic Usage</h2>
+<div id="classification-task" class="section level3">
+<h3>Classification Task</h3>
+<div class="sourceCode" id="cb2"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb2-1"><a href="#cb2-1" tabindex="-1"></a><span class="co"># Run AutoML on iris dataset</span></span>
+<span id="cb2-2"><a href="#cb2-2" tabindex="-1"></a>result <span class="ot">&lt;-</span> <span class="fu">tl_auto_ml</span>(iris, Species <span class="sc">~</span> .,</span>
+<span id="cb2-3"><a href="#cb2-3" tabindex="-1"></a>                    <span class="at">task =</span> <span class="st">&quot;classification&quot;</span>,</span>
+<span id="cb2-4"><a href="#cb2-4" tabindex="-1"></a>                    <span class="at">time_budget =</span> <span class="dv">60</span>)</span>
+<span id="cb2-5"><a href="#cb2-5" tabindex="-1"></a></span>
+<span id="cb2-6"><a href="#cb2-6" tabindex="-1"></a><span class="co"># View best model</span></span>
+<span id="cb2-7"><a href="#cb2-7" tabindex="-1"></a><span class="fu">print</span>(result<span class="sc">$</span>best_model)</span></code></pre></div>
+<div class="sourceCode" id="cb3"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb3-1"><a href="#cb3-1" tabindex="-1"></a><span class="co"># View all models tried</span></span>
+<span id="cb3-2"><a href="#cb3-2" tabindex="-1"></a><span class="fu">names</span>(result<span class="sc">$</span>models)</span></code></pre></div>
+<div class="sourceCode" id="cb4"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb4-1"><a href="#cb4-1" tabindex="-1"></a><span class="co"># View leaderboard</span></span>
+<span id="cb4-2"><a href="#cb4-2" tabindex="-1"></a>result<span class="sc">$</span>leaderboard</span></code></pre></div>
+</div>
+<div id="regression-task" class="section level3">
+<h3>Regression Task</h3>
+<div class="sourceCode" id="cb5"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb5-1"><a href="#cb5-1" tabindex="-1"></a><span class="co"># Run AutoML on regression problem</span></span>
+<span id="cb5-2"><a href="#cb5-2" tabindex="-1"></a>result_reg <span class="ot">&lt;-</span> <span class="fu">tl_auto_ml</span>(mtcars, mpg <span class="sc">~</span> .,</span>
+<span id="cb5-3"><a href="#cb5-3" tabindex="-1"></a>                        <span class="at">task =</span> <span class="st">&quot;regression&quot;</span>,</span>
+<span id="cb5-4"><a href="#cb5-4" tabindex="-1"></a>                        <span class="at">time_budget =</span> <span class="dv">60</span>)</span>
+<span id="cb5-5"><a href="#cb5-5" tabindex="-1"></a></span>
+<span id="cb5-6"><a href="#cb5-6" tabindex="-1"></a><span class="co"># Best model</span></span>
+<span id="cb5-7"><a href="#cb5-7" tabindex="-1"></a><span class="fu">print</span>(result_reg<span class="sc">$</span>best_model)</span></code></pre></div>
+</div>
+</div>
+<div id="how-automl-works" class="section level2">
+<h2>How AutoML Works</h2>
+<p>The <code>tl_auto_ml()</code> function follows a systematic
+approach:</p>
+<ol style="list-style-type: decimal">
+<li><strong>Baseline Models</strong>: Trains standard models (logistic,
+tree, forest for classification; linear, tree, forest for
+regression)</li>
+<li><strong>Dimensionality Reduction</strong>: Applies PCA and trains
+models on reduced features</li>
+<li><strong>Cluster Features</strong>: Adds cluster assignments as
+features</li>
+<li><strong>Advanced Models</strong>: If time allows, tries additional
+methods</li>
+</ol>
+<div class="sourceCode" id="cb6"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb6-1"><a href="#cb6-1" tabindex="-1"></a><span class="co"># AutoML with all features enabled</span></span>
+<span id="cb6-2"><a href="#cb6-2" tabindex="-1"></a>result_full <span class="ot">&lt;-</span> <span class="fu">tl_auto_ml</span>(</span>
+<span id="cb6-3"><a href="#cb6-3" tabindex="-1"></a>  <span class="at">data =</span> iris,</span>
+<span id="cb6-4"><a href="#cb6-4" tabindex="-1"></a>  <span class="at">formula =</span> Species <span class="sc">~</span> .,</span>
+<span id="cb6-5"><a href="#cb6-5" tabindex="-1"></a>  <span class="at">task =</span> <span class="st">&quot;auto&quot;</span>,                    <span class="co"># Automatically detect task type</span></span>
+<span id="cb6-6"><a href="#cb6-6" tabindex="-1"></a>  <span class="at">use_reduction =</span> <span class="cn">TRUE</span>,             <span class="co"># Try PCA preprocessing</span></span>
+<span id="cb6-7"><a href="#cb6-7" tabindex="-1"></a>  <span class="at">use_clustering =</span> <span class="cn">TRUE</span>,            <span class="co"># Add cluster features</span></span>
+<span id="cb6-8"><a href="#cb6-8" tabindex="-1"></a>  <span class="at">time_budget =</span> <span class="dv">120</span>,                <span class="co"># 2 minutes</span></span>
+<span id="cb6-9"><a href="#cb6-9" tabindex="-1"></a>  <span class="at">cv_folds =</span> <span class="dv">5</span>,                     <span class="co"># Cross-validation folds</span></span>
+<span id="cb6-10"><a href="#cb6-10" tabindex="-1"></a>  <span class="at">metric =</span> <span class="cn">NULL</span>                     <span class="co"># Auto-select metric</span></span>
+<span id="cb6-11"><a href="#cb6-11" tabindex="-1"></a>)</span></code></pre></div>
+</div>
+<div id="task-type-detection" class="section level2">
+<h2>Task Type Detection</h2>
+<p>AutoML automatically detects the task type:</p>
+<div class="sourceCode" id="cb7"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb7-1"><a href="#cb7-1" tabindex="-1"></a><span class="co"># Task type is automatically detected</span></span>
+<span id="cb7-2"><a href="#cb7-2" tabindex="-1"></a>result_auto <span class="ot">&lt;-</span> <span class="fu">tl_auto_ml</span>(iris, Species <span class="sc">~</span> ., <span class="at">task =</span> <span class="st">&quot;auto&quot;</span>)</span>
+<span id="cb7-3"><a href="#cb7-3" tabindex="-1"></a><span class="co"># Detects: Classification (factor response)</span></span>
+<span id="cb7-4"><a href="#cb7-4" tabindex="-1"></a></span>
+<span id="cb7-5"><a href="#cb7-5" tabindex="-1"></a>result_auto_reg <span class="ot">&lt;-</span> <span class="fu">tl_auto_ml</span>(mtcars, mpg <span class="sc">~</span> ., <span class="at">task =</span> <span class="st">&quot;auto&quot;</span>)</span>
+<span id="cb7-6"><a href="#cb7-6" tabindex="-1"></a><span class="co"># Detects: Regression (numeric response)</span></span></code></pre></div>
+</div>
+<div id="controlling-the-search" class="section level2">
+<h2>Controlling the Search</h2>
+<div id="time-budget" class="section level3">
+<h3>Time Budget</h3>
+<div class="sourceCode" id="cb8"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb8-1"><a href="#cb8-1" tabindex="-1"></a><span class="co"># Quick search (30 seconds)</span></span>
+<span id="cb8-2"><a href="#cb8-2" tabindex="-1"></a>quick_result <span class="ot">&lt;-</span> <span class="fu">tl_auto_ml</span>(iris, Species <span class="sc">~</span> ., <span class="at">time_budget =</span> <span class="dv">30</span>)</span>
+<span id="cb8-3"><a href="#cb8-3" tabindex="-1"></a></span>
+<span id="cb8-4"><a href="#cb8-4" tabindex="-1"></a><span class="co"># Thorough search (10 minutes)</span></span>
+<span id="cb8-5"><a href="#cb8-5" tabindex="-1"></a>thorough_result <span class="ot">&lt;-</span> <span class="fu">tl_auto_ml</span>(iris, Species <span class="sc">~</span> ., <span class="at">time_budget =</span> <span class="dv">600</span>)</span></code></pre></div>
+</div>
+<div id="feature-engineering-options" class="section level3">
+<h3>Feature Engineering Options</h3>
+<div class="sourceCode" id="cb9"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb9-1"><a href="#cb9-1" tabindex="-1"></a><span class="co"># Disable dimensionality reduction</span></span>
+<span id="cb9-2"><a href="#cb9-2" tabindex="-1"></a>no_reduction <span class="ot">&lt;-</span> <span class="fu">tl_auto_ml</span>(iris, Species <span class="sc">~</span> .,</span>
+<span id="cb9-3"><a href="#cb9-3" tabindex="-1"></a>                          <span class="at">use_reduction =</span> <span class="cn">FALSE</span>,</span>
+<span id="cb9-4"><a href="#cb9-4" tabindex="-1"></a>                          <span class="at">time_budget =</span> <span class="dv">60</span>)</span>
+<span id="cb9-5"><a href="#cb9-5" tabindex="-1"></a></span>
+<span id="cb9-6"><a href="#cb9-6" tabindex="-1"></a><span class="co"># Disable cluster features</span></span>
+<span id="cb9-7"><a href="#cb9-7" tabindex="-1"></a>no_clustering <span class="ot">&lt;-</span> <span class="fu">tl_auto_ml</span>(iris, Species <span class="sc">~</span> .,</span>
+<span id="cb9-8"><a href="#cb9-8" tabindex="-1"></a>                           <span class="at">use_clustering =</span> <span class="cn">FALSE</span>,</span>
+<span id="cb9-9"><a href="#cb9-9" tabindex="-1"></a>                           <span class="at">time_budget =</span> <span class="dv">60</span>)</span>
+<span id="cb9-10"><a href="#cb9-10" tabindex="-1"></a></span>
+<span id="cb9-11"><a href="#cb9-11" tabindex="-1"></a><span class="co"># Baseline models only</span></span>
+<span id="cb9-12"><a href="#cb9-12" tabindex="-1"></a>baseline_only <span class="ot">&lt;-</span> <span class="fu">tl_auto_ml</span>(iris, Species <span class="sc">~</span> .,</span>
+<span id="cb9-13"><a href="#cb9-13" tabindex="-1"></a>                           <span class="at">use_reduction =</span> <span class="cn">FALSE</span>,</span>
+<span id="cb9-14"><a href="#cb9-14" tabindex="-1"></a>                           <span class="at">use_clustering =</span> <span class="cn">FALSE</span>,</span>
+<span id="cb9-15"><a href="#cb9-15" tabindex="-1"></a>                           <span class="at">time_budget =</span> <span class="dv">30</span>)</span></code></pre></div>
+</div>
+<div id="cross-validation-settings" class="section level3">
+<h3>Cross-Validation Settings</h3>
+<div class="sourceCode" id="cb10"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb10-1"><a href="#cb10-1" tabindex="-1"></a><span class="co"># Adjust cross-validation folds</span></span>
+<span id="cb10-2"><a href="#cb10-2" tabindex="-1"></a>result_cv <span class="ot">&lt;-</span> <span class="fu">tl_auto_ml</span>(iris, Species <span class="sc">~</span> .,</span>
+<span id="cb10-3"><a href="#cb10-3" tabindex="-1"></a>                       <span class="at">cv_folds =</span> <span class="dv">10</span>,    <span class="co"># More folds = better estimate, slower</span></span>
+<span id="cb10-4"><a href="#cb10-4" tabindex="-1"></a>                       <span class="at">time_budget =</span> <span class="dv">120</span>)</span>
+<span id="cb10-5"><a href="#cb10-5" tabindex="-1"></a></span>
+<span id="cb10-6"><a href="#cb10-6" tabindex="-1"></a><span class="co"># Fewer folds for faster evaluation</span></span>
+<span id="cb10-7"><a href="#cb10-7" tabindex="-1"></a>result_fast <span class="ot">&lt;-</span> <span class="fu">tl_auto_ml</span>(iris, Species <span class="sc">~</span> .,</span>
+<span id="cb10-8"><a href="#cb10-8" tabindex="-1"></a>                         <span class="at">cv_folds =</span> <span class="dv">3</span>,</span>
+<span id="cb10-9"><a href="#cb10-9" tabindex="-1"></a>                         <span class="at">time_budget =</span> <span class="dv">60</span>)</span></code></pre></div>
+</div>
+</div>
+<div id="understanding-results" class="section level2">
+<h2>Understanding Results</h2>
+<div id="accessing-models" class="section level3">
+<h3>Accessing Models</h3>
+<div class="sourceCode" id="cb11"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb11-1"><a href="#cb11-1" tabindex="-1"></a>result <span class="ot">&lt;-</span> <span class="fu">tl_auto_ml</span>(iris, Species <span class="sc">~</span> ., <span class="at">time_budget =</span> <span class="dv">60</span>)</span>
+<span id="cb11-2"><a href="#cb11-2" tabindex="-1"></a></span>
+<span id="cb11-3"><a href="#cb11-3" tabindex="-1"></a><span class="co"># Best performing model</span></span>
+<span id="cb11-4"><a href="#cb11-4" tabindex="-1"></a>best_model <span class="ot">&lt;-</span> result<span class="sc">$</span>best_model</span>
+<span id="cb11-5"><a href="#cb11-5" tabindex="-1"></a></span>
+<span id="cb11-6"><a href="#cb11-6" tabindex="-1"></a><span class="co"># All models trained</span></span>
+<span id="cb11-7"><a href="#cb11-7" tabindex="-1"></a>all_models <span class="ot">&lt;-</span> result<span class="sc">$</span>models</span>
+<span id="cb11-8"><a href="#cb11-8" tabindex="-1"></a></span>
+<span id="cb11-9"><a href="#cb11-9" tabindex="-1"></a><span class="co"># Specific model</span></span>
+<span id="cb11-10"><a href="#cb11-10" tabindex="-1"></a>baseline_logistic <span class="ot">&lt;-</span> result<span class="sc">$</span>models<span class="sc">$</span>baseline_logistic</span>
+<span id="cb11-11"><a href="#cb11-11" tabindex="-1"></a>pca_forest <span class="ot">&lt;-</span> result<span class="sc">$</span>models<span class="sc">$</span>pca_forest</span></code></pre></div>
+</div>
+<div id="leaderboard" class="section level3">
+<h3>Leaderboard</h3>
+<div class="sourceCode" id="cb12"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb12-1"><a href="#cb12-1" tabindex="-1"></a><span class="co"># View performance comparison</span></span>
+<span id="cb12-2"><a href="#cb12-2" tabindex="-1"></a>leaderboard <span class="ot">&lt;-</span> result<span class="sc">$</span>leaderboard</span>
+<span id="cb12-3"><a href="#cb12-3" tabindex="-1"></a></span>
+<span id="cb12-4"><a href="#cb12-4" tabindex="-1"></a><span class="co"># Sort by performance</span></span>
+<span id="cb12-5"><a href="#cb12-5" tabindex="-1"></a>leaderboard <span class="ot">&lt;-</span> leaderboard <span class="sc">%&gt;%</span></span>
+<span id="cb12-6"><a href="#cb12-6" tabindex="-1"></a>  <span class="fu">arrange</span>(<span class="fu">desc</span>(performance))</span>
+<span id="cb12-7"><a href="#cb12-7" tabindex="-1"></a></span>
+<span id="cb12-8"><a href="#cb12-8" tabindex="-1"></a><span class="fu">print</span>(leaderboard)</span></code></pre></div>
+</div>
+<div id="making-predictions" class="section level3">
+<h3>Making Predictions</h3>
+<div class="sourceCode" id="cb13"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb13-1"><a href="#cb13-1" tabindex="-1"></a><span class="co"># Use best model for predictions</span></span>
+<span id="cb13-2"><a href="#cb13-2" tabindex="-1"></a>predictions <span class="ot">&lt;-</span> <span class="fu">predict</span>(result<span class="sc">$</span>best_model, <span class="at">new_data =</span> new_data)</span>
+<span id="cb13-3"><a href="#cb13-3" tabindex="-1"></a></span>
+<span id="cb13-4"><a href="#cb13-4" tabindex="-1"></a><span class="co"># Or use a specific model</span></span>
+<span id="cb13-5"><a href="#cb13-5" tabindex="-1"></a>predictions_pca <span class="ot">&lt;-</span> <span class="fu">predict</span>(result<span class="sc">$</span>models<span class="sc">$</span>pca_forest, <span class="at">new_data =</span> new_data)</span></code></pre></div>
+</div>
+</div>
+<div id="practical-examples" class="section level2">
+<h2>Practical Examples</h2>
+<div id="example-1-iris-classification" class="section level3">
+<h3>Example 1: Iris Classification</h3>
+<div class="sourceCode" id="cb14"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb14-1"><a href="#cb14-1" tabindex="-1"></a><span class="co"># Split data for evaluation</span></span>
+<span id="cb14-2"><a href="#cb14-2" tabindex="-1"></a>split <span class="ot">&lt;-</span> <span class="fu">tl_split</span>(iris, <span class="at">prop =</span> <span class="fl">0.7</span>, <span class="at">stratify =</span> <span class="st">&quot;Species&quot;</span>, <span class="at">seed =</span> <span class="dv">123</span>)</span>
+<span id="cb14-3"><a href="#cb14-3" tabindex="-1"></a></span>
+<span id="cb14-4"><a href="#cb14-4" tabindex="-1"></a><span class="co"># Run AutoML on training data</span></span>
+<span id="cb14-5"><a href="#cb14-5" tabindex="-1"></a>automl_iris <span class="ot">&lt;-</span> <span class="fu">tl_auto_ml</span>(split<span class="sc">$</span>train, Species <span class="sc">~</span> .,</span>
+<span id="cb14-6"><a href="#cb14-6" tabindex="-1"></a>                         <span class="at">time_budget =</span> <span class="dv">90</span>,</span>
+<span id="cb14-7"><a href="#cb14-7" tabindex="-1"></a>                         <span class="at">cv_folds =</span> <span class="dv">5</span>)</span>
+<span id="cb14-8"><a href="#cb14-8" tabindex="-1"></a></span>
+<span id="cb14-9"><a href="#cb14-9" tabindex="-1"></a><span class="co"># Evaluate on test set</span></span>
+<span id="cb14-10"><a href="#cb14-10" tabindex="-1"></a>test_preds <span class="ot">&lt;-</span> <span class="fu">predict</span>(automl_iris<span class="sc">$</span>best_model, <span class="at">new_data =</span> split<span class="sc">$</span>test)</span>
+<span id="cb14-11"><a href="#cb14-11" tabindex="-1"></a>test_accuracy <span class="ot">&lt;-</span> <span class="fu">mean</span>(test_preds<span class="sc">$</span>.pred <span class="sc">==</span> split<span class="sc">$</span>test<span class="sc">$</span>Species)</span>
+<span id="cb14-12"><a href="#cb14-12" tabindex="-1"></a></span>
+<span id="cb14-13"><a href="#cb14-13" tabindex="-1"></a><span class="fu">cat</span>(<span class="st">&quot;AutoML Test Accuracy:&quot;</span>, <span class="fu">round</span>(test_accuracy <span class="sc">*</span> <span class="dv">100</span>, <span class="dv">1</span>), <span class="st">&quot;%</span><span class="sc">\n</span><span class="st">&quot;</span>)</span></code></pre></div>
+<div class="sourceCode" id="cb15"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb15-1"><a href="#cb15-1" tabindex="-1"></a><span class="co"># Compare models</span></span>
+<span id="cb15-2"><a href="#cb15-2" tabindex="-1"></a><span class="cf">for</span> (model_name <span class="cf">in</span> <span class="fu">names</span>(automl_iris<span class="sc">$</span>models)) {</span>
+<span id="cb15-3"><a href="#cb15-3" tabindex="-1"></a>  model <span class="ot">&lt;-</span> automl_iris<span class="sc">$</span>models[[model_name]]</span>
+<span id="cb15-4"><a href="#cb15-4" tabindex="-1"></a>  preds <span class="ot">&lt;-</span> <span class="fu">predict</span>(model, <span class="at">new_data =</span> split<span class="sc">$</span>test)</span>
+<span id="cb15-5"><a href="#cb15-5" tabindex="-1"></a>  acc <span class="ot">&lt;-</span> <span class="fu">mean</span>(preds<span class="sc">$</span>.pred <span class="sc">==</span> split<span class="sc">$</span>test<span class="sc">$</span>Species)</span>
+<span id="cb15-6"><a href="#cb15-6" tabindex="-1"></a>  <span class="fu">cat</span>(model_name, <span class="st">&quot;:&quot;</span>, <span class="fu">round</span>(acc <span class="sc">*</span> <span class="dv">100</span>, <span class="dv">1</span>), <span class="st">&quot;%</span><span class="sc">\n</span><span class="st">&quot;</span>)</span>
+<span id="cb15-7"><a href="#cb15-7" tabindex="-1"></a>}</span></code></pre></div>
+</div>
+<div id="example-2-mpg-prediction" class="section level3">
+<h3>Example 2: MPG Prediction</h3>
+<div class="sourceCode" id="cb16"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb16-1"><a href="#cb16-1" tabindex="-1"></a><span class="co"># Split mtcars data</span></span>
+<span id="cb16-2"><a href="#cb16-2" tabindex="-1"></a>split_mtcars <span class="ot">&lt;-</span> <span class="fu">tl_split</span>(mtcars, <span class="at">prop =</span> <span class="fl">0.7</span>, <span class="at">seed =</span> <span class="dv">42</span>)</span>
+<span id="cb16-3"><a href="#cb16-3" tabindex="-1"></a></span>
+<span id="cb16-4"><a href="#cb16-4" tabindex="-1"></a><span class="co"># Run AutoML</span></span>
+<span id="cb16-5"><a href="#cb16-5" tabindex="-1"></a>automl_mpg <span class="ot">&lt;-</span> <span class="fu">tl_auto_ml</span>(split_mtcars<span class="sc">$</span>train, mpg <span class="sc">~</span> .,</span>
+<span id="cb16-6"><a href="#cb16-6" tabindex="-1"></a>                        <span class="at">task =</span> <span class="st">&quot;regression&quot;</span>,</span>
+<span id="cb16-7"><a href="#cb16-7" tabindex="-1"></a>                        <span class="at">time_budget =</span> <span class="dv">90</span>)</span>
+<span id="cb16-8"><a href="#cb16-8" tabindex="-1"></a></span>
+<span id="cb16-9"><a href="#cb16-9" tabindex="-1"></a><span class="co"># Evaluate</span></span>
+<span id="cb16-10"><a href="#cb16-10" tabindex="-1"></a>test_preds_mpg <span class="ot">&lt;-</span> <span class="fu">predict</span>(automl_mpg<span class="sc">$</span>best_model, <span class="at">new_data =</span> split_mtcars<span class="sc">$</span>test)</span>
+<span id="cb16-11"><a href="#cb16-11" tabindex="-1"></a>rmse <span class="ot">&lt;-</span> <span class="fu">sqrt</span>(<span class="fu">mean</span>((test_preds_mpg<span class="sc">$</span>.pred <span class="sc">-</span> split_mtcars<span class="sc">$</span>test<span class="sc">$</span>mpg)<span class="sc">^</span><span class="dv">2</span>))</span>
+<span id="cb16-12"><a href="#cb16-12" tabindex="-1"></a></span>
+<span id="cb16-13"><a href="#cb16-13" tabindex="-1"></a><span class="fu">cat</span>(<span class="st">&quot;AutoML Test RMSE:&quot;</span>, <span class="fu">round</span>(rmse, <span class="dv">2</span>), <span class="st">&quot;</span><span class="sc">\n</span><span class="st">&quot;</span>)</span></code></pre></div>
+</div>
+<div id="example-3-custom-preprocessing-automl" class="section level3">
+<h3>Example 3: Custom Preprocessing + AutoML</h3>
+<div class="sourceCode" id="cb17"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb17-1"><a href="#cb17-1" tabindex="-1"></a><span class="co"># Preprocess data first</span></span>
+<span id="cb17-2"><a href="#cb17-2" tabindex="-1"></a>processed <span class="ot">&lt;-</span> <span class="fu">tl_prepare_data</span>(</span>
+<span id="cb17-3"><a href="#cb17-3" tabindex="-1"></a>  split<span class="sc">$</span>train,</span>
+<span id="cb17-4"><a href="#cb17-4" tabindex="-1"></a>  Species <span class="sc">~</span> .,</span>
+<span id="cb17-5"><a href="#cb17-5" tabindex="-1"></a>  <span class="at">scale_method =</span> <span class="st">&quot;standardize&quot;</span>,</span>
+<span id="cb17-6"><a href="#cb17-6" tabindex="-1"></a>  <span class="at">remove_correlated =</span> <span class="cn">TRUE</span></span>
+<span id="cb17-7"><a href="#cb17-7" tabindex="-1"></a>)</span>
+<span id="cb17-8"><a href="#cb17-8" tabindex="-1"></a></span>
+<span id="cb17-9"><a href="#cb17-9" tabindex="-1"></a><span class="co"># Run AutoML on preprocessed data</span></span>
+<span id="cb17-10"><a href="#cb17-10" tabindex="-1"></a>automl_processed <span class="ot">&lt;-</span> <span class="fu">tl_auto_ml</span>(processed<span class="sc">$</span>data, Species <span class="sc">~</span> .,</span>
+<span id="cb17-11"><a href="#cb17-11" tabindex="-1"></a>                              <span class="at">time_budget =</span> <span class="dv">60</span>)</span>
+<span id="cb17-12"><a href="#cb17-12" tabindex="-1"></a></span>
+<span id="cb17-13"><a href="#cb17-13" tabindex="-1"></a><span class="co"># Note: Need to apply same preprocessing to test data</span></span>
+<span id="cb17-14"><a href="#cb17-14" tabindex="-1"></a>test_processed <span class="ot">&lt;-</span> <span class="fu">tl_prepare_data</span>(</span>
+<span id="cb17-15"><a href="#cb17-15" tabindex="-1"></a>  split<span class="sc">$</span>test,</span>
+<span id="cb17-16"><a href="#cb17-16" tabindex="-1"></a>  Species <span class="sc">~</span> .,</span>
+<span id="cb17-17"><a href="#cb17-17" tabindex="-1"></a>  <span class="at">scale_method =</span> <span class="st">&quot;standardize&quot;</span></span>
+<span id="cb17-18"><a href="#cb17-18" tabindex="-1"></a>)</span>
+<span id="cb17-19"><a href="#cb17-19" tabindex="-1"></a></span>
+<span id="cb17-20"><a href="#cb17-20" tabindex="-1"></a>test_preds_proc <span class="ot">&lt;-</span> <span class="fu">predict</span>(automl_processed<span class="sc">$</span>best_model,</span>
+<span id="cb17-21"><a href="#cb17-21" tabindex="-1"></a>                           <span class="at">new_data =</span> test_processed<span class="sc">$</span>data)</span></code></pre></div>
+</div>
+</div>
+<div id="comparing-automl-with-manual-selection" class="section level2">
+<h2>Comparing AutoML with Manual Selection</h2>
+<div class="sourceCode" id="cb18"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb18-1"><a href="#cb18-1" tabindex="-1"></a><span class="co"># Manual approach: choose one model</span></span>
+<span id="cb18-2"><a href="#cb18-2" tabindex="-1"></a>manual_model <span class="ot">&lt;-</span> <span class="fu">tl_model</span>(split<span class="sc">$</span>train, Species <span class="sc">~</span> ., <span class="at">method =</span> <span class="st">&quot;forest&quot;</span>)</span>
+<span id="cb18-3"><a href="#cb18-3" tabindex="-1"></a>manual_preds <span class="ot">&lt;-</span> <span class="fu">predict</span>(manual_model, <span class="at">new_data =</span> split<span class="sc">$</span>test)</span>
+<span id="cb18-4"><a href="#cb18-4" tabindex="-1"></a>manual_acc <span class="ot">&lt;-</span> <span class="fu">mean</span>(manual_preds<span class="sc">$</span>.pred <span class="sc">==</span> split<span class="sc">$</span>test<span class="sc">$</span>Species)</span>
+<span id="cb18-5"><a href="#cb18-5" tabindex="-1"></a></span>
+<span id="cb18-6"><a href="#cb18-6" tabindex="-1"></a><span class="co"># AutoML approach</span></span>
+<span id="cb18-7"><a href="#cb18-7" tabindex="-1"></a>automl_model <span class="ot">&lt;-</span> <span class="fu">tl_auto_ml</span>(split<span class="sc">$</span>train, Species <span class="sc">~</span> ., <span class="at">time_budget =</span> <span class="dv">60</span>)</span>
+<span id="cb18-8"><a href="#cb18-8" tabindex="-1"></a>automl_preds <span class="ot">&lt;-</span> <span class="fu">predict</span>(automl_model<span class="sc">$</span>best_model, <span class="at">new_data =</span> split<span class="sc">$</span>test)</span>
+<span id="cb18-9"><a href="#cb18-9" tabindex="-1"></a>automl_acc <span class="ot">&lt;-</span> <span class="fu">mean</span>(automl_preds<span class="sc">$</span>.pred <span class="sc">==</span> split<span class="sc">$</span>test<span class="sc">$</span>Species)</span>
+<span id="cb18-10"><a href="#cb18-10" tabindex="-1"></a></span>
+<span id="cb18-11"><a href="#cb18-11" tabindex="-1"></a><span class="fu">cat</span>(<span class="st">&quot;Manual Selection:&quot;</span>, <span class="fu">round</span>(manual_acc <span class="sc">*</span> <span class="dv">100</span>, <span class="dv">1</span>), <span class="st">&quot;%</span><span class="sc">\n</span><span class="st">&quot;</span>)</span>
+<span id="cb18-12"><a href="#cb18-12" tabindex="-1"></a><span class="fu">cat</span>(<span class="st">&quot;AutoML:&quot;</span>, <span class="fu">round</span>(automl_acc <span class="sc">*</span> <span class="dv">100</span>, <span class="dv">1</span>), <span class="st">&quot;%</span><span class="sc">\n</span><span class="st">&quot;</span>)</span></code></pre></div>
+</div>
+<div id="advanced-automl-strategies" class="section level2">
+<h2>Advanced AutoML Strategies</h2>
+<div id="strategy-1-iterative-automl" class="section level3">
+<h3>Strategy 1: Iterative AutoML</h3>
+<div class="sourceCode" id="cb19"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb19-1"><a href="#cb19-1" tabindex="-1"></a><span class="co"># First pass: quick exploration</span></span>
+<span id="cb19-2"><a href="#cb19-2" tabindex="-1"></a>quick_automl <span class="ot">&lt;-</span> <span class="fu">tl_auto_ml</span>(split<span class="sc">$</span>train, Species <span class="sc">~</span> .,</span>
+<span id="cb19-3"><a href="#cb19-3" tabindex="-1"></a>                          <span class="at">time_budget =</span> <span class="dv">30</span>,</span>
+<span id="cb19-4"><a href="#cb19-4" tabindex="-1"></a>                          <span class="at">use_reduction =</span> <span class="cn">TRUE</span>,</span>
+<span id="cb19-5"><a href="#cb19-5" tabindex="-1"></a>                          <span class="at">use_clustering =</span> <span class="cn">FALSE</span>)</span>
+<span id="cb19-6"><a href="#cb19-6" tabindex="-1"></a></span>
+<span id="cb19-7"><a href="#cb19-7" tabindex="-1"></a><span class="co"># Analyze what worked</span></span>
+<span id="cb19-8"><a href="#cb19-8" tabindex="-1"></a>best_approach <span class="ot">&lt;-</span> quick_automl<span class="sc">$</span>best_model<span class="sc">$</span>spec<span class="sc">$</span>method</span>
+<span id="cb19-9"><a href="#cb19-9" tabindex="-1"></a></span>
+<span id="cb19-10"><a href="#cb19-10" tabindex="-1"></a><span class="co"># Second pass: focus on promising approaches</span></span>
+<span id="cb19-11"><a href="#cb19-11" tabindex="-1"></a><span class="cf">if</span> (<span class="fu">grepl</span>(<span class="st">&quot;pca&quot;</span>, <span class="fu">names</span>(quick_automl<span class="sc">$</span>best_model)[<span class="dv">1</span>])) {</span>
+<span id="cb19-12"><a href="#cb19-12" tabindex="-1"></a>  <span class="co"># If PCA worked well, focus on dimensionality reduction</span></span>
+<span id="cb19-13"><a href="#cb19-13" tabindex="-1"></a>  refined_automl <span class="ot">&lt;-</span> <span class="fu">tl_auto_ml</span>(split<span class="sc">$</span>train, Species <span class="sc">~</span> .,</span>
+<span id="cb19-14"><a href="#cb19-14" tabindex="-1"></a>                              <span class="at">time_budget =</span> <span class="dv">60</span>,</span>
+<span id="cb19-15"><a href="#cb19-15" tabindex="-1"></a>                              <span class="at">use_reduction =</span> <span class="cn">TRUE</span>,</span>
+<span id="cb19-16"><a href="#cb19-16" tabindex="-1"></a>                              <span class="at">use_clustering =</span> <span class="cn">TRUE</span>)</span>
+<span id="cb19-17"><a href="#cb19-17" tabindex="-1"></a>}</span></code></pre></div>
+</div>
+<div id="strategy-2-ensemble-of-automl-models" class="section level3">
+<h3>Strategy 2: Ensemble of AutoML Models</h3>
+<div class="sourceCode" id="cb20"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb20-1"><a href="#cb20-1" tabindex="-1"></a><span class="co"># Get top 3 models</span></span>
+<span id="cb20-2"><a href="#cb20-2" tabindex="-1"></a>top_models <span class="ot">&lt;-</span> automl_iris<span class="sc">$</span>leaderboard <span class="sc">%&gt;%</span></span>
+<span id="cb20-3"><a href="#cb20-3" tabindex="-1"></a>  <span class="fu">arrange</span>(<span class="fu">desc</span>(performance)) <span class="sc">%&gt;%</span></span>
+<span id="cb20-4"><a href="#cb20-4" tabindex="-1"></a>  <span class="fu">head</span>(<span class="dv">3</span>)</span>
+<span id="cb20-5"><a href="#cb20-5" tabindex="-1"></a></span>
+<span id="cb20-6"><a href="#cb20-6" tabindex="-1"></a><span class="co"># Make predictions with each</span></span>
+<span id="cb20-7"><a href="#cb20-7" tabindex="-1"></a>ensemble_preds <span class="ot">&lt;-</span> <span class="fu">list</span>()</span>
+<span id="cb20-8"><a href="#cb20-8" tabindex="-1"></a><span class="cf">for</span> (i <span class="cf">in</span> <span class="dv">1</span><span class="sc">:</span><span class="fu">nrow</span>(top_models)) {</span>
+<span id="cb20-9"><a href="#cb20-9" tabindex="-1"></a>  model_name <span class="ot">&lt;-</span> top_models<span class="sc">$</span>model[i]</span>
+<span id="cb20-10"><a href="#cb20-10" tabindex="-1"></a>  model <span class="ot">&lt;-</span> automl_iris<span class="sc">$</span>models[[model_name]]</span>
+<span id="cb20-11"><a href="#cb20-11" tabindex="-1"></a>  ensemble_preds[[i]] <span class="ot">&lt;-</span> <span class="fu">predict</span>(model, <span class="at">new_data =</span> split<span class="sc">$</span>test)<span class="sc">$</span>.pred</span>
+<span id="cb20-12"><a href="#cb20-12" tabindex="-1"></a>}</span>
+<span id="cb20-13"><a href="#cb20-13" tabindex="-1"></a></span>
+<span id="cb20-14"><a href="#cb20-14" tabindex="-1"></a><span class="co"># Majority vote for classification</span></span>
+<span id="cb20-15"><a href="#cb20-15" tabindex="-1"></a>final_pred <span class="ot">&lt;-</span> <span class="fu">apply</span>(<span class="fu">do.call</span>(cbind, ensemble_preds), <span class="dv">1</span>, <span class="cf">function</span>(x) {</span>
+<span id="cb20-16"><a href="#cb20-16" tabindex="-1"></a>  <span class="fu">names</span>(<span class="fu">which.max</span>(<span class="fu">table</span>(x)))</span>
+<span id="cb20-17"><a href="#cb20-17" tabindex="-1"></a>})</span>
+<span id="cb20-18"><a href="#cb20-18" tabindex="-1"></a></span>
+<span id="cb20-19"><a href="#cb20-19" tabindex="-1"></a>ensemble_acc <span class="ot">&lt;-</span> <span class="fu">mean</span>(final_pred <span class="sc">==</span> split<span class="sc">$</span>test<span class="sc">$</span>Species)</span>
+<span id="cb20-20"><a href="#cb20-20" tabindex="-1"></a><span class="fu">cat</span>(<span class="st">&quot;Ensemble Accuracy:&quot;</span>, <span class="fu">round</span>(ensemble_acc <span class="sc">*</span> <span class="dv">100</span>, <span class="dv">1</span>), <span class="st">&quot;%</span><span class="sc">\n</span><span class="st">&quot;</span>)</span></code></pre></div>
+</div>
+</div>
+<div id="performance-metrics" class="section level2">
+<h2>Performance Metrics</h2>
+<div id="classification-metrics" class="section level3">
+<h3>Classification Metrics</h3>
+<div class="sourceCode" id="cb21"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb21-1"><a href="#cb21-1" tabindex="-1"></a><span class="co"># AutoML automatically uses accuracy for classification</span></span>
+<span id="cb21-2"><a href="#cb21-2" tabindex="-1"></a>result_class <span class="ot">&lt;-</span> <span class="fu">tl_auto_ml</span>(iris, Species <span class="sc">~</span> .,</span>
+<span id="cb21-3"><a href="#cb21-3" tabindex="-1"></a>                          <span class="at">metric =</span> <span class="st">&quot;accuracy&quot;</span>,</span>
+<span id="cb21-4"><a href="#cb21-4" tabindex="-1"></a>                          <span class="at">time_budget =</span> <span class="dv">60</span>)</span></code></pre></div>
+</div>
+<div id="regression-metrics" class="section level3">
+<h3>Regression Metrics</h3>
+<div class="sourceCode" id="cb22"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb22-1"><a href="#cb22-1" tabindex="-1"></a><span class="co"># AutoML automatically uses RMSE for regression</span></span>
+<span id="cb22-2"><a href="#cb22-2" tabindex="-1"></a>result_reg <span class="ot">&lt;-</span> <span class="fu">tl_auto_ml</span>(mtcars, mpg <span class="sc">~</span> .,</span>
+<span id="cb22-3"><a href="#cb22-3" tabindex="-1"></a>                        <span class="at">metric =</span> <span class="st">&quot;rmse&quot;</span>,</span>
+<span id="cb22-4"><a href="#cb22-4" tabindex="-1"></a>                        <span class="at">time_budget =</span> <span class="dv">60</span>)</span></code></pre></div>
+</div>
+</div>
+<div id="best-practices" class="section level2">
+<h2>Best Practices</h2>
+<ol style="list-style-type: decimal">
+<li><strong>Set appropriate time budget</strong>: Start with 60-120
+seconds for initial exploration</li>
+<li><strong>Use cross-validation</strong>: More folds give better
+estimates but take longer</li>
+<li><strong>Preprocess when needed</strong>: Handle missing values
+before AutoML</li>
+<li><strong>Split your data</strong>: Always evaluate on held-out test
+data</li>
+<li><strong>Examine multiple models</strong>: The “best” model may not
+always be robust</li>
+<li><strong>Consider ensemble approaches</strong>: Combine top models
+for better performance</li>
+<li><strong>Monitor time vs performance</strong>: Longer searches don’t
+always yield better results</li>
+</ol>
+</div>
+<div id="when-to-use-automl" class="section level2">
+<h2>When to Use AutoML</h2>
+<p><strong>Good use cases:</strong></p>
+<ul>
+<li>Quick prototyping and baseline establishment</li>
+<li>When you’re unsure which algorithm to use</li>
+<li>Feature engineering exploration</li>
+<li>Benchmark for manual approaches</li>
+<li>Limited ML expertise</li>
+</ul>
+<p><strong>Consider manual selection when:</strong></p>
+<ul>
+<li>You have domain knowledge about the best approach</li>
+<li>Interpretability is critical</li>
+<li>You need fine-grained control over hyperparameters</li>
+<li>Computational resources are very limited</li>
+</ul>
+</div>
+<div id="troubleshooting" class="section level2">
+<h2>Troubleshooting</h2>
+<div id="automl-runs-too-slowly" class="section level3">
+<h3>AutoML runs too slowly</h3>
+<div class="sourceCode" id="cb23"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb23-1"><a href="#cb23-1" tabindex="-1"></a><span class="co"># Reduce time budget</span></span>
+<span id="cb23-2"><a href="#cb23-2" tabindex="-1"></a>quick_result <span class="ot">&lt;-</span> <span class="fu">tl_auto_ml</span>(data, formula, <span class="at">time_budget =</span> <span class="dv">30</span>)</span>
+<span id="cb23-3"><a href="#cb23-3" tabindex="-1"></a></span>
+<span id="cb23-4"><a href="#cb23-4" tabindex="-1"></a><span class="co"># Reduce CV folds</span></span>
+<span id="cb23-5"><a href="#cb23-5" tabindex="-1"></a>fast_result <span class="ot">&lt;-</span> <span class="fu">tl_auto_ml</span>(data, formula, <span class="at">cv_folds =</span> <span class="dv">3</span>)</span>
+<span id="cb23-6"><a href="#cb23-6" tabindex="-1"></a></span>
+<span id="cb23-7"><a href="#cb23-7" tabindex="-1"></a><span class="co"># Disable feature engineering</span></span>
+<span id="cb23-8"><a href="#cb23-8" tabindex="-1"></a>baseline_result <span class="ot">&lt;-</span> <span class="fu">tl_auto_ml</span>(data, formula,</span>
+<span id="cb23-9"><a href="#cb23-9" tabindex="-1"></a>                             <span class="at">use_reduction =</span> <span class="cn">FALSE</span>,</span>
+<span id="cb23-10"><a href="#cb23-10" tabindex="-1"></a>                             <span class="at">use_clustering =</span> <span class="cn">FALSE</span>)</span></code></pre></div>
+</div>
+<div id="not-enough-models-tried" class="section level3">
+<h3>Not enough models tried</h3>
+<div class="sourceCode" id="cb24"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb24-1"><a href="#cb24-1" tabindex="-1"></a><span class="co"># Increase time budget</span></span>
+<span id="cb24-2"><a href="#cb24-2" tabindex="-1"></a>thorough_result <span class="ot">&lt;-</span> <span class="fu">tl_auto_ml</span>(data, formula, <span class="at">time_budget =</span> <span class="dv">300</span>)</span>
+<span id="cb24-3"><a href="#cb24-3" tabindex="-1"></a></span>
+<span id="cb24-4"><a href="#cb24-4" tabindex="-1"></a><span class="co"># Ensure feature engineering is enabled</span></span>
+<span id="cb24-5"><a href="#cb24-5" tabindex="-1"></a>full_result <span class="ot">&lt;-</span> <span class="fu">tl_auto_ml</span>(data, formula,</span>
+<span id="cb24-6"><a href="#cb24-6" tabindex="-1"></a>                         <span class="at">use_reduction =</span> <span class="cn">TRUE</span>,</span>
+<span id="cb24-7"><a href="#cb24-7" tabindex="-1"></a>                         <span class="at">use_clustering =</span> <span class="cn">TRUE</span>)</span></code></pre></div>
+</div>
+</div>
+<div id="summary" class="section level2">
+<h2>Summary</h2>
+<p>tidylearn’s AutoML provides:</p>
+<ul>
+<li><strong>Automated model selection</strong> across multiple
+algorithms</li>
+<li><strong>Feature engineering</strong> with PCA and clustering</li>
+<li><strong>Cross-validation</strong> for robust performance
+estimates</li>
+<li><strong>Easy comparison</strong> through leaderboard</li>
+<li><strong>Flexible configuration</strong> for different scenarios</li>
+<li><strong>Integration workflows</strong> combining supervised and
+unsupervised learning</li>
+</ul>
+<div class="sourceCode" id="cb25"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb25-1"><a href="#cb25-1" tabindex="-1"></a><span class="co"># Complete AutoML workflow</span></span>
+<span id="cb25-2"><a href="#cb25-2" tabindex="-1"></a>workflow_split <span class="ot">&lt;-</span> <span class="fu">tl_split</span>(iris, <span class="at">prop =</span> <span class="fl">0.7</span>, <span class="at">stratify =</span> <span class="st">&quot;Species&quot;</span>, <span class="at">seed =</span> <span class="dv">123</span>)</span>
+<span id="cb25-3"><a href="#cb25-3" tabindex="-1"></a></span>
+<span id="cb25-4"><a href="#cb25-4" tabindex="-1"></a>automl_result <span class="ot">&lt;-</span> <span class="fu">tl_auto_ml</span>(</span>
+<span id="cb25-5"><a href="#cb25-5" tabindex="-1"></a>  <span class="at">data =</span> workflow_split<span class="sc">$</span>train,</span>
+<span id="cb25-6"><a href="#cb25-6" tabindex="-1"></a>  <span class="at">formula =</span> Species <span class="sc">~</span> .,</span>
+<span id="cb25-7"><a href="#cb25-7" tabindex="-1"></a>  <span class="at">task =</span> <span class="st">&quot;auto&quot;</span>,</span>
+<span id="cb25-8"><a href="#cb25-8" tabindex="-1"></a>  <span class="at">use_reduction =</span> <span class="cn">TRUE</span>,</span>
+<span id="cb25-9"><a href="#cb25-9" tabindex="-1"></a>  <span class="at">use_clustering =</span> <span class="cn">TRUE</span>,</span>
+<span id="cb25-10"><a href="#cb25-10" tabindex="-1"></a>  <span class="at">time_budget =</span> <span class="dv">120</span>,</span>
+<span id="cb25-11"><a href="#cb25-11" tabindex="-1"></a>  <span class="at">cv_folds =</span> <span class="dv">5</span></span>
+<span id="cb25-12"><a href="#cb25-12" tabindex="-1"></a>)</span>
+<span id="cb25-13"><a href="#cb25-13" tabindex="-1"></a></span>
+<span id="cb25-14"><a href="#cb25-14" tabindex="-1"></a><span class="co"># Evaluate best model</span></span>
+<span id="cb25-15"><a href="#cb25-15" tabindex="-1"></a>final_preds <span class="ot">&lt;-</span> <span class="fu">predict</span>(automl_result<span class="sc">$</span>best_model, <span class="at">new_data =</span> workflow_split<span class="sc">$</span>test)</span>
+<span id="cb25-16"><a href="#cb25-16" tabindex="-1"></a>final_accuracy <span class="ot">&lt;-</span> <span class="fu">mean</span>(final_preds<span class="sc">$</span>.pred <span class="sc">==</span> workflow_split<span class="sc">$</span>test<span class="sc">$</span>Species)</span>
+<span id="cb25-17"><a href="#cb25-17" tabindex="-1"></a></span>
+<span id="cb25-18"><a href="#cb25-18" tabindex="-1"></a><span class="fu">cat</span>(<span class="st">&quot;Final AutoML Accuracy:&quot;</span>, <span class="fu">round</span>(final_accuracy <span class="sc">*</span> <span class="dv">100</span>, <span class="dv">1</span>), <span class="st">&quot;%</span><span class="sc">\n</span><span class="st">&quot;</span>)</span>
+<span id="cb25-19"><a href="#cb25-19" tabindex="-1"></a><span class="fu">cat</span>(<span class="st">&quot;Best approach:&quot;</span>, automl_result<span class="sc">$</span>best_model<span class="sc">$</span>spec<span class="sc">$</span>method, <span class="st">&quot;</span><span class="sc">\n</span><span class="st">&quot;</span>)</span></code></pre></div>
+<p>AutoML makes machine learning accessible and efficient, allowing you
+to quickly find good solutions while learning which approaches work best
+for your data.</p>
+</div>
+
+
+
+<!-- code folding -->
+
+
+<!-- dynamically load mathjax for compatibility with self-contained -->
+<script>
+  (function () {
+    var script = document.createElement("script");
+    script.type = "text/javascript";
+    script.src  = "https://mathjax.rstudio.com/latest/MathJax.js?config=TeX-AMS-MML_HTMLorMML";
+    document.getElementsByTagName("head")[0].appendChild(script);
+  })();
+</script>
+
+</body>
+</html>

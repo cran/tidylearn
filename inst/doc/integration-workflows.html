@@ -1,0 +1,1094 @@
+<!DOCTYPE html>
+
+<html>
+
+<head>
+
+<meta charset="utf-8" />
+<meta name="generator" content="pandoc" />
+<meta http-equiv="X-UA-Compatible" content="IE=EDGE" />
+
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+
+
+
+<title>Integration Workflows: Combining Supervised and Unsupervised Learning</title>
+
+<script>// Pandoc 2.9 adds attributes on both header and div. We remove the former (to
+// be compatible with the behavior of Pandoc < 2.8).
+document.addEventListener('DOMContentLoaded', function(e) {
+  var hs = document.querySelectorAll("div.section[class*='level'] > :first-child");
+  var i, h, a;
+  for (i = 0; i < hs.length; i++) {
+    h = hs[i];
+    if (!/^h[1-6]$/i.test(h.tagName)) continue;  // it should be a header h1-h6
+    a = h.attributes;
+    while (a.length > 0) h.removeAttribute(a[0].name);
+  }
+});
+</script>
+
+<style type="text/css">
+code{white-space: pre-wrap;}
+span.smallcaps{font-variant: small-caps;}
+span.underline{text-decoration: underline;}
+div.column{display: inline-block; vertical-align: top; width: 50%;}
+div.hanging-indent{margin-left: 1.5em; text-indent: -1.5em;}
+ul.task-list{list-style: none;}
+</style>
+
+
+
+<style type="text/css">
+code {
+white-space: pre;
+}
+.sourceCode {
+overflow: visible;
+}
+</style>
+<style type="text/css" data-origin="pandoc">
+html { -webkit-text-size-adjust: 100%; }
+pre > code.sourceCode { white-space: pre; position: relative; }
+pre > code.sourceCode > span { display: inline-block; line-height: 1.25; }
+pre > code.sourceCode > span:empty { height: 1.2em; }
+.sourceCode { overflow: visible; }
+code.sourceCode > span { color: inherit; text-decoration: inherit; }
+div.sourceCode { margin: 1em 0; }
+pre.sourceCode { margin: 0; }
+@media screen {
+div.sourceCode { overflow: auto; }
+}
+@media print {
+pre > code.sourceCode { white-space: pre-wrap; }
+pre > code.sourceCode > span { text-indent: -5em; padding-left: 5em; }
+}
+pre.numberSource code
+{ counter-reset: source-line 0; }
+pre.numberSource code > span
+{ position: relative; left: -4em; counter-increment: source-line; }
+pre.numberSource code > span > a:first-child::before
+{ content: counter(source-line);
+position: relative; left: -1em; text-align: right; vertical-align: baseline;
+border: none; display: inline-block;
+-webkit-touch-callout: none; -webkit-user-select: none;
+-khtml-user-select: none; -moz-user-select: none;
+-ms-user-select: none; user-select: none;
+padding: 0 4px; width: 4em;
+color: #aaaaaa;
+}
+pre.numberSource { margin-left: 3em; border-left: 1px solid #aaaaaa; padding-left: 4px; }
+div.sourceCode
+{ }
+@media screen {
+pre > code.sourceCode > span > a:first-child::before { text-decoration: underline; }
+}
+code span.al { color: #ff0000; font-weight: bold; } 
+code span.an { color: #60a0b0; font-weight: bold; font-style: italic; } 
+code span.at { color: #7d9029; } 
+code span.bn { color: #40a070; } 
+code span.bu { color: #008000; } 
+code span.cf { color: #007020; font-weight: bold; } 
+code span.ch { color: #4070a0; } 
+code span.cn { color: #880000; } 
+code span.co { color: #60a0b0; font-style: italic; } 
+code span.cv { color: #60a0b0; font-weight: bold; font-style: italic; } 
+code span.do { color: #ba2121; font-style: italic; } 
+code span.dt { color: #902000; } 
+code span.dv { color: #40a070; } 
+code span.er { color: #ff0000; font-weight: bold; } 
+code span.ex { } 
+code span.fl { color: #40a070; } 
+code span.fu { color: #06287e; } 
+code span.im { color: #008000; font-weight: bold; } 
+code span.in { color: #60a0b0; font-weight: bold; font-style: italic; } 
+code span.kw { color: #007020; font-weight: bold; } 
+code span.op { color: #666666; } 
+code span.ot { color: #007020; } 
+code span.pp { color: #bc7a00; } 
+code span.sc { color: #4070a0; } 
+code span.ss { color: #bb6688; } 
+code span.st { color: #4070a0; } 
+code span.va { color: #19177c; } 
+code span.vs { color: #4070a0; } 
+code span.wa { color: #60a0b0; font-weight: bold; font-style: italic; } 
+</style>
+<script>
+// apply pandoc div.sourceCode style to pre.sourceCode instead
+(function() {
+  var sheets = document.styleSheets;
+  for (var i = 0; i < sheets.length; i++) {
+    if (sheets[i].ownerNode.dataset["origin"] !== "pandoc") continue;
+    try { var rules = sheets[i].cssRules; } catch (e) { continue; }
+    var j = 0;
+    while (j < rules.length) {
+      var rule = rules[j];
+      // check if there is a div.sourceCode rule
+      if (rule.type !== rule.STYLE_RULE || rule.selectorText !== "div.sourceCode") {
+        j++;
+        continue;
+      }
+      var style = rule.style.cssText;
+      // check if color or background-color is set
+      if (rule.style.color === '' && rule.style.backgroundColor === '') {
+        j++;
+        continue;
+      }
+      // replace div.sourceCode by a pre.sourceCode rule
+      sheets[i].deleteRule(j);
+      sheets[i].insertRule('pre.sourceCode{' + style + '}', j);
+    }
+  }
+})();
+</script>
+
+
+
+
+<style type="text/css">body {
+background-color: #fff;
+margin: 1em auto;
+max-width: 700px;
+overflow: visible;
+padding-left: 2em;
+padding-right: 2em;
+font-family: "Open Sans", "Helvetica Neue", Helvetica, Arial, sans-serif;
+font-size: 14px;
+line-height: 1.35;
+}
+#TOC {
+clear: both;
+margin: 0 0 10px 10px;
+padding: 4px;
+width: 400px;
+border: 1px solid #CCCCCC;
+border-radius: 5px;
+background-color: #f6f6f6;
+font-size: 13px;
+line-height: 1.3;
+}
+#TOC .toctitle {
+font-weight: bold;
+font-size: 15px;
+margin-left: 5px;
+}
+#TOC ul {
+padding-left: 40px;
+margin-left: -1.5em;
+margin-top: 5px;
+margin-bottom: 5px;
+}
+#TOC ul ul {
+margin-left: -2em;
+}
+#TOC li {
+line-height: 16px;
+}
+table {
+margin: 1em auto;
+border-width: 1px;
+border-color: #DDDDDD;
+border-style: outset;
+border-collapse: collapse;
+}
+table th {
+border-width: 2px;
+padding: 5px;
+border-style: inset;
+}
+table td {
+border-width: 1px;
+border-style: inset;
+line-height: 18px;
+padding: 5px 5px;
+}
+table, table th, table td {
+border-left-style: none;
+border-right-style: none;
+}
+table thead, table tr.even {
+background-color: #f7f7f7;
+}
+p {
+margin: 0.5em 0;
+}
+blockquote {
+background-color: #f6f6f6;
+padding: 0.25em 0.75em;
+}
+hr {
+border-style: solid;
+border: none;
+border-top: 1px solid #777;
+margin: 28px 0;
+}
+dl {
+margin-left: 0;
+}
+dl dd {
+margin-bottom: 13px;
+margin-left: 13px;
+}
+dl dt {
+font-weight: bold;
+}
+ul {
+margin-top: 0;
+}
+ul li {
+list-style: circle outside;
+}
+ul ul {
+margin-bottom: 0;
+}
+pre, code {
+background-color: #f7f7f7;
+border-radius: 3px;
+color: #333;
+white-space: pre-wrap; 
+}
+pre {
+border-radius: 3px;
+margin: 5px 0px 10px 0px;
+padding: 10px;
+}
+pre:not([class]) {
+background-color: #f7f7f7;
+}
+code {
+font-family: Consolas, Monaco, 'Courier New', monospace;
+font-size: 85%;
+}
+p > code, li > code {
+padding: 2px 0px;
+}
+div.figure {
+text-align: center;
+}
+img {
+background-color: #FFFFFF;
+padding: 2px;
+border: 1px solid #DDDDDD;
+border-radius: 3px;
+border: 1px solid #CCCCCC;
+margin: 0 5px;
+}
+h1 {
+margin-top: 0;
+font-size: 35px;
+line-height: 40px;
+}
+h2 {
+border-bottom: 4px solid #f7f7f7;
+padding-top: 10px;
+padding-bottom: 2px;
+font-size: 145%;
+}
+h3 {
+border-bottom: 2px solid #f7f7f7;
+padding-top: 10px;
+font-size: 120%;
+}
+h4 {
+border-bottom: 1px solid #f7f7f7;
+margin-left: 8px;
+font-size: 105%;
+}
+h5, h6 {
+border-bottom: 1px solid #ccc;
+font-size: 105%;
+}
+a {
+color: #0033dd;
+text-decoration: none;
+}
+a:hover {
+color: #6666ff; }
+a:visited {
+color: #800080; }
+a:visited:hover {
+color: #BB00BB; }
+a[href^="http:"] {
+text-decoration: underline; }
+a[href^="https:"] {
+text-decoration: underline; }
+
+code > span.kw { color: #555; font-weight: bold; } 
+code > span.dt { color: #902000; } 
+code > span.dv { color: #40a070; } 
+code > span.bn { color: #d14; } 
+code > span.fl { color: #d14; } 
+code > span.ch { color: #d14; } 
+code > span.st { color: #d14; } 
+code > span.co { color: #888888; font-style: italic; } 
+code > span.ot { color: #007020; } 
+code > span.al { color: #ff0000; font-weight: bold; } 
+code > span.fu { color: #900; font-weight: bold; } 
+code > span.er { color: #a61717; background-color: #e3d2d2; } 
+</style>
+
+
+
+
+</head>
+
+<body>
+
+
+
+
+<h1 class="title toc-ignore">Integration Workflows: Combining Supervised
+and Unsupervised Learning</h1>
+
+
+
+<div class="sourceCode" id="cb1"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb1-1"><a href="#cb1-1" tabindex="-1"></a><span class="fu">library</span>(tidylearn)</span>
+<span id="cb1-2"><a href="#cb1-2" tabindex="-1"></a><span class="fu">library</span>(dplyr)</span>
+<span id="cb1-3"><a href="#cb1-3" tabindex="-1"></a><span class="fu">library</span>(ggplot2)</span></code></pre></div>
+<div id="introduction" class="section level2">
+<h2>Introduction</h2>
+<p>This vignette showcases tidylearn’s capability to seamlessly
+integrate supervised and unsupervised learning in multi-step
+workflows.</p>
+<p><strong>Important:</strong> These integration functions orchestrate
+the wrapped packages (stats, glmnet, randomForest, cluster, etc.) rather
+than implementing new algorithms. tidylearn provides the workflow
+coordination, while the underlying packages do the computational work.
+Access raw model objects via <code>model$fit</code>.</p>
+</div>
+<div id="dimensionality-reduction-as-preprocessing" class="section level2">
+<h2>Dimensionality Reduction as Preprocessing</h2>
+<p>Use PCA or MDS to reduce feature space before supervised
+learning.</p>
+<div id="basic-usage" class="section level3">
+<h3>Basic Usage</h3>
+<div class="sourceCode" id="cb2"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb2-1"><a href="#cb2-1" tabindex="-1"></a><span class="co"># Reduce dimensions before classification</span></span>
+<span id="cb2-2"><a href="#cb2-2" tabindex="-1"></a>reduced <span class="ot">&lt;-</span> <span class="fu">tl_reduce_dimensions</span>(iris,</span>
+<span id="cb2-3"><a href="#cb2-3" tabindex="-1"></a>                                <span class="at">response =</span> <span class="st">&quot;Species&quot;</span>,</span>
+<span id="cb2-4"><a href="#cb2-4" tabindex="-1"></a>                                <span class="at">method =</span> <span class="st">&quot;pca&quot;</span>,</span>
+<span id="cb2-5"><a href="#cb2-5" tabindex="-1"></a>                                <span class="at">n_components =</span> <span class="dv">3</span>)</span>
+<span id="cb2-6"><a href="#cb2-6" tabindex="-1"></a></span>
+<span id="cb2-7"><a href="#cb2-7" tabindex="-1"></a><span class="co"># Inspect reduced data</span></span>
+<span id="cb2-8"><a href="#cb2-8" tabindex="-1"></a><span class="fu">head</span>(reduced<span class="sc">$</span>data)</span>
+<span id="cb2-9"><a href="#cb2-9" tabindex="-1"></a><span class="co">#&gt; # A tibble: 6 × 5</span></span>
+<span id="cb2-10"><a href="#cb2-10" tabindex="-1"></a><span class="co">#&gt;   .obs_id   PC1    PC2     PC3 Species</span></span>
+<span id="cb2-11"><a href="#cb2-11" tabindex="-1"></a><span class="co">#&gt;   &lt;chr&gt;   &lt;dbl&gt;  &lt;dbl&gt;   &lt;dbl&gt; &lt;fct&gt;  </span></span>
+<span id="cb2-12"><a href="#cb2-12" tabindex="-1"></a><span class="co">#&gt; 1 1       -2.26 -0.478  0.127  setosa </span></span>
+<span id="cb2-13"><a href="#cb2-13" tabindex="-1"></a><span class="co">#&gt; 2 2       -2.07  0.672  0.234  setosa </span></span>
+<span id="cb2-14"><a href="#cb2-14" tabindex="-1"></a><span class="co">#&gt; 3 3       -2.36  0.341 -0.0441 setosa </span></span>
+<span id="cb2-15"><a href="#cb2-15" tabindex="-1"></a><span class="co">#&gt; 4 4       -2.29  0.595 -0.0910 setosa </span></span>
+<span id="cb2-16"><a href="#cb2-16" tabindex="-1"></a><span class="co">#&gt; 5 5       -2.38 -0.645 -0.0157 setosa </span></span>
+<span id="cb2-17"><a href="#cb2-17" tabindex="-1"></a><span class="co">#&gt; 6 6       -2.07 -1.48  -0.0269 setosa</span></span></code></pre></div>
+<div class="sourceCode" id="cb3"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb3-1"><a href="#cb3-1" tabindex="-1"></a><span class="co"># Train classifier on reduced features (remove .obs_id column first)</span></span>
+<span id="cb3-2"><a href="#cb3-2" tabindex="-1"></a>reduced_data <span class="ot">&lt;-</span> reduced<span class="sc">$</span>data <span class="sc">%&gt;%</span> <span class="fu">select</span>(<span class="sc">-</span><span class="fu">starts_with</span>(<span class="st">&quot;.obs&quot;</span>))</span>
+<span id="cb3-3"><a href="#cb3-3" tabindex="-1"></a>model_reduced <span class="ot">&lt;-</span> <span class="fu">tl_model</span>(reduced_data, Species <span class="sc">~</span> ., <span class="at">method =</span> <span class="st">&quot;logistic&quot;</span>)</span>
+<span id="cb3-4"><a href="#cb3-4" tabindex="-1"></a><span class="co">#&gt; Warning: glm.fit: algorithm did not converge</span></span>
+<span id="cb3-5"><a href="#cb3-5" tabindex="-1"></a><span class="co">#&gt; Warning: glm.fit: fitted probabilities numerically 0 or 1 occurred</span></span>
+<span id="cb3-6"><a href="#cb3-6" tabindex="-1"></a><span class="fu">print</span>(model_reduced)</span>
+<span id="cb3-7"><a href="#cb3-7" tabindex="-1"></a><span class="co">#&gt; tidylearn Model</span></span>
+<span id="cb3-8"><a href="#cb3-8" tabindex="-1"></a><span class="co">#&gt; ===============</span></span>
+<span id="cb3-9"><a href="#cb3-9" tabindex="-1"></a><span class="co">#&gt; Paradigm: supervised </span></span>
+<span id="cb3-10"><a href="#cb3-10" tabindex="-1"></a><span class="co">#&gt; Method: logistic </span></span>
+<span id="cb3-11"><a href="#cb3-11" tabindex="-1"></a><span class="co">#&gt; Task: Classification </span></span>
+<span id="cb3-12"><a href="#cb3-12" tabindex="-1"></a><span class="co">#&gt; Formula: Species ~ . </span></span>
+<span id="cb3-13"><a href="#cb3-13" tabindex="-1"></a><span class="co">#&gt; </span></span>
+<span id="cb3-14"><a href="#cb3-14" tabindex="-1"></a><span class="co">#&gt; Training observations: 150</span></span></code></pre></div>
+<div class="sourceCode" id="cb4"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb4-1"><a href="#cb4-1" tabindex="-1"></a><span class="co"># Make predictions</span></span>
+<span id="cb4-2"><a href="#cb4-2" tabindex="-1"></a>preds <span class="ot">&lt;-</span> <span class="fu">predict</span>(model_reduced)</span>
+<span id="cb4-3"><a href="#cb4-3" tabindex="-1"></a>accuracy <span class="ot">&lt;-</span> <span class="fu">mean</span>(preds<span class="sc">$</span>.pred <span class="sc">==</span> iris<span class="sc">$</span>Species)</span>
+<span id="cb4-4"><a href="#cb4-4" tabindex="-1"></a><span class="fu">cat</span>(<span class="st">&quot;Accuracy with PCA features:&quot;</span>, <span class="fu">round</span>(accuracy <span class="sc">*</span> <span class="dv">100</span>, <span class="dv">1</span>), <span class="st">&quot;%</span><span class="sc">\n</span><span class="st">&quot;</span>)</span>
+<span id="cb4-5"><a href="#cb4-5" tabindex="-1"></a><span class="co">#&gt; Accuracy with PCA features: 0 %</span></span></code></pre></div>
+</div>
+<div id="comparison-original-vs-reduced-features" class="section level3">
+<h3>Comparison: Original vs Reduced Features</h3>
+<div class="sourceCode" id="cb5"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb5-1"><a href="#cb5-1" tabindex="-1"></a><span class="co"># Split data for fair comparison</span></span>
+<span id="cb5-2"><a href="#cb5-2" tabindex="-1"></a>split <span class="ot">&lt;-</span> <span class="fu">tl_split</span>(iris, <span class="at">prop =</span> <span class="fl">0.7</span>, <span class="at">stratify =</span> <span class="st">&quot;Species&quot;</span>, <span class="at">seed =</span> <span class="dv">123</span>)</span>
+<span id="cb5-3"><a href="#cb5-3" tabindex="-1"></a></span>
+<span id="cb5-4"><a href="#cb5-4" tabindex="-1"></a><span class="co"># Model with original features</span></span>
+<span id="cb5-5"><a href="#cb5-5" tabindex="-1"></a>model_original <span class="ot">&lt;-</span> <span class="fu">tl_model</span>(split<span class="sc">$</span>train, Species <span class="sc">~</span> ., <span class="at">method =</span> <span class="st">&quot;logistic&quot;</span>)</span>
+<span id="cb5-6"><a href="#cb5-6" tabindex="-1"></a><span class="co">#&gt; Warning: glm.fit: algorithm did not converge</span></span>
+<span id="cb5-7"><a href="#cb5-7" tabindex="-1"></a><span class="co">#&gt; Warning: glm.fit: fitted probabilities numerically 0 or 1 occurred</span></span>
+<span id="cb5-8"><a href="#cb5-8" tabindex="-1"></a>preds_original <span class="ot">&lt;-</span> <span class="fu">predict</span>(model_original, <span class="at">new_data =</span> split<span class="sc">$</span>test)</span>
+<span id="cb5-9"><a href="#cb5-9" tabindex="-1"></a>acc_original <span class="ot">&lt;-</span> <span class="fu">mean</span>(preds_original<span class="sc">$</span>.pred <span class="sc">==</span> split<span class="sc">$</span>test<span class="sc">$</span>Species)</span>
+<span id="cb5-10"><a href="#cb5-10" tabindex="-1"></a></span>
+<span id="cb5-11"><a href="#cb5-11" tabindex="-1"></a><span class="co"># Model with PCA features</span></span>
+<span id="cb5-12"><a href="#cb5-12" tabindex="-1"></a>reduced_train <span class="ot">&lt;-</span> <span class="fu">tl_reduce_dimensions</span>(split<span class="sc">$</span>train,</span>
+<span id="cb5-13"><a href="#cb5-13" tabindex="-1"></a>                                     <span class="at">response =</span> <span class="st">&quot;Species&quot;</span>,</span>
+<span id="cb5-14"><a href="#cb5-14" tabindex="-1"></a>                                     <span class="at">method =</span> <span class="st">&quot;pca&quot;</span>,</span>
+<span id="cb5-15"><a href="#cb5-15" tabindex="-1"></a>                                     <span class="at">n_components =</span> <span class="dv">3</span>)</span>
+<span id="cb5-16"><a href="#cb5-16" tabindex="-1"></a></span>
+<span id="cb5-17"><a href="#cb5-17" tabindex="-1"></a><span class="co"># Remove .obs_id column before modeling (it&#39;s just an identifier)</span></span>
+<span id="cb5-18"><a href="#cb5-18" tabindex="-1"></a>reduced_train_data <span class="ot">&lt;-</span> reduced_train<span class="sc">$</span>data <span class="sc">%&gt;%</span> <span class="fu">select</span>(<span class="sc">-</span><span class="fu">starts_with</span>(<span class="st">&quot;.obs&quot;</span>))</span>
+<span id="cb5-19"><a href="#cb5-19" tabindex="-1"></a>model_pca <span class="ot">&lt;-</span> <span class="fu">tl_model</span>(reduced_train_data, Species <span class="sc">~</span> ., <span class="at">method =</span> <span class="st">&quot;logistic&quot;</span>)</span>
+<span id="cb5-20"><a href="#cb5-20" tabindex="-1"></a><span class="co">#&gt; Warning: glm.fit: algorithm did not converge</span></span>
+<span id="cb5-21"><a href="#cb5-21" tabindex="-1"></a><span class="co">#&gt; Warning: glm.fit: fitted probabilities numerically 0 or 1 occurred</span></span>
+<span id="cb5-22"><a href="#cb5-22" tabindex="-1"></a></span>
+<span id="cb5-23"><a href="#cb5-23" tabindex="-1"></a><span class="co"># Need to transform test data using same PCA</span></span>
+<span id="cb5-24"><a href="#cb5-24" tabindex="-1"></a>test_predictors <span class="ot">&lt;-</span> split<span class="sc">$</span>test <span class="sc">%&gt;%</span> <span class="fu">select</span>(<span class="sc">-</span>Species)</span>
+<span id="cb5-25"><a href="#cb5-25" tabindex="-1"></a>test_transformed <span class="ot">&lt;-</span> <span class="fu">predict</span>(reduced_train<span class="sc">$</span>reduction_model, <span class="at">new_data =</span> test_predictors)</span>
+<span id="cb5-26"><a href="#cb5-26" tabindex="-1"></a>test_transformed<span class="sc">$</span>Species <span class="ot">&lt;-</span> split<span class="sc">$</span>test<span class="sc">$</span>Species</span>
+<span id="cb5-27"><a href="#cb5-27" tabindex="-1"></a>test_transformed <span class="ot">&lt;-</span> test_transformed <span class="sc">%&gt;%</span> <span class="fu">select</span>(<span class="sc">-</span><span class="fu">starts_with</span>(<span class="st">&quot;.obs&quot;</span>))</span>
+<span id="cb5-28"><a href="#cb5-28" tabindex="-1"></a></span>
+<span id="cb5-29"><a href="#cb5-29" tabindex="-1"></a>preds_pca <span class="ot">&lt;-</span> <span class="fu">predict</span>(model_pca, <span class="at">new_data =</span> test_transformed)</span>
+<span id="cb5-30"><a href="#cb5-30" tabindex="-1"></a>acc_pca <span class="ot">&lt;-</span> <span class="fu">mean</span>(preds_pca<span class="sc">$</span>.pred <span class="sc">==</span> split<span class="sc">$</span>test<span class="sc">$</span>Species)</span>
+<span id="cb5-31"><a href="#cb5-31" tabindex="-1"></a></span>
+<span id="cb5-32"><a href="#cb5-32" tabindex="-1"></a><span class="co"># Compare results</span></span>
+<span id="cb5-33"><a href="#cb5-33" tabindex="-1"></a><span class="fu">cat</span>(<span class="st">&quot;Original features (4):&quot;</span>, <span class="fu">round</span>(acc_original <span class="sc">*</span> <span class="dv">100</span>, <span class="dv">1</span>), <span class="st">&quot;%</span><span class="sc">\n</span><span class="st">&quot;</span>)</span>
+<span id="cb5-34"><a href="#cb5-34" tabindex="-1"></a><span class="co">#&gt; Original features (4): 0 %</span></span>
+<span id="cb5-35"><a href="#cb5-35" tabindex="-1"></a><span class="fu">cat</span>(<span class="st">&quot;PCA features (3):&quot;</span>, <span class="fu">round</span>(acc_pca <span class="sc">*</span> <span class="dv">100</span>, <span class="dv">1</span>), <span class="st">&quot;%</span><span class="sc">\n</span><span class="st">&quot;</span>)</span>
+<span id="cb5-36"><a href="#cb5-36" tabindex="-1"></a><span class="co">#&gt; PCA features (3): 0 %</span></span>
+<span id="cb5-37"><a href="#cb5-37" tabindex="-1"></a><span class="fu">cat</span>(<span class="st">&quot;Feature reduction:&quot;</span>, <span class="fu">round</span>((<span class="dv">1</span> <span class="sc">-</span> <span class="dv">3</span><span class="sc">/</span><span class="dv">4</span>) <span class="sc">*</span> <span class="dv">100</span>, <span class="dv">1</span>), <span class="st">&quot;%</span><span class="sc">\n</span><span class="st">&quot;</span>)</span>
+<span id="cb5-38"><a href="#cb5-38" tabindex="-1"></a><span class="co">#&gt; Feature reduction: 25 %</span></span></code></pre></div>
+</div>
+</div>
+<div id="cluster-based-feature-engineering" class="section level2">
+<h2>Cluster-Based Feature Engineering</h2>
+<p>Add cluster assignments as features to boost supervised learning
+performance.</p>
+<div id="adding-cluster-features" class="section level3">
+<h3>Adding Cluster Features</h3>
+<div class="sourceCode" id="cb6"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb6-1"><a href="#cb6-1" tabindex="-1"></a><span class="co"># Add cluster features</span></span>
+<span id="cb6-2"><a href="#cb6-2" tabindex="-1"></a>data_clustered <span class="ot">&lt;-</span> <span class="fu">tl_add_cluster_features</span>(iris,</span>
+<span id="cb6-3"><a href="#cb6-3" tabindex="-1"></a>                                         <span class="at">response =</span> <span class="st">&quot;Species&quot;</span>,</span>
+<span id="cb6-4"><a href="#cb6-4" tabindex="-1"></a>                                         <span class="at">method =</span> <span class="st">&quot;kmeans&quot;</span>,</span>
+<span id="cb6-5"><a href="#cb6-5" tabindex="-1"></a>                                         <span class="at">k =</span> <span class="dv">3</span>)</span>
+<span id="cb6-6"><a href="#cb6-6" tabindex="-1"></a></span>
+<span id="cb6-7"><a href="#cb6-7" tabindex="-1"></a><span class="co"># Check new features</span></span>
+<span id="cb6-8"><a href="#cb6-8" tabindex="-1"></a><span class="fu">names</span>(data_clustered)</span>
+<span id="cb6-9"><a href="#cb6-9" tabindex="-1"></a><span class="co">#&gt; [1] &quot;Sepal.Length&quot;   &quot;Sepal.Width&quot;    &quot;Petal.Length&quot;   &quot;Petal.Width&quot;   </span></span>
+<span id="cb6-10"><a href="#cb6-10" tabindex="-1"></a><span class="co">#&gt; [5] &quot;Species&quot;        &quot;cluster_kmeans&quot;</span></span></code></pre></div>
+<div class="sourceCode" id="cb7"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb7-1"><a href="#cb7-1" tabindex="-1"></a><span class="co"># Train model with cluster features</span></span>
+<span id="cb7-2"><a href="#cb7-2" tabindex="-1"></a>model_cluster <span class="ot">&lt;-</span> <span class="fu">tl_model</span>(data_clustered, Species <span class="sc">~</span> ., <span class="at">method =</span> <span class="st">&quot;forest&quot;</span>)</span>
+<span id="cb7-3"><a href="#cb7-3" tabindex="-1"></a><span class="fu">print</span>(model_cluster)</span>
+<span id="cb7-4"><a href="#cb7-4" tabindex="-1"></a><span class="co">#&gt; tidylearn Model</span></span>
+<span id="cb7-5"><a href="#cb7-5" tabindex="-1"></a><span class="co">#&gt; ===============</span></span>
+<span id="cb7-6"><a href="#cb7-6" tabindex="-1"></a><span class="co">#&gt; Paradigm: supervised </span></span>
+<span id="cb7-7"><a href="#cb7-7" tabindex="-1"></a><span class="co">#&gt; Method: forest </span></span>
+<span id="cb7-8"><a href="#cb7-8" tabindex="-1"></a><span class="co">#&gt; Task: Classification </span></span>
+<span id="cb7-9"><a href="#cb7-9" tabindex="-1"></a><span class="co">#&gt; Formula: Species ~ . </span></span>
+<span id="cb7-10"><a href="#cb7-10" tabindex="-1"></a><span class="co">#&gt; </span></span>
+<span id="cb7-11"><a href="#cb7-11" tabindex="-1"></a><span class="co">#&gt; Training observations: 150</span></span></code></pre></div>
+</div>
+<div id="performance-comparison" class="section level3">
+<h3>Performance Comparison</h3>
+<div class="sourceCode" id="cb8"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb8-1"><a href="#cb8-1" tabindex="-1"></a><span class="co"># Compare models with and without cluster features</span></span>
+<span id="cb8-2"><a href="#cb8-2" tabindex="-1"></a>split_comp <span class="ot">&lt;-</span> <span class="fu">tl_split</span>(iris, <span class="at">prop =</span> <span class="fl">0.7</span>, <span class="at">stratify =</span> <span class="st">&quot;Species&quot;</span>, <span class="at">seed =</span> <span class="dv">42</span>)</span>
+<span id="cb8-3"><a href="#cb8-3" tabindex="-1"></a></span>
+<span id="cb8-4"><a href="#cb8-4" tabindex="-1"></a><span class="co"># Without cluster features</span></span>
+<span id="cb8-5"><a href="#cb8-5" tabindex="-1"></a>model_no_cluster <span class="ot">&lt;-</span> <span class="fu">tl_model</span>(split_comp<span class="sc">$</span>train, Species <span class="sc">~</span> ., <span class="at">method =</span> <span class="st">&quot;forest&quot;</span>)</span>
+<span id="cb8-6"><a href="#cb8-6" tabindex="-1"></a>preds_no_cluster <span class="ot">&lt;-</span> <span class="fu">predict</span>(model_no_cluster, <span class="at">new_data =</span> split_comp<span class="sc">$</span>test)</span>
+<span id="cb8-7"><a href="#cb8-7" tabindex="-1"></a>acc_no_cluster <span class="ot">&lt;-</span> <span class="fu">mean</span>(preds_no_cluster<span class="sc">$</span>.pred <span class="sc">==</span> split_comp<span class="sc">$</span>test<span class="sc">$</span>Species)</span>
+<span id="cb8-8"><a href="#cb8-8" tabindex="-1"></a></span>
+<span id="cb8-9"><a href="#cb8-9" tabindex="-1"></a><span class="co"># With cluster features</span></span>
+<span id="cb8-10"><a href="#cb8-10" tabindex="-1"></a>train_clustered <span class="ot">&lt;-</span> <span class="fu">tl_add_cluster_features</span>(split_comp<span class="sc">$</span>train,</span>
+<span id="cb8-11"><a href="#cb8-11" tabindex="-1"></a>                                          <span class="at">response =</span> <span class="st">&quot;Species&quot;</span>,</span>
+<span id="cb8-12"><a href="#cb8-12" tabindex="-1"></a>                                          <span class="at">method =</span> <span class="st">&quot;kmeans&quot;</span>,</span>
+<span id="cb8-13"><a href="#cb8-13" tabindex="-1"></a>                                          <span class="at">k =</span> <span class="dv">3</span>)</span>
+<span id="cb8-14"><a href="#cb8-14" tabindex="-1"></a>model_with_cluster <span class="ot">&lt;-</span> <span class="fu">tl_model</span>(train_clustered, Species <span class="sc">~</span> ., <span class="at">method =</span> <span class="st">&quot;forest&quot;</span>)</span>
+<span id="cb8-15"><a href="#cb8-15" tabindex="-1"></a></span>
+<span id="cb8-16"><a href="#cb8-16" tabindex="-1"></a><span class="co"># Need to get cluster model for test data</span></span>
+<span id="cb8-17"><a href="#cb8-17" tabindex="-1"></a>cluster_model <span class="ot">&lt;-</span> <span class="fu">attr</span>(train_clustered, <span class="st">&quot;cluster_model&quot;</span>)</span>
+<span id="cb8-18"><a href="#cb8-18" tabindex="-1"></a>test_clusters <span class="ot">&lt;-</span> <span class="fu">predict</span>(cluster_model, <span class="at">new_data =</span> split_comp<span class="sc">$</span>test[, <span class="sc">-</span><span class="dv">5</span>])</span>
+<span id="cb8-19"><a href="#cb8-19" tabindex="-1"></a>test_clustered <span class="ot">&lt;-</span> split_comp<span class="sc">$</span>test</span>
+<span id="cb8-20"><a href="#cb8-20" tabindex="-1"></a>test_clustered<span class="sc">$</span>cluster_kmeans <span class="ot">&lt;-</span> <span class="fu">as.factor</span>(test_clusters<span class="sc">$</span>cluster)</span>
+<span id="cb8-21"><a href="#cb8-21" tabindex="-1"></a></span>
+<span id="cb8-22"><a href="#cb8-22" tabindex="-1"></a>preds_with_cluster <span class="ot">&lt;-</span> <span class="fu">predict</span>(model_with_cluster, <span class="at">new_data =</span> test_clustered)</span>
+<span id="cb8-23"><a href="#cb8-23" tabindex="-1"></a>acc_with_cluster <span class="ot">&lt;-</span> <span class="fu">mean</span>(preds_with_cluster<span class="sc">$</span>.pred <span class="sc">==</span> split_comp<span class="sc">$</span>test<span class="sc">$</span>Species)</span>
+<span id="cb8-24"><a href="#cb8-24" tabindex="-1"></a></span>
+<span id="cb8-25"><a href="#cb8-25" tabindex="-1"></a><span class="fu">cat</span>(<span class="st">&quot;Without cluster features:&quot;</span>, <span class="fu">round</span>(acc_no_cluster <span class="sc">*</span> <span class="dv">100</span>, <span class="dv">1</span>), <span class="st">&quot;%</span><span class="sc">\n</span><span class="st">&quot;</span>)</span>
+<span id="cb8-26"><a href="#cb8-26" tabindex="-1"></a><span class="co">#&gt; Without cluster features: 93.3 %</span></span>
+<span id="cb8-27"><a href="#cb8-27" tabindex="-1"></a><span class="fu">cat</span>(<span class="st">&quot;With cluster features:&quot;</span>, <span class="fu">round</span>(acc_with_cluster <span class="sc">*</span> <span class="dv">100</span>, <span class="dv">1</span>), <span class="st">&quot;%</span><span class="sc">\n</span><span class="st">&quot;</span>)</span>
+<span id="cb8-28"><a href="#cb8-28" tabindex="-1"></a><span class="co">#&gt; With cluster features: 93.3 %</span></span></code></pre></div>
+</div>
+</div>
+<div id="semi-supervised-learning" class="section level2">
+<h2>Semi-Supervised Learning</h2>
+<p>Train models with limited labels using cluster-based label
+propagation.</p>
+<div id="training-with-limited-labels" class="section level3">
+<h3>Training with Limited Labels</h3>
+<div class="sourceCode" id="cb9"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb9-1"><a href="#cb9-1" tabindex="-1"></a><span class="co"># Use only 10% of labels</span></span>
+<span id="cb9-2"><a href="#cb9-2" tabindex="-1"></a><span class="fu">set.seed</span>(<span class="dv">123</span>)</span>
+<span id="cb9-3"><a href="#cb9-3" tabindex="-1"></a>labeled_indices <span class="ot">&lt;-</span> <span class="fu">sample</span>(<span class="fu">nrow</span>(iris), <span class="at">size =</span> <span class="dv">15</span>)  <span class="co"># Only 15 out of 150 labeled!</span></span>
+<span id="cb9-4"><a href="#cb9-4" tabindex="-1"></a></span>
+<span id="cb9-5"><a href="#cb9-5" tabindex="-1"></a><span class="co"># Train semi-supervised model</span></span>
+<span id="cb9-6"><a href="#cb9-6" tabindex="-1"></a>model_semi <span class="ot">&lt;-</span> <span class="fu">tl_semisupervised</span>(iris, Species <span class="sc">~</span> .,</span>
+<span id="cb9-7"><a href="#cb9-7" tabindex="-1"></a>                               <span class="at">labeled_indices =</span> labeled_indices,</span>
+<span id="cb9-8"><a href="#cb9-8" tabindex="-1"></a>                               <span class="at">cluster_method =</span> <span class="st">&quot;kmeans&quot;</span>,</span>
+<span id="cb9-9"><a href="#cb9-9" tabindex="-1"></a>                               <span class="at">supervised_method =</span> <span class="st">&quot;logistic&quot;</span>)</span>
+<span id="cb9-10"><a href="#cb9-10" tabindex="-1"></a><span class="co">#&gt; Warning: glm.fit: algorithm did not converge</span></span>
+<span id="cb9-11"><a href="#cb9-11" tabindex="-1"></a><span class="co">#&gt; Warning: glm.fit: fitted probabilities numerically 0 or 1 occurred</span></span>
+<span id="cb9-12"><a href="#cb9-12" tabindex="-1"></a></span>
+<span id="cb9-13"><a href="#cb9-13" tabindex="-1"></a><span class="fu">print</span>(model_semi)</span>
+<span id="cb9-14"><a href="#cb9-14" tabindex="-1"></a><span class="co">#&gt; tidylearn Model</span></span>
+<span id="cb9-15"><a href="#cb9-15" tabindex="-1"></a><span class="co">#&gt; ===============</span></span>
+<span id="cb9-16"><a href="#cb9-16" tabindex="-1"></a><span class="co">#&gt; Paradigm: supervised </span></span>
+<span id="cb9-17"><a href="#cb9-17" tabindex="-1"></a><span class="co">#&gt; Method: logistic </span></span>
+<span id="cb9-18"><a href="#cb9-18" tabindex="-1"></a><span class="co">#&gt; Task: Classification </span></span>
+<span id="cb9-19"><a href="#cb9-19" tabindex="-1"></a><span class="co">#&gt; Formula: Species ~ . </span></span>
+<span id="cb9-20"><a href="#cb9-20" tabindex="-1"></a><span class="co">#&gt; </span></span>
+<span id="cb9-21"><a href="#cb9-21" tabindex="-1"></a><span class="co">#&gt; Training observations: 150</span></span></code></pre></div>
+<div class="sourceCode" id="cb10"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb10-1"><a href="#cb10-1" tabindex="-1"></a><span class="co"># Check how labels were propagated</span></span>
+<span id="cb10-2"><a href="#cb10-2" tabindex="-1"></a>label_mapping <span class="ot">&lt;-</span> model_semi<span class="sc">$</span>semisupervised_info<span class="sc">$</span>label_mapping</span>
+<span id="cb10-3"><a href="#cb10-3" tabindex="-1"></a><span class="fu">print</span>(label_mapping)</span>
+<span id="cb10-4"><a href="#cb10-4" tabindex="-1"></a><span class="co">#&gt; # A tibble: 3 × 2</span></span>
+<span id="cb10-5"><a href="#cb10-5" tabindex="-1"></a><span class="co">#&gt;   cluster cluster_label</span></span>
+<span id="cb10-6"><a href="#cb10-6" tabindex="-1"></a><span class="co">#&gt;     &lt;int&gt; &lt;chr&gt;        </span></span>
+<span id="cb10-7"><a href="#cb10-7" tabindex="-1"></a><span class="co">#&gt; 1       1 virginica    </span></span>
+<span id="cb10-8"><a href="#cb10-8" tabindex="-1"></a><span class="co">#&gt; 2       2 versicolor   </span></span>
+<span id="cb10-9"><a href="#cb10-9" tabindex="-1"></a><span class="co">#&gt; 3       3 setosa</span></span></code></pre></div>
+<div class="sourceCode" id="cb11"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb11-1"><a href="#cb11-1" tabindex="-1"></a><span class="co"># Evaluate performance</span></span>
+<span id="cb11-2"><a href="#cb11-2" tabindex="-1"></a>preds_semi <span class="ot">&lt;-</span> <span class="fu">predict</span>(model_semi)</span>
+<span id="cb11-3"><a href="#cb11-3" tabindex="-1"></a>accuracy_semi <span class="ot">&lt;-</span> <span class="fu">mean</span>(preds_semi<span class="sc">$</span>.pred <span class="sc">==</span> iris<span class="sc">$</span>Species)</span>
+<span id="cb11-4"><a href="#cb11-4" tabindex="-1"></a></span>
+<span id="cb11-5"><a href="#cb11-5" tabindex="-1"></a><span class="fu">cat</span>(<span class="st">&quot;Accuracy with only&quot;</span>, <span class="fu">length</span>(labeled_indices), <span class="st">&quot;labels:&quot;</span>,</span>
+<span id="cb11-6"><a href="#cb11-6" tabindex="-1"></a>    <span class="fu">round</span>(accuracy_semi <span class="sc">*</span> <span class="dv">100</span>, <span class="dv">1</span>), <span class="st">&quot;%</span><span class="sc">\n</span><span class="st">&quot;</span>)</span>
+<span id="cb11-7"><a href="#cb11-7" tabindex="-1"></a><span class="co">#&gt; Accuracy with only 15 labels: 0 %</span></span>
+<span id="cb11-8"><a href="#cb11-8" tabindex="-1"></a><span class="fu">cat</span>(<span class="st">&quot;Proportion of data labeled:&quot;</span>, <span class="fu">round</span>(<span class="fu">length</span>(labeled_indices)<span class="sc">/</span><span class="fu">nrow</span>(iris) <span class="sc">*</span> <span class="dv">100</span>, <span class="dv">1</span>), <span class="st">&quot;%</span><span class="sc">\n</span><span class="st">&quot;</span>)</span>
+<span id="cb11-9"><a href="#cb11-9" tabindex="-1"></a><span class="co">#&gt; Proportion of data labeled: 10 %</span></span></code></pre></div>
+</div>
+<div id="comparison-semi-supervised-vs-fully-supervised" class="section level3">
+<h3>Comparison: Semi-Supervised vs Fully Supervised</h3>
+<div class="sourceCode" id="cb12"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb12-1"><a href="#cb12-1" tabindex="-1"></a><span class="co"># Fully supervised with same amount of data</span></span>
+<span id="cb12-2"><a href="#cb12-2" tabindex="-1"></a>labeled_data <span class="ot">&lt;-</span> iris[labeled_indices, ]</span>
+<span id="cb12-3"><a href="#cb12-3" tabindex="-1"></a>model_full <span class="ot">&lt;-</span> <span class="fu">tl_model</span>(labeled_data, Species <span class="sc">~</span> ., <span class="at">method =</span> <span class="st">&quot;logistic&quot;</span>)</span>
+<span id="cb12-4"><a href="#cb12-4" tabindex="-1"></a><span class="co">#&gt; Warning: glm.fit: fitted probabilities numerically 0 or 1 occurred</span></span>
+<span id="cb12-5"><a href="#cb12-5" tabindex="-1"></a>preds_full <span class="ot">&lt;-</span> <span class="fu">predict</span>(model_full, <span class="at">new_data =</span> iris)</span>
+<span id="cb12-6"><a href="#cb12-6" tabindex="-1"></a>accuracy_full <span class="ot">&lt;-</span> <span class="fu">mean</span>(preds_full<span class="sc">$</span>.pred <span class="sc">==</span> iris<span class="sc">$</span>Species)</span>
+<span id="cb12-7"><a href="#cb12-7" tabindex="-1"></a></span>
+<span id="cb12-8"><a href="#cb12-8" tabindex="-1"></a><span class="fu">cat</span>(<span class="st">&quot;Fully supervised (15 samples):&quot;</span>, <span class="fu">round</span>(accuracy_full <span class="sc">*</span> <span class="dv">100</span>, <span class="dv">1</span>), <span class="st">&quot;%</span><span class="sc">\n</span><span class="st">&quot;</span>)</span>
+<span id="cb12-9"><a href="#cb12-9" tabindex="-1"></a><span class="co">#&gt; Fully supervised (15 samples): 0 %</span></span>
+<span id="cb12-10"><a href="#cb12-10" tabindex="-1"></a><span class="fu">cat</span>(<span class="st">&quot;Semi-supervised (15 labels + propagation):&quot;</span>, <span class="fu">round</span>(accuracy_semi <span class="sc">*</span> <span class="dv">100</span>, <span class="dv">1</span>), <span class="st">&quot;%</span><span class="sc">\n</span><span class="st">&quot;</span>)</span>
+<span id="cb12-11"><a href="#cb12-11" tabindex="-1"></a><span class="co">#&gt; Semi-supervised (15 labels + propagation): 0 %</span></span></code></pre></div>
+</div>
+</div>
+<div id="anomaly-aware-modeling" class="section level2">
+<h2>Anomaly-Aware Modeling</h2>
+<p>Detect and handle outliers before supervised learning.</p>
+<div id="flagging-anomalies" class="section level3">
+<h3>Flagging Anomalies</h3>
+<div class="sourceCode" id="cb13"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb13-1"><a href="#cb13-1" tabindex="-1"></a><span class="co"># Flag anomalies as a feature</span></span>
+<span id="cb13-2"><a href="#cb13-2" tabindex="-1"></a>model_anomaly_flag <span class="ot">&lt;-</span> <span class="fu">tl_anomaly_aware</span>(iris, Species <span class="sc">~</span> .,</span>
+<span id="cb13-3"><a href="#cb13-3" tabindex="-1"></a>                                      <span class="at">response =</span> <span class="st">&quot;Species&quot;</span>,</span>
+<span id="cb13-4"><a href="#cb13-4" tabindex="-1"></a>                                      <span class="at">anomaly_method =</span> <span class="st">&quot;dbscan&quot;</span>,</span>
+<span id="cb13-5"><a href="#cb13-5" tabindex="-1"></a>                                      <span class="at">action =</span> <span class="st">&quot;flag&quot;</span>,</span>
+<span id="cb13-6"><a href="#cb13-6" tabindex="-1"></a>                                      <span class="at">supervised_method =</span> <span class="st">&quot;logistic&quot;</span>)</span>
+<span id="cb13-7"><a href="#cb13-7" tabindex="-1"></a></span>
+<span id="cb13-8"><a href="#cb13-8" tabindex="-1"></a><span class="co"># Check anomaly info</span></span>
+<span id="cb13-9"><a href="#cb13-9" tabindex="-1"></a><span class="fu">cat</span>(<span class="st">&quot;Anomalies detected:&quot;</span>, model_anomaly_flag<span class="sc">$</span>anomaly_info<span class="sc">$</span>n_anomalies, <span class="st">&quot;</span><span class="sc">\n</span><span class="st">&quot;</span>)</span></code></pre></div>
+</div>
+<div id="removing-anomalies" class="section level3">
+<h3>Removing Anomalies</h3>
+<div class="sourceCode" id="cb14"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb14-1"><a href="#cb14-1" tabindex="-1"></a><span class="co"># Remove anomalies before training</span></span>
+<span id="cb14-2"><a href="#cb14-2" tabindex="-1"></a>model_anomaly_remove <span class="ot">&lt;-</span> <span class="fu">tl_anomaly_aware</span>(iris, Species <span class="sc">~</span> .,</span>
+<span id="cb14-3"><a href="#cb14-3" tabindex="-1"></a>                                        <span class="at">response =</span> <span class="st">&quot;Species&quot;</span>,</span>
+<span id="cb14-4"><a href="#cb14-4" tabindex="-1"></a>                                        <span class="at">anomaly_method =</span> <span class="st">&quot;dbscan&quot;</span>,</span>
+<span id="cb14-5"><a href="#cb14-5" tabindex="-1"></a>                                        <span class="at">action =</span> <span class="st">&quot;remove&quot;</span>,</span>
+<span id="cb14-6"><a href="#cb14-6" tabindex="-1"></a>                                        <span class="at">supervised_method =</span> <span class="st">&quot;logistic&quot;</span>)</span>
+<span id="cb14-7"><a href="#cb14-7" tabindex="-1"></a></span>
+<span id="cb14-8"><a href="#cb14-8" tabindex="-1"></a><span class="fu">cat</span>(<span class="st">&quot;Anomalies removed:&quot;</span>, model_anomaly_remove<span class="sc">$</span>anomalies_removed, <span class="st">&quot;</span><span class="sc">\n</span><span class="st">&quot;</span>)</span></code></pre></div>
+</div>
+</div>
+<div id="stratified-models" class="section level2">
+<h2>Stratified Models</h2>
+<p>Create cluster-specific models for heterogeneous data.</p>
+<div id="training-stratified-models" class="section level3">
+<h3>Training Stratified Models</h3>
+<div class="sourceCode" id="cb15"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb15-1"><a href="#cb15-1" tabindex="-1"></a><span class="co"># Train separate models for different clusters</span></span>
+<span id="cb15-2"><a href="#cb15-2" tabindex="-1"></a>stratified_models <span class="ot">&lt;-</span> <span class="fu">tl_stratified_models</span>(mtcars, mpg <span class="sc">~</span> .,</span>
+<span id="cb15-3"><a href="#cb15-3" tabindex="-1"></a>                                         <span class="at">cluster_method =</span> <span class="st">&quot;kmeans&quot;</span>,</span>
+<span id="cb15-4"><a href="#cb15-4" tabindex="-1"></a>                                         <span class="at">k =</span> <span class="dv">3</span>,</span>
+<span id="cb15-5"><a href="#cb15-5" tabindex="-1"></a>                                         <span class="at">supervised_method =</span> <span class="st">&quot;linear&quot;</span>)</span>
+<span id="cb15-6"><a href="#cb15-6" tabindex="-1"></a><span class="co">#&gt; Warning in tl_model_supervised(data, formula, method, ...): Response appears to</span></span>
+<span id="cb15-7"><a href="#cb15-7" tabindex="-1"></a><span class="co">#&gt; be categorical but is stored as numeric. Consider converting to factor.</span></span>
+<span id="cb15-8"><a href="#cb15-8" tabindex="-1"></a><span class="co">#&gt; Warning in tl_model_supervised(data, formula, method, ...): Response appears to</span></span>
+<span id="cb15-9"><a href="#cb15-9" tabindex="-1"></a><span class="co">#&gt; be categorical but is stored as numeric. Consider converting to factor.</span></span>
+<span id="cb15-10"><a href="#cb15-10" tabindex="-1"></a></span>
+<span id="cb15-11"><a href="#cb15-11" tabindex="-1"></a><span class="co"># Check structure</span></span>
+<span id="cb15-12"><a href="#cb15-12" tabindex="-1"></a><span class="fu">names</span>(stratified_models)</span>
+<span id="cb15-13"><a href="#cb15-13" tabindex="-1"></a><span class="co">#&gt; [1] &quot;cluster_model&quot;     &quot;supervised_models&quot; &quot;formula&quot;          </span></span>
+<span id="cb15-14"><a href="#cb15-14" tabindex="-1"></a><span class="co">#&gt; [4] &quot;data&quot;</span></span>
+<span id="cb15-15"><a href="#cb15-15" tabindex="-1"></a><span class="fu">length</span>(stratified_models<span class="sc">$</span>supervised_models)</span>
+<span id="cb15-16"><a href="#cb15-16" tabindex="-1"></a><span class="co">#&gt; [1] 3</span></span></code></pre></div>
+<div class="sourceCode" id="cb16"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb16-1"><a href="#cb16-1" tabindex="-1"></a><span class="co"># Predictions using stratified models</span></span>
+<span id="cb16-2"><a href="#cb16-2" tabindex="-1"></a>preds_stratified <span class="ot">&lt;-</span> <span class="fu">predict</span>(stratified_models)</span>
+<span id="cb16-3"><a href="#cb16-3" tabindex="-1"></a><span class="fu">head</span>(preds_stratified)</span>
+<span id="cb16-4"><a href="#cb16-4" tabindex="-1"></a><span class="co">#&gt; # A tibble: 6 × 2</span></span>
+<span id="cb16-5"><a href="#cb16-5" tabindex="-1"></a><span class="co">#&gt;   .pred .cluster</span></span>
+<span id="cb16-6"><a href="#cb16-6" tabindex="-1"></a><span class="co">#&gt;   &lt;dbl&gt;    &lt;int&gt;</span></span>
+<span id="cb16-7"><a href="#cb16-7" tabindex="-1"></a><span class="co">#&gt; 1  20.7        2</span></span>
+<span id="cb16-8"><a href="#cb16-8" tabindex="-1"></a><span class="co">#&gt; 2  20.5        2</span></span>
+<span id="cb16-9"><a href="#cb16-9" tabindex="-1"></a><span class="co">#&gt; 3  24.7        2</span></span>
+<span id="cb16-10"><a href="#cb16-10" tabindex="-1"></a><span class="co">#&gt; 4  21.4        1</span></span>
+<span id="cb16-11"><a href="#cb16-11" tabindex="-1"></a><span class="co">#&gt; 5  19.2        3</span></span>
+<span id="cb16-12"><a href="#cb16-12" tabindex="-1"></a><span class="co">#&gt; 6  18.1        1</span></span></code></pre></div>
+<div class="sourceCode" id="cb17"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb17-1"><a href="#cb17-1" tabindex="-1"></a><span class="co"># Calculate RMSE</span></span>
+<span id="cb17-2"><a href="#cb17-2" tabindex="-1"></a>rmse_stratified <span class="ot">&lt;-</span> <span class="fu">sqrt</span>(<span class="fu">mean</span>((preds_stratified<span class="sc">$</span>.pred <span class="sc">-</span> mtcars<span class="sc">$</span>mpg)<span class="sc">^</span><span class="dv">2</span>))</span>
+<span id="cb17-3"><a href="#cb17-3" tabindex="-1"></a><span class="fu">cat</span>(<span class="st">&quot;Stratified Model RMSE:&quot;</span>, <span class="fu">round</span>(rmse_stratified, <span class="dv">2</span>), <span class="st">&quot;</span><span class="sc">\n</span><span class="st">&quot;</span>)</span>
+<span id="cb17-4"><a href="#cb17-4" tabindex="-1"></a><span class="co">#&gt; Stratified Model RMSE: 1.06</span></span>
+<span id="cb17-5"><a href="#cb17-5" tabindex="-1"></a></span>
+<span id="cb17-6"><a href="#cb17-6" tabindex="-1"></a><span class="co"># Compare with single model</span></span>
+<span id="cb17-7"><a href="#cb17-7" tabindex="-1"></a>model_single <span class="ot">&lt;-</span> <span class="fu">tl_model</span>(mtcars, mpg <span class="sc">~</span> ., <span class="at">method =</span> <span class="st">&quot;linear&quot;</span>)</span>
+<span id="cb17-8"><a href="#cb17-8" tabindex="-1"></a>preds_single <span class="ot">&lt;-</span> <span class="fu">predict</span>(model_single)</span>
+<span id="cb17-9"><a href="#cb17-9" tabindex="-1"></a>rmse_single <span class="ot">&lt;-</span> <span class="fu">sqrt</span>(<span class="fu">mean</span>((preds_single<span class="sc">$</span>.pred <span class="sc">-</span> mtcars<span class="sc">$</span>mpg)<span class="sc">^</span><span class="dv">2</span>))</span>
+<span id="cb17-10"><a href="#cb17-10" tabindex="-1"></a><span class="fu">cat</span>(<span class="st">&quot;Single Model RMSE:&quot;</span>, <span class="fu">round</span>(rmse_single, <span class="dv">2</span>), <span class="st">&quot;</span><span class="sc">\n</span><span class="st">&quot;</span>)</span>
+<span id="cb17-11"><a href="#cb17-11" tabindex="-1"></a><span class="co">#&gt; Single Model RMSE: 2.15</span></span></code></pre></div>
+</div>
+</div>
+<div id="complete-integration-workflow" class="section level2">
+<h2>Complete Integration Workflow</h2>
+<p>Combining multiple integration techniques:</p>
+<div class="sourceCode" id="cb18"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb18-1"><a href="#cb18-1" tabindex="-1"></a><span class="co"># Step 1: Split data</span></span>
+<span id="cb18-2"><a href="#cb18-2" tabindex="-1"></a>workflow_split <span class="ot">&lt;-</span> <span class="fu">tl_split</span>(iris, <span class="at">prop =</span> <span class="fl">0.7</span>, <span class="at">stratify =</span> <span class="st">&quot;Species&quot;</span>, <span class="at">seed =</span> <span class="dv">42</span>)</span>
+<span id="cb18-3"><a href="#cb18-3" tabindex="-1"></a></span>
+<span id="cb18-4"><a href="#cb18-4" tabindex="-1"></a><span class="co"># Step 2: Reduce dimensions</span></span>
+<span id="cb18-5"><a href="#cb18-5" tabindex="-1"></a>workflow_reduced <span class="ot">&lt;-</span> <span class="fu">tl_reduce_dimensions</span>(workflow_split<span class="sc">$</span>train,</span>
+<span id="cb18-6"><a href="#cb18-6" tabindex="-1"></a>                                        <span class="at">response =</span> <span class="st">&quot;Species&quot;</span>,</span>
+<span id="cb18-7"><a href="#cb18-7" tabindex="-1"></a>                                        <span class="at">method =</span> <span class="st">&quot;pca&quot;</span>,</span>
+<span id="cb18-8"><a href="#cb18-8" tabindex="-1"></a>                                        <span class="at">n_components =</span> <span class="dv">3</span>)</span>
+<span id="cb18-9"><a href="#cb18-9" tabindex="-1"></a></span>
+<span id="cb18-10"><a href="#cb18-10" tabindex="-1"></a><span class="co"># Step 3: Add cluster features to reduced data (remove .obs_id first)</span></span>
+<span id="cb18-11"><a href="#cb18-11" tabindex="-1"></a>workflow_reduced_clean <span class="ot">&lt;-</span> workflow_reduced<span class="sc">$</span>data <span class="sc">%&gt;%</span> <span class="fu">select</span>(<span class="sc">-</span><span class="fu">starts_with</span>(<span class="st">&quot;.obs&quot;</span>))</span>
+<span id="cb18-12"><a href="#cb18-12" tabindex="-1"></a>workflow_clustered <span class="ot">&lt;-</span> <span class="fu">tl_add_cluster_features</span>(workflow_reduced_clean,</span>
+<span id="cb18-13"><a href="#cb18-13" tabindex="-1"></a>                                             <span class="at">response =</span> <span class="st">&quot;Species&quot;</span>,</span>
+<span id="cb18-14"><a href="#cb18-14" tabindex="-1"></a>                                             <span class="at">method =</span> <span class="st">&quot;kmeans&quot;</span>,</span>
+<span id="cb18-15"><a href="#cb18-15" tabindex="-1"></a>                                             <span class="at">k =</span> <span class="dv">3</span>)</span>
+<span id="cb18-16"><a href="#cb18-16" tabindex="-1"></a></span>
+<span id="cb18-17"><a href="#cb18-17" tabindex="-1"></a><span class="co"># Step 4: Train final model</span></span>
+<span id="cb18-18"><a href="#cb18-18" tabindex="-1"></a>workflow_model <span class="ot">&lt;-</span> <span class="fu">tl_model</span>(workflow_clustered, Species <span class="sc">~</span> ., <span class="at">method =</span> <span class="st">&quot;forest&quot;</span>)</span>
+<span id="cb18-19"><a href="#cb18-19" tabindex="-1"></a></span>
+<span id="cb18-20"><a href="#cb18-20" tabindex="-1"></a><span class="fu">print</span>(workflow_model)</span>
+<span id="cb18-21"><a href="#cb18-21" tabindex="-1"></a><span class="co">#&gt; tidylearn Model</span></span>
+<span id="cb18-22"><a href="#cb18-22" tabindex="-1"></a><span class="co">#&gt; ===============</span></span>
+<span id="cb18-23"><a href="#cb18-23" tabindex="-1"></a><span class="co">#&gt; Paradigm: supervised </span></span>
+<span id="cb18-24"><a href="#cb18-24" tabindex="-1"></a><span class="co">#&gt; Method: forest </span></span>
+<span id="cb18-25"><a href="#cb18-25" tabindex="-1"></a><span class="co">#&gt; Task: Classification </span></span>
+<span id="cb18-26"><a href="#cb18-26" tabindex="-1"></a><span class="co">#&gt; Formula: Species ~ . </span></span>
+<span id="cb18-27"><a href="#cb18-27" tabindex="-1"></a><span class="co">#&gt; </span></span>
+<span id="cb18-28"><a href="#cb18-28" tabindex="-1"></a><span class="co">#&gt; Training observations: 105</span></span></code></pre></div>
+<div class="sourceCode" id="cb19"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb19-1"><a href="#cb19-1" tabindex="-1"></a><span class="co"># Transform test data through same pipeline</span></span>
+<span id="cb19-2"><a href="#cb19-2" tabindex="-1"></a><span class="co"># 1. Apply PCA transformation</span></span>
+<span id="cb19-3"><a href="#cb19-3" tabindex="-1"></a>test_pca <span class="ot">&lt;-</span> <span class="fu">predict</span>(workflow_reduced<span class="sc">$</span>reduction_model,</span>
+<span id="cb19-4"><a href="#cb19-4" tabindex="-1"></a>                   <span class="at">new_data =</span> workflow_split<span class="sc">$</span>test[, <span class="sc">-</span><span class="dv">5</span>])</span>
+<span id="cb19-5"><a href="#cb19-5" tabindex="-1"></a>test_pca<span class="sc">$</span>Species <span class="ot">&lt;-</span> workflow_split<span class="sc">$</span>test<span class="sc">$</span>Species</span>
+<span id="cb19-6"><a href="#cb19-6" tabindex="-1"></a></span>
+<span id="cb19-7"><a href="#cb19-7" tabindex="-1"></a><span class="co"># 2. Get cluster assignments</span></span>
+<span id="cb19-8"><a href="#cb19-8" tabindex="-1"></a>cluster_model_wf <span class="ot">&lt;-</span> <span class="fu">attr</span>(workflow_clustered, <span class="st">&quot;cluster_model&quot;</span>)</span>
+<span id="cb19-9"><a href="#cb19-9" tabindex="-1"></a>test_clusters_wf <span class="ot">&lt;-</span> <span class="fu">predict</span>(cluster_model_wf,</span>
+<span id="cb19-10"><a href="#cb19-10" tabindex="-1"></a>                            <span class="at">new_data =</span> test_pca[, <span class="fu">grep</span>(<span class="st">&quot;PC&quot;</span>, <span class="fu">names</span>(test_pca))])</span>
+<span id="cb19-11"><a href="#cb19-11" tabindex="-1"></a><span class="co">#&gt; Warning in x - c: longer object length is not a multiple of shorter object</span></span>
+<span id="cb19-12"><a href="#cb19-12" tabindex="-1"></a><span class="co">#&gt; length</span></span>
+<span id="cb19-13"><a href="#cb19-13" tabindex="-1"></a><span class="co">#&gt; Warning in x - c: longer object length is not a multiple of shorter object</span></span>
+<span id="cb19-14"><a href="#cb19-14" tabindex="-1"></a><span class="co">#&gt; length</span></span>
+<span id="cb19-15"><a href="#cb19-15" tabindex="-1"></a><span class="co">#&gt; Warning in x - c: longer object length is not a multiple of shorter object</span></span>
+<span id="cb19-16"><a href="#cb19-16" tabindex="-1"></a><span class="co">#&gt; length</span></span>
+<span id="cb19-17"><a href="#cb19-17" tabindex="-1"></a><span class="co">#&gt; Warning in x - c: longer object length is not a multiple of shorter object</span></span>
+<span id="cb19-18"><a href="#cb19-18" tabindex="-1"></a><span class="co">#&gt; length</span></span>
+<span id="cb19-19"><a href="#cb19-19" tabindex="-1"></a><span class="co">#&gt; Warning in x - c: longer object length is not a multiple of shorter object</span></span>
+<span id="cb19-20"><a href="#cb19-20" tabindex="-1"></a><span class="co">#&gt; length</span></span>
+<span id="cb19-21"><a href="#cb19-21" tabindex="-1"></a><span class="co">#&gt; Warning in x - c: longer object length is not a multiple of shorter object</span></span>
+<span id="cb19-22"><a href="#cb19-22" tabindex="-1"></a><span class="co">#&gt; length</span></span>
+<span id="cb19-23"><a href="#cb19-23" tabindex="-1"></a><span class="co">#&gt; Warning in x - c: longer object length is not a multiple of shorter object</span></span>
+<span id="cb19-24"><a href="#cb19-24" tabindex="-1"></a><span class="co">#&gt; length</span></span>
+<span id="cb19-25"><a href="#cb19-25" tabindex="-1"></a><span class="co">#&gt; Warning in x - c: longer object length is not a multiple of shorter object</span></span>
+<span id="cb19-26"><a href="#cb19-26" tabindex="-1"></a><span class="co">#&gt; length</span></span>
+<span id="cb19-27"><a href="#cb19-27" tabindex="-1"></a><span class="co">#&gt; Warning in x - c: longer object length is not a multiple of shorter object</span></span>
+<span id="cb19-28"><a href="#cb19-28" tabindex="-1"></a><span class="co">#&gt; length</span></span>
+<span id="cb19-29"><a href="#cb19-29" tabindex="-1"></a><span class="co">#&gt; Warning in x - c: longer object length is not a multiple of shorter object</span></span>
+<span id="cb19-30"><a href="#cb19-30" tabindex="-1"></a><span class="co">#&gt; length</span></span>
+<span id="cb19-31"><a href="#cb19-31" tabindex="-1"></a><span class="co">#&gt; Warning in x - c: longer object length is not a multiple of shorter object</span></span>
+<span id="cb19-32"><a href="#cb19-32" tabindex="-1"></a><span class="co">#&gt; length</span></span>
+<span id="cb19-33"><a href="#cb19-33" tabindex="-1"></a><span class="co">#&gt; Warning in x - c: longer object length is not a multiple of shorter object</span></span>
+<span id="cb19-34"><a href="#cb19-34" tabindex="-1"></a><span class="co">#&gt; length</span></span>
+<span id="cb19-35"><a href="#cb19-35" tabindex="-1"></a><span class="co">#&gt; Warning in x - c: longer object length is not a multiple of shorter object</span></span>
+<span id="cb19-36"><a href="#cb19-36" tabindex="-1"></a><span class="co">#&gt; length</span></span>
+<span id="cb19-37"><a href="#cb19-37" tabindex="-1"></a><span class="co">#&gt; Warning in x - c: longer object length is not a multiple of shorter object</span></span>
+<span id="cb19-38"><a href="#cb19-38" tabindex="-1"></a><span class="co">#&gt; length</span></span>
+<span id="cb19-39"><a href="#cb19-39" tabindex="-1"></a><span class="co">#&gt; Warning in x - c: longer object length is not a multiple of shorter object</span></span>
+<span id="cb19-40"><a href="#cb19-40" tabindex="-1"></a><span class="co">#&gt; length</span></span>
+<span id="cb19-41"><a href="#cb19-41" tabindex="-1"></a><span class="co">#&gt; Warning in x - c: longer object length is not a multiple of shorter object</span></span>
+<span id="cb19-42"><a href="#cb19-42" tabindex="-1"></a><span class="co">#&gt; length</span></span>
+<span id="cb19-43"><a href="#cb19-43" tabindex="-1"></a><span class="co">#&gt; Warning in x - c: longer object length is not a multiple of shorter object</span></span>
+<span id="cb19-44"><a href="#cb19-44" tabindex="-1"></a><span class="co">#&gt; length</span></span>
+<span id="cb19-45"><a href="#cb19-45" tabindex="-1"></a><span class="co">#&gt; Warning in x - c: longer object length is not a multiple of shorter object</span></span>
+<span id="cb19-46"><a href="#cb19-46" tabindex="-1"></a><span class="co">#&gt; length</span></span>
+<span id="cb19-47"><a href="#cb19-47" tabindex="-1"></a><span class="co">#&gt; Warning in x - c: longer object length is not a multiple of shorter object</span></span>
+<span id="cb19-48"><a href="#cb19-48" tabindex="-1"></a><span class="co">#&gt; length</span></span>
+<span id="cb19-49"><a href="#cb19-49" tabindex="-1"></a><span class="co">#&gt; Warning in x - c: longer object length is not a multiple of shorter object</span></span>
+<span id="cb19-50"><a href="#cb19-50" tabindex="-1"></a><span class="co">#&gt; length</span></span>
+<span id="cb19-51"><a href="#cb19-51" tabindex="-1"></a><span class="co">#&gt; Warning in x - c: longer object length is not a multiple of shorter object</span></span>
+<span id="cb19-52"><a href="#cb19-52" tabindex="-1"></a><span class="co">#&gt; length</span></span>
+<span id="cb19-53"><a href="#cb19-53" tabindex="-1"></a><span class="co">#&gt; Warning in x - c: longer object length is not a multiple of shorter object</span></span>
+<span id="cb19-54"><a href="#cb19-54" tabindex="-1"></a><span class="co">#&gt; length</span></span>
+<span id="cb19-55"><a href="#cb19-55" tabindex="-1"></a><span class="co">#&gt; Warning in x - c: longer object length is not a multiple of shorter object</span></span>
+<span id="cb19-56"><a href="#cb19-56" tabindex="-1"></a><span class="co">#&gt; length</span></span>
+<span id="cb19-57"><a href="#cb19-57" tabindex="-1"></a><span class="co">#&gt; Warning in x - c: longer object length is not a multiple of shorter object</span></span>
+<span id="cb19-58"><a href="#cb19-58" tabindex="-1"></a><span class="co">#&gt; length</span></span>
+<span id="cb19-59"><a href="#cb19-59" tabindex="-1"></a><span class="co">#&gt; Warning in x - c: longer object length is not a multiple of shorter object</span></span>
+<span id="cb19-60"><a href="#cb19-60" tabindex="-1"></a><span class="co">#&gt; length</span></span>
+<span id="cb19-61"><a href="#cb19-61" tabindex="-1"></a><span class="co">#&gt; Warning in x - c: longer object length is not a multiple of shorter object</span></span>
+<span id="cb19-62"><a href="#cb19-62" tabindex="-1"></a><span class="co">#&gt; length</span></span>
+<span id="cb19-63"><a href="#cb19-63" tabindex="-1"></a><span class="co">#&gt; Warning in x - c: longer object length is not a multiple of shorter object</span></span>
+<span id="cb19-64"><a href="#cb19-64" tabindex="-1"></a><span class="co">#&gt; length</span></span>
+<span id="cb19-65"><a href="#cb19-65" tabindex="-1"></a><span class="co">#&gt; Warning in x - c: longer object length is not a multiple of shorter object</span></span>
+<span id="cb19-66"><a href="#cb19-66" tabindex="-1"></a><span class="co">#&gt; length</span></span>
+<span id="cb19-67"><a href="#cb19-67" tabindex="-1"></a><span class="co">#&gt; Warning in x - c: longer object length is not a multiple of shorter object</span></span>
+<span id="cb19-68"><a href="#cb19-68" tabindex="-1"></a><span class="co">#&gt; length</span></span>
+<span id="cb19-69"><a href="#cb19-69" tabindex="-1"></a><span class="co">#&gt; Warning in x - c: longer object length is not a multiple of shorter object</span></span>
+<span id="cb19-70"><a href="#cb19-70" tabindex="-1"></a><span class="co">#&gt; length</span></span>
+<span id="cb19-71"><a href="#cb19-71" tabindex="-1"></a><span class="co">#&gt; Warning in x - c: longer object length is not a multiple of shorter object</span></span>
+<span id="cb19-72"><a href="#cb19-72" tabindex="-1"></a><span class="co">#&gt; length</span></span>
+<span id="cb19-73"><a href="#cb19-73" tabindex="-1"></a><span class="co">#&gt; Warning in x - c: longer object length is not a multiple of shorter object</span></span>
+<span id="cb19-74"><a href="#cb19-74" tabindex="-1"></a><span class="co">#&gt; length</span></span>
+<span id="cb19-75"><a href="#cb19-75" tabindex="-1"></a><span class="co">#&gt; Warning in x - c: longer object length is not a multiple of shorter object</span></span>
+<span id="cb19-76"><a href="#cb19-76" tabindex="-1"></a><span class="co">#&gt; length</span></span>
+<span id="cb19-77"><a href="#cb19-77" tabindex="-1"></a><span class="co">#&gt; Warning in x - c: longer object length is not a multiple of shorter object</span></span>
+<span id="cb19-78"><a href="#cb19-78" tabindex="-1"></a><span class="co">#&gt; length</span></span>
+<span id="cb19-79"><a href="#cb19-79" tabindex="-1"></a><span class="co">#&gt; Warning in x - c: longer object length is not a multiple of shorter object</span></span>
+<span id="cb19-80"><a href="#cb19-80" tabindex="-1"></a><span class="co">#&gt; length</span></span>
+<span id="cb19-81"><a href="#cb19-81" tabindex="-1"></a><span class="co">#&gt; Warning in x - c: longer object length is not a multiple of shorter object</span></span>
+<span id="cb19-82"><a href="#cb19-82" tabindex="-1"></a><span class="co">#&gt; length</span></span>
+<span id="cb19-83"><a href="#cb19-83" tabindex="-1"></a><span class="co">#&gt; Warning in x - c: longer object length is not a multiple of shorter object</span></span>
+<span id="cb19-84"><a href="#cb19-84" tabindex="-1"></a><span class="co">#&gt; length</span></span>
+<span id="cb19-85"><a href="#cb19-85" tabindex="-1"></a><span class="co">#&gt; Warning in x - c: longer object length is not a multiple of shorter object</span></span>
+<span id="cb19-86"><a href="#cb19-86" tabindex="-1"></a><span class="co">#&gt; length</span></span>
+<span id="cb19-87"><a href="#cb19-87" tabindex="-1"></a><span class="co">#&gt; Warning in x - c: longer object length is not a multiple of shorter object</span></span>
+<span id="cb19-88"><a href="#cb19-88" tabindex="-1"></a><span class="co">#&gt; length</span></span>
+<span id="cb19-89"><a href="#cb19-89" tabindex="-1"></a><span class="co">#&gt; Warning in x - c: longer object length is not a multiple of shorter object</span></span>
+<span id="cb19-90"><a href="#cb19-90" tabindex="-1"></a><span class="co">#&gt; length</span></span>
+<span id="cb19-91"><a href="#cb19-91" tabindex="-1"></a><span class="co">#&gt; Warning in x - c: longer object length is not a multiple of shorter object</span></span>
+<span id="cb19-92"><a href="#cb19-92" tabindex="-1"></a><span class="co">#&gt; length</span></span>
+<span id="cb19-93"><a href="#cb19-93" tabindex="-1"></a><span class="co">#&gt; Warning in x - c: longer object length is not a multiple of shorter object</span></span>
+<span id="cb19-94"><a href="#cb19-94" tabindex="-1"></a><span class="co">#&gt; length</span></span>
+<span id="cb19-95"><a href="#cb19-95" tabindex="-1"></a><span class="co">#&gt; Warning in x - c: longer object length is not a multiple of shorter object</span></span>
+<span id="cb19-96"><a href="#cb19-96" tabindex="-1"></a><span class="co">#&gt; length</span></span>
+<span id="cb19-97"><a href="#cb19-97" tabindex="-1"></a><span class="co">#&gt; Warning in x - c: longer object length is not a multiple of shorter object</span></span>
+<span id="cb19-98"><a href="#cb19-98" tabindex="-1"></a><span class="co">#&gt; length</span></span>
+<span id="cb19-99"><a href="#cb19-99" tabindex="-1"></a><span class="co">#&gt; Warning in x - c: longer object length is not a multiple of shorter object</span></span>
+<span id="cb19-100"><a href="#cb19-100" tabindex="-1"></a><span class="co">#&gt; length</span></span>
+<span id="cb19-101"><a href="#cb19-101" tabindex="-1"></a><span class="co">#&gt; Warning in x - c: longer object length is not a multiple of shorter object</span></span>
+<span id="cb19-102"><a href="#cb19-102" tabindex="-1"></a><span class="co">#&gt; length</span></span>
+<span id="cb19-103"><a href="#cb19-103" tabindex="-1"></a><span class="co">#&gt; Warning in x - c: longer object length is not a multiple of shorter object</span></span>
+<span id="cb19-104"><a href="#cb19-104" tabindex="-1"></a><span class="co">#&gt; length</span></span>
+<span id="cb19-105"><a href="#cb19-105" tabindex="-1"></a><span class="co">#&gt; Warning in x - c: longer object length is not a multiple of shorter object</span></span>
+<span id="cb19-106"><a href="#cb19-106" tabindex="-1"></a><span class="co">#&gt; length</span></span>
+<span id="cb19-107"><a href="#cb19-107" tabindex="-1"></a><span class="co">#&gt; Warning in x - c: longer object length is not a multiple of shorter object</span></span>
+<span id="cb19-108"><a href="#cb19-108" tabindex="-1"></a><span class="co">#&gt; length</span></span>
+<span id="cb19-109"><a href="#cb19-109" tabindex="-1"></a><span class="co">#&gt; Warning in x - c: longer object length is not a multiple of shorter object</span></span>
+<span id="cb19-110"><a href="#cb19-110" tabindex="-1"></a><span class="co">#&gt; length</span></span>
+<span id="cb19-111"><a href="#cb19-111" tabindex="-1"></a><span class="co">#&gt; Warning in x - c: longer object length is not a multiple of shorter object</span></span>
+<span id="cb19-112"><a href="#cb19-112" tabindex="-1"></a><span class="co">#&gt; length</span></span>
+<span id="cb19-113"><a href="#cb19-113" tabindex="-1"></a><span class="co">#&gt; Warning in x - c: longer object length is not a multiple of shorter object</span></span>
+<span id="cb19-114"><a href="#cb19-114" tabindex="-1"></a><span class="co">#&gt; length</span></span>
+<span id="cb19-115"><a href="#cb19-115" tabindex="-1"></a><span class="co">#&gt; Warning in x - c: longer object length is not a multiple of shorter object</span></span>
+<span id="cb19-116"><a href="#cb19-116" tabindex="-1"></a><span class="co">#&gt; length</span></span>
+<span id="cb19-117"><a href="#cb19-117" tabindex="-1"></a><span class="co">#&gt; Warning in x - c: longer object length is not a multiple of shorter object</span></span>
+<span id="cb19-118"><a href="#cb19-118" tabindex="-1"></a><span class="co">#&gt; length</span></span>
+<span id="cb19-119"><a href="#cb19-119" tabindex="-1"></a><span class="co">#&gt; Warning in x - c: longer object length is not a multiple of shorter object</span></span>
+<span id="cb19-120"><a href="#cb19-120" tabindex="-1"></a><span class="co">#&gt; length</span></span>
+<span id="cb19-121"><a href="#cb19-121" tabindex="-1"></a><span class="co">#&gt; Warning in x - c: longer object length is not a multiple of shorter object</span></span>
+<span id="cb19-122"><a href="#cb19-122" tabindex="-1"></a><span class="co">#&gt; length</span></span>
+<span id="cb19-123"><a href="#cb19-123" tabindex="-1"></a><span class="co">#&gt; Warning in x - c: longer object length is not a multiple of shorter object</span></span>
+<span id="cb19-124"><a href="#cb19-124" tabindex="-1"></a><span class="co">#&gt; length</span></span>
+<span id="cb19-125"><a href="#cb19-125" tabindex="-1"></a><span class="co">#&gt; Warning in x - c: longer object length is not a multiple of shorter object</span></span>
+<span id="cb19-126"><a href="#cb19-126" tabindex="-1"></a><span class="co">#&gt; length</span></span>
+<span id="cb19-127"><a href="#cb19-127" tabindex="-1"></a><span class="co">#&gt; Warning in x - c: longer object length is not a multiple of shorter object</span></span>
+<span id="cb19-128"><a href="#cb19-128" tabindex="-1"></a><span class="co">#&gt; length</span></span>
+<span id="cb19-129"><a href="#cb19-129" tabindex="-1"></a><span class="co">#&gt; Warning in x - c: longer object length is not a multiple of shorter object</span></span>
+<span id="cb19-130"><a href="#cb19-130" tabindex="-1"></a><span class="co">#&gt; length</span></span>
+<span id="cb19-131"><a href="#cb19-131" tabindex="-1"></a><span class="co">#&gt; Warning in x - c: longer object length is not a multiple of shorter object</span></span>
+<span id="cb19-132"><a href="#cb19-132" tabindex="-1"></a><span class="co">#&gt; length</span></span>
+<span id="cb19-133"><a href="#cb19-133" tabindex="-1"></a><span class="co">#&gt; Warning in x - c: longer object length is not a multiple of shorter object</span></span>
+<span id="cb19-134"><a href="#cb19-134" tabindex="-1"></a><span class="co">#&gt; length</span></span>
+<span id="cb19-135"><a href="#cb19-135" tabindex="-1"></a><span class="co">#&gt; Warning in x - c: longer object length is not a multiple of shorter object</span></span>
+<span id="cb19-136"><a href="#cb19-136" tabindex="-1"></a><span class="co">#&gt; length</span></span>
+<span id="cb19-137"><a href="#cb19-137" tabindex="-1"></a><span class="co">#&gt; Warning in x - c: longer object length is not a multiple of shorter object</span></span>
+<span id="cb19-138"><a href="#cb19-138" tabindex="-1"></a><span class="co">#&gt; length</span></span>
+<span id="cb19-139"><a href="#cb19-139" tabindex="-1"></a><span class="co">#&gt; Warning in x - c: longer object length is not a multiple of shorter object</span></span>
+<span id="cb19-140"><a href="#cb19-140" tabindex="-1"></a><span class="co">#&gt; length</span></span>
+<span id="cb19-141"><a href="#cb19-141" tabindex="-1"></a><span class="co">#&gt; Warning in x - c: longer object length is not a multiple of shorter object</span></span>
+<span id="cb19-142"><a href="#cb19-142" tabindex="-1"></a><span class="co">#&gt; length</span></span>
+<span id="cb19-143"><a href="#cb19-143" tabindex="-1"></a><span class="co">#&gt; Warning in x - c: longer object length is not a multiple of shorter object</span></span>
+<span id="cb19-144"><a href="#cb19-144" tabindex="-1"></a><span class="co">#&gt; length</span></span>
+<span id="cb19-145"><a href="#cb19-145" tabindex="-1"></a><span class="co">#&gt; Warning in x - c: longer object length is not a multiple of shorter object</span></span>
+<span id="cb19-146"><a href="#cb19-146" tabindex="-1"></a><span class="co">#&gt; length</span></span>
+<span id="cb19-147"><a href="#cb19-147" tabindex="-1"></a><span class="co">#&gt; Warning in x - c: longer object length is not a multiple of shorter object</span></span>
+<span id="cb19-148"><a href="#cb19-148" tabindex="-1"></a><span class="co">#&gt; length</span></span>
+<span id="cb19-149"><a href="#cb19-149" tabindex="-1"></a><span class="co">#&gt; Warning in x - c: longer object length is not a multiple of shorter object</span></span>
+<span id="cb19-150"><a href="#cb19-150" tabindex="-1"></a><span class="co">#&gt; length</span></span>
+<span id="cb19-151"><a href="#cb19-151" tabindex="-1"></a><span class="co">#&gt; Warning in x - c: longer object length is not a multiple of shorter object</span></span>
+<span id="cb19-152"><a href="#cb19-152" tabindex="-1"></a><span class="co">#&gt; length</span></span>
+<span id="cb19-153"><a href="#cb19-153" tabindex="-1"></a><span class="co">#&gt; Warning in x - c: longer object length is not a multiple of shorter object</span></span>
+<span id="cb19-154"><a href="#cb19-154" tabindex="-1"></a><span class="co">#&gt; length</span></span>
+<span id="cb19-155"><a href="#cb19-155" tabindex="-1"></a><span class="co">#&gt; Warning in x - c: longer object length is not a multiple of shorter object</span></span>
+<span id="cb19-156"><a href="#cb19-156" tabindex="-1"></a><span class="co">#&gt; length</span></span>
+<span id="cb19-157"><a href="#cb19-157" tabindex="-1"></a><span class="co">#&gt; Warning in x - c: longer object length is not a multiple of shorter object</span></span>
+<span id="cb19-158"><a href="#cb19-158" tabindex="-1"></a><span class="co">#&gt; length</span></span>
+<span id="cb19-159"><a href="#cb19-159" tabindex="-1"></a><span class="co">#&gt; Warning in x - c: longer object length is not a multiple of shorter object</span></span>
+<span id="cb19-160"><a href="#cb19-160" tabindex="-1"></a><span class="co">#&gt; length</span></span>
+<span id="cb19-161"><a href="#cb19-161" tabindex="-1"></a><span class="co">#&gt; Warning in x - c: longer object length is not a multiple of shorter object</span></span>
+<span id="cb19-162"><a href="#cb19-162" tabindex="-1"></a><span class="co">#&gt; length</span></span>
+<span id="cb19-163"><a href="#cb19-163" tabindex="-1"></a><span class="co">#&gt; Warning in x - c: longer object length is not a multiple of shorter object</span></span>
+<span id="cb19-164"><a href="#cb19-164" tabindex="-1"></a><span class="co">#&gt; length</span></span>
+<span id="cb19-165"><a href="#cb19-165" tabindex="-1"></a><span class="co">#&gt; Warning in x - c: longer object length is not a multiple of shorter object</span></span>
+<span id="cb19-166"><a href="#cb19-166" tabindex="-1"></a><span class="co">#&gt; length</span></span>
+<span id="cb19-167"><a href="#cb19-167" tabindex="-1"></a><span class="co">#&gt; Warning in x - c: longer object length is not a multiple of shorter object</span></span>
+<span id="cb19-168"><a href="#cb19-168" tabindex="-1"></a><span class="co">#&gt; length</span></span>
+<span id="cb19-169"><a href="#cb19-169" tabindex="-1"></a><span class="co">#&gt; Warning in x - c: longer object length is not a multiple of shorter object</span></span>
+<span id="cb19-170"><a href="#cb19-170" tabindex="-1"></a><span class="co">#&gt; length</span></span>
+<span id="cb19-171"><a href="#cb19-171" tabindex="-1"></a><span class="co">#&gt; Warning in x - c: longer object length is not a multiple of shorter object</span></span>
+<span id="cb19-172"><a href="#cb19-172" tabindex="-1"></a><span class="co">#&gt; length</span></span>
+<span id="cb19-173"><a href="#cb19-173" tabindex="-1"></a><span class="co">#&gt; Warning in x - c: longer object length is not a multiple of shorter object</span></span>
+<span id="cb19-174"><a href="#cb19-174" tabindex="-1"></a><span class="co">#&gt; length</span></span>
+<span id="cb19-175"><a href="#cb19-175" tabindex="-1"></a><span class="co">#&gt; Warning in x - c: longer object length is not a multiple of shorter object</span></span>
+<span id="cb19-176"><a href="#cb19-176" tabindex="-1"></a><span class="co">#&gt; length</span></span>
+<span id="cb19-177"><a href="#cb19-177" tabindex="-1"></a><span class="co">#&gt; Warning in x - c: longer object length is not a multiple of shorter object</span></span>
+<span id="cb19-178"><a href="#cb19-178" tabindex="-1"></a><span class="co">#&gt; length</span></span>
+<span id="cb19-179"><a href="#cb19-179" tabindex="-1"></a><span class="co">#&gt; Warning in x - c: longer object length is not a multiple of shorter object</span></span>
+<span id="cb19-180"><a href="#cb19-180" tabindex="-1"></a><span class="co">#&gt; length</span></span>
+<span id="cb19-181"><a href="#cb19-181" tabindex="-1"></a><span class="co">#&gt; Warning in x - c: longer object length is not a multiple of shorter object</span></span>
+<span id="cb19-182"><a href="#cb19-182" tabindex="-1"></a><span class="co">#&gt; length</span></span>
+<span id="cb19-183"><a href="#cb19-183" tabindex="-1"></a><span class="co">#&gt; Warning in x - c: longer object length is not a multiple of shorter object</span></span>
+<span id="cb19-184"><a href="#cb19-184" tabindex="-1"></a><span class="co">#&gt; length</span></span>
+<span id="cb19-185"><a href="#cb19-185" tabindex="-1"></a><span class="co">#&gt; Warning in x - c: longer object length is not a multiple of shorter object</span></span>
+<span id="cb19-186"><a href="#cb19-186" tabindex="-1"></a><span class="co">#&gt; length</span></span>
+<span id="cb19-187"><a href="#cb19-187" tabindex="-1"></a><span class="co">#&gt; Warning in x - c: longer object length is not a multiple of shorter object</span></span>
+<span id="cb19-188"><a href="#cb19-188" tabindex="-1"></a><span class="co">#&gt; length</span></span>
+<span id="cb19-189"><a href="#cb19-189" tabindex="-1"></a><span class="co">#&gt; Warning in x - c: longer object length is not a multiple of shorter object</span></span>
+<span id="cb19-190"><a href="#cb19-190" tabindex="-1"></a><span class="co">#&gt; length</span></span>
+<span id="cb19-191"><a href="#cb19-191" tabindex="-1"></a><span class="co">#&gt; Warning in x - c: longer object length is not a multiple of shorter object</span></span>
+<span id="cb19-192"><a href="#cb19-192" tabindex="-1"></a><span class="co">#&gt; length</span></span>
+<span id="cb19-193"><a href="#cb19-193" tabindex="-1"></a><span class="co">#&gt; Warning in x - c: longer object length is not a multiple of shorter object</span></span>
+<span id="cb19-194"><a href="#cb19-194" tabindex="-1"></a><span class="co">#&gt; length</span></span>
+<span id="cb19-195"><a href="#cb19-195" tabindex="-1"></a><span class="co">#&gt; Warning in x - c: longer object length is not a multiple of shorter object</span></span>
+<span id="cb19-196"><a href="#cb19-196" tabindex="-1"></a><span class="co">#&gt; length</span></span>
+<span id="cb19-197"><a href="#cb19-197" tabindex="-1"></a><span class="co">#&gt; Warning in x - c: longer object length is not a multiple of shorter object</span></span>
+<span id="cb19-198"><a href="#cb19-198" tabindex="-1"></a><span class="co">#&gt; length</span></span>
+<span id="cb19-199"><a href="#cb19-199" tabindex="-1"></a><span class="co">#&gt; Warning in x - c: longer object length is not a multiple of shorter object</span></span>
+<span id="cb19-200"><a href="#cb19-200" tabindex="-1"></a><span class="co">#&gt; length</span></span>
+<span id="cb19-201"><a href="#cb19-201" tabindex="-1"></a><span class="co">#&gt; Warning in x - c: longer object length is not a multiple of shorter object</span></span>
+<span id="cb19-202"><a href="#cb19-202" tabindex="-1"></a><span class="co">#&gt; length</span></span>
+<span id="cb19-203"><a href="#cb19-203" tabindex="-1"></a><span class="co">#&gt; Warning in x - c: longer object length is not a multiple of shorter object</span></span>
+<span id="cb19-204"><a href="#cb19-204" tabindex="-1"></a><span class="co">#&gt; length</span></span>
+<span id="cb19-205"><a href="#cb19-205" tabindex="-1"></a><span class="co">#&gt; Warning in x - c: longer object length is not a multiple of shorter object</span></span>
+<span id="cb19-206"><a href="#cb19-206" tabindex="-1"></a><span class="co">#&gt; length</span></span>
+<span id="cb19-207"><a href="#cb19-207" tabindex="-1"></a><span class="co">#&gt; Warning in x - c: longer object length is not a multiple of shorter object</span></span>
+<span id="cb19-208"><a href="#cb19-208" tabindex="-1"></a><span class="co">#&gt; length</span></span>
+<span id="cb19-209"><a href="#cb19-209" tabindex="-1"></a><span class="co">#&gt; Warning in x - c: longer object length is not a multiple of shorter object</span></span>
+<span id="cb19-210"><a href="#cb19-210" tabindex="-1"></a><span class="co">#&gt; length</span></span>
+<span id="cb19-211"><a href="#cb19-211" tabindex="-1"></a><span class="co">#&gt; Warning in x - c: longer object length is not a multiple of shorter object</span></span>
+<span id="cb19-212"><a href="#cb19-212" tabindex="-1"></a><span class="co">#&gt; length</span></span>
+<span id="cb19-213"><a href="#cb19-213" tabindex="-1"></a><span class="co">#&gt; Warning in x - c: longer object length is not a multiple of shorter object</span></span>
+<span id="cb19-214"><a href="#cb19-214" tabindex="-1"></a><span class="co">#&gt; length</span></span>
+<span id="cb19-215"><a href="#cb19-215" tabindex="-1"></a><span class="co">#&gt; Warning in x - c: longer object length is not a multiple of shorter object</span></span>
+<span id="cb19-216"><a href="#cb19-216" tabindex="-1"></a><span class="co">#&gt; length</span></span>
+<span id="cb19-217"><a href="#cb19-217" tabindex="-1"></a><span class="co">#&gt; Warning in x - c: longer object length is not a multiple of shorter object</span></span>
+<span id="cb19-218"><a href="#cb19-218" tabindex="-1"></a><span class="co">#&gt; length</span></span>
+<span id="cb19-219"><a href="#cb19-219" tabindex="-1"></a><span class="co">#&gt; Warning in x - c: longer object length is not a multiple of shorter object</span></span>
+<span id="cb19-220"><a href="#cb19-220" tabindex="-1"></a><span class="co">#&gt; length</span></span>
+<span id="cb19-221"><a href="#cb19-221" tabindex="-1"></a><span class="co">#&gt; Warning in x - c: longer object length is not a multiple of shorter object</span></span>
+<span id="cb19-222"><a href="#cb19-222" tabindex="-1"></a><span class="co">#&gt; length</span></span>
+<span id="cb19-223"><a href="#cb19-223" tabindex="-1"></a><span class="co">#&gt; Warning in x - c: longer object length is not a multiple of shorter object</span></span>
+<span id="cb19-224"><a href="#cb19-224" tabindex="-1"></a><span class="co">#&gt; length</span></span>
+<span id="cb19-225"><a href="#cb19-225" tabindex="-1"></a><span class="co">#&gt; Warning in x - c: longer object length is not a multiple of shorter object</span></span>
+<span id="cb19-226"><a href="#cb19-226" tabindex="-1"></a><span class="co">#&gt; length</span></span>
+<span id="cb19-227"><a href="#cb19-227" tabindex="-1"></a><span class="co">#&gt; Warning in x - c: longer object length is not a multiple of shorter object</span></span>
+<span id="cb19-228"><a href="#cb19-228" tabindex="-1"></a><span class="co">#&gt; length</span></span>
+<span id="cb19-229"><a href="#cb19-229" tabindex="-1"></a><span class="co">#&gt; Warning in x - c: longer object length is not a multiple of shorter object</span></span>
+<span id="cb19-230"><a href="#cb19-230" tabindex="-1"></a><span class="co">#&gt; length</span></span>
+<span id="cb19-231"><a href="#cb19-231" tabindex="-1"></a><span class="co">#&gt; Warning in x - c: longer object length is not a multiple of shorter object</span></span>
+<span id="cb19-232"><a href="#cb19-232" tabindex="-1"></a><span class="co">#&gt; length</span></span>
+<span id="cb19-233"><a href="#cb19-233" tabindex="-1"></a><span class="co">#&gt; Warning in x - c: longer object length is not a multiple of shorter object</span></span>
+<span id="cb19-234"><a href="#cb19-234" tabindex="-1"></a><span class="co">#&gt; length</span></span>
+<span id="cb19-235"><a href="#cb19-235" tabindex="-1"></a><span class="co">#&gt; Warning in x - c: longer object length is not a multiple of shorter object</span></span>
+<span id="cb19-236"><a href="#cb19-236" tabindex="-1"></a><span class="co">#&gt; length</span></span>
+<span id="cb19-237"><a href="#cb19-237" tabindex="-1"></a><span class="co">#&gt; Warning in x - c: longer object length is not a multiple of shorter object</span></span>
+<span id="cb19-238"><a href="#cb19-238" tabindex="-1"></a><span class="co">#&gt; length</span></span>
+<span id="cb19-239"><a href="#cb19-239" tabindex="-1"></a><span class="co">#&gt; Warning in x - c: longer object length is not a multiple of shorter object</span></span>
+<span id="cb19-240"><a href="#cb19-240" tabindex="-1"></a><span class="co">#&gt; length</span></span>
+<span id="cb19-241"><a href="#cb19-241" tabindex="-1"></a><span class="co">#&gt; Warning in x - c: longer object length is not a multiple of shorter object</span></span>
+<span id="cb19-242"><a href="#cb19-242" tabindex="-1"></a><span class="co">#&gt; length</span></span>
+<span id="cb19-243"><a href="#cb19-243" tabindex="-1"></a><span class="co">#&gt; Warning in x - c: longer object length is not a multiple of shorter object</span></span>
+<span id="cb19-244"><a href="#cb19-244" tabindex="-1"></a><span class="co">#&gt; length</span></span>
+<span id="cb19-245"><a href="#cb19-245" tabindex="-1"></a><span class="co">#&gt; Warning in x - c: longer object length is not a multiple of shorter object</span></span>
+<span id="cb19-246"><a href="#cb19-246" tabindex="-1"></a><span class="co">#&gt; length</span></span>
+<span id="cb19-247"><a href="#cb19-247" tabindex="-1"></a><span class="co">#&gt; Warning in x - c: longer object length is not a multiple of shorter object</span></span>
+<span id="cb19-248"><a href="#cb19-248" tabindex="-1"></a><span class="co">#&gt; length</span></span>
+<span id="cb19-249"><a href="#cb19-249" tabindex="-1"></a><span class="co">#&gt; Warning in x - c: longer object length is not a multiple of shorter object</span></span>
+<span id="cb19-250"><a href="#cb19-250" tabindex="-1"></a><span class="co">#&gt; length</span></span>
+<span id="cb19-251"><a href="#cb19-251" tabindex="-1"></a><span class="co">#&gt; Warning in x - c: longer object length is not a multiple of shorter object</span></span>
+<span id="cb19-252"><a href="#cb19-252" tabindex="-1"></a><span class="co">#&gt; length</span></span>
+<span id="cb19-253"><a href="#cb19-253" tabindex="-1"></a><span class="co">#&gt; Warning in x - c: longer object length is not a multiple of shorter object</span></span>
+<span id="cb19-254"><a href="#cb19-254" tabindex="-1"></a><span class="co">#&gt; length</span></span>
+<span id="cb19-255"><a href="#cb19-255" tabindex="-1"></a><span class="co">#&gt; Warning in x - c: longer object length is not a multiple of shorter object</span></span>
+<span id="cb19-256"><a href="#cb19-256" tabindex="-1"></a><span class="co">#&gt; length</span></span>
+<span id="cb19-257"><a href="#cb19-257" tabindex="-1"></a><span class="co">#&gt; Warning in x - c: longer object length is not a multiple of shorter object</span></span>
+<span id="cb19-258"><a href="#cb19-258" tabindex="-1"></a><span class="co">#&gt; length</span></span>
+<span id="cb19-259"><a href="#cb19-259" tabindex="-1"></a><span class="co">#&gt; Warning in x - c: longer object length is not a multiple of shorter object</span></span>
+<span id="cb19-260"><a href="#cb19-260" tabindex="-1"></a><span class="co">#&gt; length</span></span>
+<span id="cb19-261"><a href="#cb19-261" tabindex="-1"></a><span class="co">#&gt; Warning in x - c: longer object length is not a multiple of shorter object</span></span>
+<span id="cb19-262"><a href="#cb19-262" tabindex="-1"></a><span class="co">#&gt; length</span></span>
+<span id="cb19-263"><a href="#cb19-263" tabindex="-1"></a><span class="co">#&gt; Warning in x - c: longer object length is not a multiple of shorter object</span></span>
+<span id="cb19-264"><a href="#cb19-264" tabindex="-1"></a><span class="co">#&gt; length</span></span>
+<span id="cb19-265"><a href="#cb19-265" tabindex="-1"></a><span class="co">#&gt; Warning in x - c: longer object length is not a multiple of shorter object</span></span>
+<span id="cb19-266"><a href="#cb19-266" tabindex="-1"></a><span class="co">#&gt; length</span></span>
+<span id="cb19-267"><a href="#cb19-267" tabindex="-1"></a><span class="co">#&gt; Warning in x - c: longer object length is not a multiple of shorter object</span></span>
+<span id="cb19-268"><a href="#cb19-268" tabindex="-1"></a><span class="co">#&gt; length</span></span>
+<span id="cb19-269"><a href="#cb19-269" tabindex="-1"></a><span class="co">#&gt; Warning in x - c: longer object length is not a multiple of shorter object</span></span>
+<span id="cb19-270"><a href="#cb19-270" tabindex="-1"></a><span class="co">#&gt; length</span></span>
+<span id="cb19-271"><a href="#cb19-271" tabindex="-1"></a><span class="co">#&gt; Warning in x - c: longer object length is not a multiple of shorter object</span></span>
+<span id="cb19-272"><a href="#cb19-272" tabindex="-1"></a><span class="co">#&gt; length</span></span>
+<span id="cb19-273"><a href="#cb19-273" tabindex="-1"></a><span class="co">#&gt; Warning in x - c: longer object length is not a multiple of shorter object</span></span>
+<span id="cb19-274"><a href="#cb19-274" tabindex="-1"></a><span class="co">#&gt; length</span></span>
+<span id="cb19-275"><a href="#cb19-275" tabindex="-1"></a><span class="co">#&gt; Warning in x - c: longer object length is not a multiple of shorter object</span></span>
+<span id="cb19-276"><a href="#cb19-276" tabindex="-1"></a><span class="co">#&gt; length</span></span>
+<span id="cb19-277"><a href="#cb19-277" tabindex="-1"></a><span class="co">#&gt; Warning in x - c: longer object length is not a multiple of shorter object</span></span>
+<span id="cb19-278"><a href="#cb19-278" tabindex="-1"></a><span class="co">#&gt; length</span></span>
+<span id="cb19-279"><a href="#cb19-279" tabindex="-1"></a><span class="co">#&gt; Warning in x - c: longer object length is not a multiple of shorter object</span></span>
+<span id="cb19-280"><a href="#cb19-280" tabindex="-1"></a><span class="co">#&gt; length</span></span>
+<span id="cb19-281"><a href="#cb19-281" tabindex="-1"></a>test_pca<span class="sc">$</span>cluster_kmeans <span class="ot">&lt;-</span> <span class="fu">as.factor</span>(test_clusters_wf<span class="sc">$</span>cluster)</span>
+<span id="cb19-282"><a href="#cb19-282" tabindex="-1"></a></span>
+<span id="cb19-283"><a href="#cb19-283" tabindex="-1"></a><span class="co"># 3. Predict</span></span>
+<span id="cb19-284"><a href="#cb19-284" tabindex="-1"></a>workflow_preds <span class="ot">&lt;-</span> <span class="fu">predict</span>(workflow_model, <span class="at">new_data =</span> test_pca)</span>
+<span id="cb19-285"><a href="#cb19-285" tabindex="-1"></a>workflow_accuracy <span class="ot">&lt;-</span> <span class="fu">mean</span>(workflow_preds<span class="sc">$</span>.pred <span class="sc">==</span> workflow_split<span class="sc">$</span>test<span class="sc">$</span>Species)</span>
+<span id="cb19-286"><a href="#cb19-286" tabindex="-1"></a></span>
+<span id="cb19-287"><a href="#cb19-287" tabindex="-1"></a><span class="fu">cat</span>(<span class="st">&quot;Complete Workflow Accuracy:&quot;</span>, <span class="fu">round</span>(workflow_accuracy <span class="sc">*</span> <span class="dv">100</span>, <span class="dv">1</span>), <span class="st">&quot;%</span><span class="sc">\n</span><span class="st">&quot;</span>)</span>
+<span id="cb19-288"><a href="#cb19-288" tabindex="-1"></a><span class="co">#&gt; Complete Workflow Accuracy: 88.9 %</span></span></code></pre></div>
+</div>
+<div id="practical-example-credit-risk-assessment" class="section level2">
+<h2>Practical Example: Credit Risk Assessment</h2>
+<div class="sourceCode" id="cb20"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb20-1"><a href="#cb20-1" tabindex="-1"></a><span class="co"># Simulate credit data</span></span>
+<span id="cb20-2"><a href="#cb20-2" tabindex="-1"></a><span class="fu">set.seed</span>(<span class="dv">42</span>)</span>
+<span id="cb20-3"><a href="#cb20-3" tabindex="-1"></a>n <span class="ot">&lt;-</span> <span class="dv">500</span></span>
+<span id="cb20-4"><a href="#cb20-4" tabindex="-1"></a>credit_data <span class="ot">&lt;-</span> <span class="fu">data.frame</span>(</span>
+<span id="cb20-5"><a href="#cb20-5" tabindex="-1"></a>  <span class="at">age =</span> <span class="fu">rnorm</span>(n, <span class="dv">40</span>, <span class="dv">12</span>),</span>
+<span id="cb20-6"><a href="#cb20-6" tabindex="-1"></a>  <span class="at">income =</span> <span class="fu">rnorm</span>(n, <span class="dv">50000</span>, <span class="dv">20000</span>),</span>
+<span id="cb20-7"><a href="#cb20-7" tabindex="-1"></a>  <span class="at">debt_ratio =</span> <span class="fu">runif</span>(n, <span class="dv">0</span>, <span class="fl">0.5</span>),</span>
+<span id="cb20-8"><a href="#cb20-8" tabindex="-1"></a>  <span class="at">credit_score =</span> <span class="fu">rnorm</span>(n, <span class="dv">700</span>, <span class="dv">100</span>),</span>
+<span id="cb20-9"><a href="#cb20-9" tabindex="-1"></a>  <span class="at">years_employed =</span> <span class="fu">rpois</span>(n, <span class="dv">5</span>)</span>
+<span id="cb20-10"><a href="#cb20-10" tabindex="-1"></a>)</span>
+<span id="cb20-11"><a href="#cb20-11" tabindex="-1"></a></span>
+<span id="cb20-12"><a href="#cb20-12" tabindex="-1"></a><span class="co"># Create target variable (default risk)</span></span>
+<span id="cb20-13"><a href="#cb20-13" tabindex="-1"></a>credit_data<span class="sc">$</span>default <span class="ot">&lt;-</span> <span class="fu">factor</span>(</span>
+<span id="cb20-14"><a href="#cb20-14" tabindex="-1"></a>  <span class="fu">ifelse</span>(credit_data<span class="sc">$</span>debt_ratio <span class="sc">&gt;</span> <span class="fl">0.4</span> <span class="sc">&amp;</span> credit_data<span class="sc">$</span>credit_score <span class="sc">&lt;</span> <span class="dv">650</span>, <span class="st">&quot;Yes&quot;</span>, <span class="st">&quot;No&quot;</span>)</span>
+<span id="cb20-15"><a href="#cb20-15" tabindex="-1"></a>)</span>
+<span id="cb20-16"><a href="#cb20-16" tabindex="-1"></a></span>
+<span id="cb20-17"><a href="#cb20-17" tabindex="-1"></a><span class="co"># Split data</span></span>
+<span id="cb20-18"><a href="#cb20-18" tabindex="-1"></a>credit_split <span class="ot">&lt;-</span> <span class="fu">tl_split</span>(credit_data, <span class="at">prop =</span> <span class="fl">0.7</span>, <span class="at">stratify =</span> <span class="st">&quot;default&quot;</span>, <span class="at">seed =</span> <span class="dv">123</span>)</span></code></pre></div>
+<div class="sourceCode" id="cb21"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb21-1"><a href="#cb21-1" tabindex="-1"></a><span class="co"># Strategy 1: Add customer segments as features</span></span>
+<span id="cb21-2"><a href="#cb21-2" tabindex="-1"></a>credit_clustered <span class="ot">&lt;-</span> <span class="fu">tl_add_cluster_features</span>(credit_split<span class="sc">$</span>train,</span>
+<span id="cb21-3"><a href="#cb21-3" tabindex="-1"></a>                                           <span class="at">response =</span> <span class="st">&quot;default&quot;</span>,</span>
+<span id="cb21-4"><a href="#cb21-4" tabindex="-1"></a>                                           <span class="at">method =</span> <span class="st">&quot;kmeans&quot;</span>,</span>
+<span id="cb21-5"><a href="#cb21-5" tabindex="-1"></a>                                           <span class="at">k =</span> <span class="dv">4</span>)</span>
+<span id="cb21-6"><a href="#cb21-6" tabindex="-1"></a></span>
+<span id="cb21-7"><a href="#cb21-7" tabindex="-1"></a>model_credit <span class="ot">&lt;-</span> <span class="fu">tl_model</span>(credit_clustered, default <span class="sc">~</span> ., <span class="at">method =</span> <span class="st">&quot;forest&quot;</span>)</span>
+<span id="cb21-8"><a href="#cb21-8" tabindex="-1"></a></span>
+<span id="cb21-9"><a href="#cb21-9" tabindex="-1"></a><span class="co"># Transform test data</span></span>
+<span id="cb21-10"><a href="#cb21-10" tabindex="-1"></a>cluster_model_credit <span class="ot">&lt;-</span> <span class="fu">attr</span>(credit_clustered, <span class="st">&quot;cluster_model&quot;</span>)</span>
+<span id="cb21-11"><a href="#cb21-11" tabindex="-1"></a>test_clusters_credit <span class="ot">&lt;-</span> <span class="fu">predict</span>(cluster_model_credit,</span>
+<span id="cb21-12"><a href="#cb21-12" tabindex="-1"></a>                               <span class="at">new_data =</span> credit_split<span class="sc">$</span>test[, <span class="sc">-</span><span class="dv">6</span>])</span>
+<span id="cb21-13"><a href="#cb21-13" tabindex="-1"></a>test_credit <span class="ot">&lt;-</span> credit_split<span class="sc">$</span>test</span>
+<span id="cb21-14"><a href="#cb21-14" tabindex="-1"></a>test_credit<span class="sc">$</span>cluster_kmeans <span class="ot">&lt;-</span> <span class="fu">as.factor</span>(test_clusters_credit<span class="sc">$</span>cluster)</span>
+<span id="cb21-15"><a href="#cb21-15" tabindex="-1"></a></span>
+<span id="cb21-16"><a href="#cb21-16" tabindex="-1"></a>preds_credit <span class="ot">&lt;-</span> <span class="fu">predict</span>(model_credit, <span class="at">new_data =</span> test_credit)</span>
+<span id="cb21-17"><a href="#cb21-17" tabindex="-1"></a>accuracy_credit <span class="ot">&lt;-</span> <span class="fu">mean</span>(preds_credit<span class="sc">$</span>.pred <span class="sc">==</span> credit_split<span class="sc">$</span>test<span class="sc">$</span>default)</span>
+<span id="cb21-18"><a href="#cb21-18" tabindex="-1"></a></span>
+<span id="cb21-19"><a href="#cb21-19" tabindex="-1"></a><span class="fu">cat</span>(<span class="st">&quot;Credit Risk Model Accuracy:&quot;</span>, <span class="fu">round</span>(accuracy_credit <span class="sc">*</span> <span class="dv">100</span>, <span class="dv">1</span>), <span class="st">&quot;%</span><span class="sc">\n</span><span class="st">&quot;</span>)</span>
+<span id="cb21-20"><a href="#cb21-20" tabindex="-1"></a><span class="co">#&gt; Credit Risk Model Accuracy: 98.7 %</span></span></code></pre></div>
+</div>
+<div id="key-advantages-of-integration" class="section level2">
+<h2>Key Advantages of Integration</h2>
+<ol style="list-style-type: decimal">
+<li><strong>Better Performance</strong>: Combining techniques often
+outperforms individual approaches</li>
+<li><strong>Feature Engineering</strong>: Unsupervised methods create
+informative features</li>
+<li><strong>Data Efficiency</strong>: Semi-supervised learning uses
+unlabeled data effectively</li>
+<li><strong>Robustness</strong>: Anomaly detection improves model
+reliability</li>
+<li><strong>Interpretability</strong>: Cluster-specific models are
+easier to understand</li>
+</ol>
+</div>
+<div id="best-practices" class="section level2">
+<h2>Best Practices</h2>
+<ol style="list-style-type: decimal">
+<li><strong>Always transform test data</strong> using the same
+unsupervised models as training data</li>
+<li><strong>Experiment with different combinations</strong> to find the
+best approach</li>
+<li><strong>Use semi-supervised learning</strong> when labels are
+expensive to obtain</li>
+<li><strong>Consider stratified models</strong> for heterogeneous
+datasets</li>
+<li><strong>Validate performance</strong> on held-out test data</li>
+</ol>
+</div>
+<div id="summary" class="section level2">
+<h2>Summary</h2>
+<p>tidylearn’s integration functions provide powerful ways to combine
+supervised and unsupervised learning:</p>
+<ul>
+<li><strong><code>tl_reduce_dimensions()</code></strong>: Use PCA/MDS as
+preprocessing</li>
+<li><strong><code>tl_add_cluster_features()</code></strong>: Engineer
+features from clusters</li>
+<li><strong><code>tl_semisupervised()</code></strong>: Train with
+limited labels</li>
+<li><strong><code>tl_anomaly_aware()</code></strong>: Handle outliers
+intelligently</li>
+<li><strong><code>tl_stratified_models()</code></strong>: Create
+cluster-specific models</li>
+</ul>
+<p>These functions orchestrate the underlying packages (stats, cluster,
+glmnet, randomForest, etc.) to enable multi-step workflows with a
+consistent interface.</p>
+<div class="sourceCode" id="cb22"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb22-1"><a href="#cb22-1" tabindex="-1"></a><span class="co"># Final integrated example</span></span>
+<span id="cb22-2"><a href="#cb22-2" tabindex="-1"></a>final_data <span class="ot">&lt;-</span> iris</span>
+<span id="cb22-3"><a href="#cb22-3" tabindex="-1"></a>final_split <span class="ot">&lt;-</span> <span class="fu">tl_split</span>(final_data, <span class="at">prop =</span> <span class="fl">0.7</span>, <span class="at">stratify =</span> <span class="st">&quot;Species&quot;</span>, <span class="at">seed =</span> <span class="dv">999</span>)</span>
+<span id="cb22-4"><a href="#cb22-4" tabindex="-1"></a></span>
+<span id="cb22-5"><a href="#cb22-5" tabindex="-1"></a><span class="co"># Combine PCA + clustering</span></span>
+<span id="cb22-6"><a href="#cb22-6" tabindex="-1"></a>final_reduced <span class="ot">&lt;-</span> <span class="fu">tl_reduce_dimensions</span>(final_split<span class="sc">$</span>train,</span>
+<span id="cb22-7"><a href="#cb22-7" tabindex="-1"></a>                                     <span class="at">response =</span> <span class="st">&quot;Species&quot;</span>,</span>
+<span id="cb22-8"><a href="#cb22-8" tabindex="-1"></a>                                     <span class="at">method =</span> <span class="st">&quot;pca&quot;</span>,</span>
+<span id="cb22-9"><a href="#cb22-9" tabindex="-1"></a>                                     <span class="at">n_components =</span> <span class="dv">3</span>)</span>
+<span id="cb22-10"><a href="#cb22-10" tabindex="-1"></a><span class="co"># Remove .obs_id column before clustering</span></span>
+<span id="cb22-11"><a href="#cb22-11" tabindex="-1"></a>final_reduced_clean <span class="ot">&lt;-</span> final_reduced<span class="sc">$</span>data <span class="sc">%&gt;%</span> <span class="fu">select</span>(<span class="sc">-</span><span class="fu">starts_with</span>(<span class="st">&quot;.obs&quot;</span>))</span>
+<span id="cb22-12"><a href="#cb22-12" tabindex="-1"></a>final_clustered <span class="ot">&lt;-</span> <span class="fu">tl_add_cluster_features</span>(final_reduced_clean,</span>
+<span id="cb22-13"><a href="#cb22-13" tabindex="-1"></a>                                          <span class="at">response =</span> <span class="st">&quot;Species&quot;</span>,</span>
+<span id="cb22-14"><a href="#cb22-14" tabindex="-1"></a>                                          <span class="at">method =</span> <span class="st">&quot;kmeans&quot;</span>,</span>
+<span id="cb22-15"><a href="#cb22-15" tabindex="-1"></a>                                          <span class="at">k =</span> <span class="dv">3</span>)</span>
+<span id="cb22-16"><a href="#cb22-16" tabindex="-1"></a>final_model <span class="ot">&lt;-</span> <span class="fu">tl_model</span>(final_clustered, Species <span class="sc">~</span> ., <span class="at">method =</span> <span class="st">&quot;logistic&quot;</span>)</span>
+<span id="cb22-17"><a href="#cb22-17" tabindex="-1"></a><span class="co">#&gt; Warning: glm.fit: algorithm did not converge</span></span>
+<span id="cb22-18"><a href="#cb22-18" tabindex="-1"></a></span>
+<span id="cb22-19"><a href="#cb22-19" tabindex="-1"></a><span class="fu">cat</span>(<span class="st">&quot;Final integrated model created successfully!</span><span class="sc">\n</span><span class="st">&quot;</span>)</span>
+<span id="cb22-20"><a href="#cb22-20" tabindex="-1"></a><span class="co">#&gt; Final integrated model created successfully!</span></span>
+<span id="cb22-21"><a href="#cb22-21" tabindex="-1"></a><span class="fu">print</span>(final_model)</span>
+<span id="cb22-22"><a href="#cb22-22" tabindex="-1"></a><span class="co">#&gt; tidylearn Model</span></span>
+<span id="cb22-23"><a href="#cb22-23" tabindex="-1"></a><span class="co">#&gt; ===============</span></span>
+<span id="cb22-24"><a href="#cb22-24" tabindex="-1"></a><span class="co">#&gt; Paradigm: supervised </span></span>
+<span id="cb22-25"><a href="#cb22-25" tabindex="-1"></a><span class="co">#&gt; Method: logistic </span></span>
+<span id="cb22-26"><a href="#cb22-26" tabindex="-1"></a><span class="co">#&gt; Task: Classification </span></span>
+<span id="cb22-27"><a href="#cb22-27" tabindex="-1"></a><span class="co">#&gt; Formula: Species ~ . </span></span>
+<span id="cb22-28"><a href="#cb22-28" tabindex="-1"></a><span class="co">#&gt; </span></span>
+<span id="cb22-29"><a href="#cb22-29" tabindex="-1"></a><span class="co">#&gt; Training observations: 105</span></span></code></pre></div>
+</div>
+
+
+
+<!-- code folding -->
+
+
+<!-- dynamically load mathjax for compatibility with self-contained -->
+<script>
+  (function () {
+    var script = document.createElement("script");
+    script.type = "text/javascript";
+    script.src  = "https://mathjax.rstudio.com/latest/MathJax.js?config=TeX-AMS-MML_HTMLorMML";
+    document.getElementsByTagName("head")[0].appendChild(script);
+  })();
+</script>
+
+</body>
+</html>
