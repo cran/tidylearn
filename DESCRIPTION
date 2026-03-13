@@ -1,6 +1,6 @@
 Package: tidylearn
 Title: A Unified Tidy Interface to R's Machine Learning Ecosystem
-Version: 0.1.0
+Version: 0.1.1
 Authors@R: 
     person("Cesaire", "Tobias", email = "cesaire@sheetsolved.com", role = c("aut", "cre"))
 Description: Provides a unified tidyverse-compatible interface to R's machine
@@ -17,7 +17,7 @@ Description: Provides a unified tidyverse-compatible interface to R's machine
     and gradient boosting Friedman (2001) <doi:10.1214/aos/1013203451>.
 License: MIT + file LICENSE
 Encoding: UTF-8
-RoxygenNote: 7.3.2
+RoxygenNote: 7.3.3
 Depends: R (>= 3.6.0)
 Imports: dplyr (>= 1.0.0), ggplot2 (>= 3.3.0), tibble (>= 3.0.0), tidyr
         (>= 1.0.0), purrr (>= 0.3.0), rlang (>= 0.4.0), magrittr,
@@ -46,8 +46,8 @@ Collate: 'utils.R' 'core.R' 'preprocessing.R'
         'interactions.R' 'diagnostics.R' 'metrics.R' 'visualization.R'
         'workflows.R'
 NeedsCompilation: no
-Packaged: 2026-02-03 09:52:28 UTC; cesai_b8mratk
+Packaged: 2026-03-13 11:21:26 UTC; CesaireTobias
 Author: Cesaire Tobias [aut, cre]
 Maintainer: Cesaire Tobias <cesaire@sheetsolved.com>
 Repository: CRAN
-Date/Publication: 2026-02-06 13:50:02 UTC
+Date/Publication: 2026-03-13 11:40:02 UTC
