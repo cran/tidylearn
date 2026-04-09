@@ -9,11 +9,21 @@ tl_plot_cv_comparison(cv_results, metrics = NULL)
 \arguments{
 \item{cv_results}{Results from tl_compare_cv function}
 
-\item{metrics}{Character vector of metrics to plot (if NULL, plots all metrics)}
+\item{metrics}{Character vector of metrics to plot
+(if NULL, plots all metrics)}
 }
 \value{
-A ggplot object
+A \code{\link[ggplot2]{ggplot}} object showing boxplots of
+cross-validation metric distributions for each model.
 }
 \description{
 Plot comparison of cross-validation results
+}
+\examples{
+\donttest{
+m1 <- tl_model(mtcars, mpg ~ wt, method = "linear")
+m2 <- tl_model(mtcars, mpg ~ wt + hp, method = "linear")
+cv <- tl_compare_cv(mtcars, list(simple = m1, full = m2), folds = 3)
+tl_plot_cv_comparison(cv)
+}
 }

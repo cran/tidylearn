@@ -2,7 +2,7 @@
 % Please edit documentation in R/tuning.R
 \name{tl_tune_random}
 \alias{tl_tune_random}
-\title{Tune hyperparameters for a model using random search}
+\title{Tune hyperparameters using random search}
 \usage{
 tl_tune_random(
   data,
@@ -19,21 +19,25 @@ tl_tune_random(
 )
 }
 \arguments{
-\item{data}{A data frame containing the training data}
+\item{data}{A data frame containing the training
+data}
 
 \item{formula}{A formula specifying the model}
 
 \item{method}{The modeling method to tune}
 
-\item{param_space}{A named list of parameter spaces to sample from}
+\item{param_space}{A named list of parameter spaces
+to sample from}
 
-\item{n_iter}{Number of random parameter combinations to try}
+\item{n_iter}{Number of random parameter
+combinations to try}
 
 \item{folds}{Number of cross-validation folds}
 
 \item{metric}{Metric to optimize}
 
-\item{maximize}{Logical; whether to maximize (TRUE) or minimize (FALSE) the metric}
+\item{maximize}{Logical; whether to maximize (TRUE)
+or minimize (FALSE) the metric}
 
 \item{verbose}{Logical; whether to print progress}
 
@@ -42,8 +46,19 @@ tl_tune_random(
 \item{...}{Additional arguments passed to tl_model}
 }
 \value{
-A list with the best model and tuning results
+A tidylearn model object fitted with the best hyperparameters.
+Tuning results are stored as an attribute \code{"tuning_results"},
+a list containing \code{param_space}, \code{results} (data frame of
+all evaluated iterations), \code{best_params}, \code{best_metric},
+\code{metric}, and \code{maximize}.
 }
 \description{
-Tune hyperparameters for a model using random search
+Tune hyperparameters using random search
+}
+\examples{
+\donttest{
+model <- tl_tune_random(mtcars, mpg ~ ., method = "tree",
+  param_space = list(cp = c(0.01, 0.1), minsplit = c(10, 20)),
+  n_iter = 3, folds = 2, verbose = FALSE)
+}
 }

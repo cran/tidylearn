@@ -5,12 +5,15 @@
 #' @param data A data frame, tibble, or distance matrix
 #' @param eps Neighborhood radius (epsilon)
 #' @param minPts Minimum number of points to form a dense region (default: 5)
-#' @param cols Columns to include (tidy select). If NULL, uses all numeric columns.
-#' @param distance Distance metric if data is not a dist object (default: "euclidean")
+#' @param cols Columns to include (tidy select).
+#'   If NULL, uses all numeric columns.
+#' @param distance Distance metric if data is not a
+#'   dist object (default: "euclidean")
 #'
 #' @return A list of class "tidy_dbscan" containing:
 #' \itemize{
-#'   \item clusters: tibble with observation IDs and cluster assignments (0 = noise)
+#'   \item clusters: tibble with observation IDs and
+#'     cluster assignments (0 = noise)
 #'   \item core_points: logical vector indicating core points
 #'   \item n_clusters: number of clusters (excluding noise)
 #'   \item n_noise: number of noise points
@@ -26,12 +29,13 @@
 #' db_result <- tidy_dbscan(iris, eps = eps_suggestion$eps, minPts = 5)
 #'
 #' @export
-tidy_dbscan <- function(data, eps, minPts = 5, cols = NULL, distance = "euclidean") {
+tidy_dbscan <- function(data, eps, minPts = 5,
+                        cols = NULL,
+                        distance = "euclidean") {
 
   # Handle distance matrix
   if (inherits(data, "dist")) {
     data_matrix <- as.matrix(data)
-    data_orig <- NULL
   } else {
     # Select columns
     if (!is.null(cols)) {
@@ -42,7 +46,6 @@ tidy_dbscan <- function(data, eps, minPts = 5, cols = NULL, distance = "euclidea
     }
 
     data_matrix <- as.matrix(data_selected)
-    data_orig <- data_selected
   }
 
   # Perform DBSCAN
@@ -98,9 +101,18 @@ tidy_dbscan <- function(data, eps, minPts = 5, cols = NULL, distance = "euclidea
 #'
 #' @param data A data frame or matrix
 #' @param k Number of nearest neighbors (default: 4)
-#' @param cols Columns to include (tidy select). If NULL, uses all numeric columns.
+#' @param cols Columns to include (tidy select).
+#'   If NULL, uses all numeric columns.
 #'
-#' @return A tibble with observation IDs and k-NN distances
+#' @return A tibble with columns \code{.obs_id} (observation identifier),
+#'   \code{knn_dist} (distance to k-th nearest neighbor), and \code{rank}
+#'   (rank of the k-NN distance).
+#'
+#' @examples
+#' \donttest{
+#' knn <- tidy_knn_dist(iris[, 1:4], k = 5)
+#' }
+#'
 #' @export
 tidy_knn_dist <- function(data, k = 4, cols = NULL) {
 
@@ -133,7 +145,8 @@ tidy_knn_dist <- function(data, k = 4, cols = NULL) {
 #' @param data A data frame or matrix
 #' @param minPts Minimum points parameter (used as k for k-NN)
 #' @param method Method to suggest eps: "knee" (default), "percentile"
-#' @param percentile If method="percentile", which percentile to use (default: 0.95)
+#' @param percentile If method="percentile", which
+#'   percentile to use (default: 0.95)
 #'
 #' @return A list containing:
 #' \itemize{
@@ -147,7 +160,9 @@ tidy_knn_dist <- function(data, k = 4, cols = NULL) {
 #' eps_info$eps
 #'
 #' @export
-suggest_eps <- function(data, minPts = 5, method = "percentile", percentile = 0.95) {
+suggest_eps <- function(data, minPts = 5,
+                        method = "percentile",
+                        percentile = 0.95) {
 
   # Compute k-NN distances
   knn_data <- tidy_knn_dist(data, k = minPts)
@@ -159,7 +174,6 @@ suggest_eps <- function(data, minPts = 5, method = "percentile", percentile = 0.
   } else if (method == "knee") {
     # Find knee/elbow in sorted k-NN distances
     sorted_dist <- sort(knn_data$knn_dist)
-    n <- length(sorted_dist)
 
     # Calculate differences
     diffs <- diff(sorted_dist)
@@ -189,9 +203,17 @@ suggest_eps <- function(data, minPts = 5, method = "percentile", percentile = 0.
 #' @param add_suggestion Add suggested eps line? (default: TRUE)
 #' @param percentile Percentile for suggestion (default: 0.95)
 #'
-#' @return A ggplot object
+#' @return A \code{\link[ggplot2]{ggplot}} object.
+#'
+#' @examples
+#' \donttest{
+#' plot_knn_dist(iris[, 1:4], k = 5)
+#' }
+#'
 #' @export
-plot_knn_dist <- function(data, k = 4, add_suggestion = TRUE, percentile = 0.95) {
+plot_knn_dist <- function(data, k = 4,
+                          add_suggestion = TRUE,
+                          percentile = 0.95) {
 
   # Get k-NN distances if needed
   if (inherits(data, "tbl_df") && "knn_dist" %in% names(data)) {
@@ -204,8 +226,11 @@ plot_knn_dist <- function(data, k = 4, add_suggestion = TRUE, percentile = 0.95)
   knn_data <- knn_data %>% dplyr::arrange(knn_dist)
 
   # Create plot
-  p <- ggplot2::ggplot(knn_data, ggplot2::aes(x = seq_along(knn_dist), y = knn_dist)) +
-    ggplot2::geom_line(color = "steelblue", size = 1) +
+  p <- ggplot2::ggplot(
+    knn_data,
+    ggplot2::aes(x = seq_along(knn_dist), y = knn_dist)
+  ) +
+    ggplot2::geom_line(color = "steelblue", linewidth = 1) +
     ggplot2::labs(
       title = paste0("k-NN Distance Plot (k = ", k, ")"),
       subtitle = "Look for 'elbow' or 'knee' to determine eps",
@@ -218,12 +243,20 @@ plot_knn_dist <- function(data, k = 4, add_suggestion = TRUE, percentile = 0.95)
   if (add_suggestion) {
     eps_line <- stats::quantile(knn_data$knn_dist, percentile)
     p <- p +
-      ggplot2::geom_hline(yintercept = eps_line, linetype = "dashed", color = "red") +
-      ggplot2::annotate("text",
-                       x = nrow(knn_data) * 0.7,
-                       y = eps_line * 1.1,
-                       label = sprintf("Suggested eps = %.3f\n(%d%% percentile)", eps_line, percentile * 100),
-                       color = "red")
+      ggplot2::geom_hline(
+        yintercept = eps_line,
+        linetype = "dashed", color = "red"
+      ) +
+      ggplot2::annotate(
+        "text",
+        x = nrow(knn_data) * 0.7,
+        y = eps_line * 1.1,
+        label = sprintf(
+          "Suggested eps = %.3f\n(%d%% percentile)",
+          eps_line, percentile * 100
+        ),
+        color = "red"
+      )
   }
 
   p
@@ -235,7 +268,16 @@ plot_knn_dist <- function(data, k = 4, add_suggestion = TRUE, percentile = 0.95)
 #' @param dbscan_obj A tidy_dbscan object
 #' @param data Original data frame
 #'
-#' @return Original data with cluster information added
+#' @return A tibble containing the original \code{data} with additional columns
+#'   \code{cluster} (factor), \code{is_noise} (logical), and \code{is_core}
+#'   (logical).
+#'
+#' @examples
+#' \donttest{
+#' db <- tidy_dbscan(iris[, 1:4], eps = 0.5, minPts = 5)
+#' augmented <- augment_dbscan(db, iris)
+#' }
+#'
 #' @export
 augment_dbscan <- function(dbscan_obj, data) {
 
@@ -262,7 +304,15 @@ augment_dbscan <- function(dbscan_obj, data) {
 #' @param eps_values Vector of eps values to test
 #' @param minPts_values Vector of minPts values to test
 #'
-#' @return A tibble with parameter combinations and resulting cluster counts
+#' @return A tibble with columns \code{eps}, \code{minPts}, \code{n_clusters},
+#'   \code{n_noise}, and \code{prop_noise} for each parameter combination.
+#'
+#' @examples
+#' \donttest{
+#' params <- explore_dbscan_params(iris[, 1:4],
+#'   eps_values = c(0.3, 0.5, 0.8), minPts_values = c(3, 5))
+#' }
+#'
 #' @export
 explore_dbscan_params <- function(data, eps_values, minPts_values) {
 
@@ -276,17 +326,22 @@ explore_dbscan_params <- function(data, eps_values, minPts_values) {
   )
 
   # Test each combination
-  results <- purrr::map2_dfr(param_grid$eps, param_grid$minPts, function(e, m) {
-    db <- tidy_dbscan(data_numeric, eps = e, minPts = m)
-
-    tibble::tibble(
-      eps = e,
-      minPts = m,
-      n_clusters = db$n_clusters,
-      n_noise = db$n_noise,
-      prop_noise = db$n_noise / nrow(data_numeric)
-    )
-  })
+  results <- purrr::map2_dfr(
+    param_grid$eps,
+    param_grid$minPts,
+    function(e, m) {
+      db <- tidy_dbscan(
+        data_numeric, eps = e, minPts = m
+      )
+      tibble::tibble(
+        eps = e,
+        minPts = m,
+        n_clusters = db$n_clusters,
+        n_noise = db$n_noise,
+        prop_noise = db$n_noise / nrow(data_numeric)
+      )
+    }
+  )
 
   results
 }
@@ -297,19 +352,28 @@ explore_dbscan_params <- function(data, eps_values, minPts_values) {
 #' @param x A tidy_dbscan object
 #' @param ... Additional arguments (ignored)
 #'
-#' @return Invisibly returns the input object x
+#' @return The input object \code{x}, returned invisibly.
+#'
+#' @examples
+#' \donttest{
+#' db <- tidy_dbscan(iris[, 1:4], eps = 0.5, minPts = 5)
+#' print(db)
+#' }
+#'
 #' @export
 print.tidy_dbscan <- function(x, ...) {
   cat("Tidy DBSCAN Clustering\n")
   cat("======================\n\n")
   cat("Parameters:\n")
   cat("  eps (neighborhood radius):", x$eps, "\n")
-  cat("  minPts (minimum points):  ", x$minPts, "\n\n")
+  cat("  minPts (minimum points): ", x$minPts, "\n\n")
 
   cat("Results:\n")
   cat("  Number of clusters:", x$n_clusters, "\n")
   cat("  Number of noise points:", x$n_noise, "\n")
-  cat("  Proportion noise:", sprintf("%.1f%%", (x$n_noise / nrow(x$clusters)) * 100), "\n\n")
+  noise_pct <- (x$n_noise / nrow(x$clusters)) * 100
+  cat("  Proportion noise:",
+      sprintf("%.1f%%", noise_pct), "\n\n")
 
   if (nrow(x$summary) > 0) {
     cat("Cluster Summary:\n")

@@ -3,11 +3,21 @@
 #' Compute distance matrices with tidy output
 #'
 #' @param data A data frame or tibble
-#' @param method Character; distance method (default: "euclidean"). Options: "euclidean", "manhattan", "maximum", "gower"
-#' @param cols Columns to include (tidy select). If NULL, uses all numeric columns.
+#' @param method Character; distance method
+#'   (default: "euclidean"). Options: "euclidean",
+#'   "manhattan", "maximum", "gower"
+#' @param cols Columns to include (tidy select).
+#'   If NULL, uses all numeric columns.
 #' @param ... Additional arguments passed to distance functions
 #'
-#' @return A dist object with tidy attributes
+#' @return A \code{\link[stats]{dist}} object containing the computed
+#'   distance matrix.
+#'
+#' @examples
+#' \donttest{
+#' d <- tidy_dist(iris[, 1:4], method = "euclidean")
+#' }
+#'
 #' @export
 tidy_dist <- function(data, method = "euclidean", cols = NULL, ...) {
 
@@ -37,9 +47,11 @@ tidy_dist <- function(data, method = "euclidean", cols = NULL, ...) {
 #' Computes Gower distance for mixed data types (numeric, factor, ordered)
 #'
 #' @param data A data frame or tibble
-#' @param weights Optional named vector of variable weights (default: equal weights)
+#' @param weights Optional named vector of variable
+#'   weights (default: equal weights)
 #'
-#' @return A dist object containing Gower distances
+#' @return A \code{\link[stats]{dist}} object containing Gower distances, with
+#'   the \code{method} attribute set to \code{"gower"}.
 #'
 #' @details
 #' Gower distance handles mixed data types:
@@ -99,7 +111,8 @@ tidy_gower <- function(data, weights = NULL) {
         # Compute dissimilarity based on variable type
         if (is.numeric(data[[k]])) {
           # Numeric: range-normalized Manhattan distance
-          var_range <- max(data[[k]], na.rm = TRUE) - min(data[[k]], na.rm = TRUE)
+          var_range <- max(data[[k]], na.rm = TRUE) -
+            min(data[[k]], na.rm = TRUE)
 
           if (var_range > 0) {
             d_k <- abs(data[i, k] - data[j, k]) / var_range
@@ -148,7 +161,7 @@ tidy_gower <- function(data, weights = NULL) {
 
   attr(dist_obj, "method") <- "gower"
 
-  return(dist_obj)
+  dist_obj
 }
 
 
@@ -160,7 +173,14 @@ tidy_gower <- function(data, weights = NULL) {
 #' @param center Logical; center variables? (default: TRUE)
 #' @param scale Logical; scale variables to unit variance? (default: TRUE)
 #'
-#' @return A tibble with standardized numeric variables
+#' @return A tibble with numeric variables centered and/or scaled as specified;
+#'   non-numeric columns are returned unchanged.
+#'
+#' @examples
+#' \donttest{
+#' std <- standardize_data(iris[, 1:4])
+#' }
+#'
 #' @export
 standardize_data <- function(data, center = TRUE, scale = TRUE) {
 
@@ -191,9 +211,17 @@ standardize_data <- function(data, center = TRUE, scale = TRUE) {
 #' @param data A data frame or tibble
 #' @param methods Character vector of methods to compare
 #'
-#' @return A list of dist objects named by method
+#' @return A named list of \code{\link[stats]{dist}} objects, one per method.
+#'
+#' @examples
+#' \donttest{
+#' dists <- compare_distances(iris[, 1:4], methods = c("euclidean", "manhattan"))
+#' }
+#'
 #' @export
-compare_distances <- function(data, methods = c("euclidean", "manhattan", "maximum")) {
+compare_distances <- function(
+    data,
+    methods = c("euclidean", "manhattan", "maximum")) {
 
   data_numeric <- data %>% dplyr::select(where(is.numeric))
 

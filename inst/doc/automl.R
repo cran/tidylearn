@@ -14,8 +14,8 @@ library(ggplot2)
 ## ----eval=FALSE---------------------------------------------------------------
 # # Run AutoML on iris dataset
 # result <- tl_auto_ml(iris, Species ~ .,
-#                     task = "classification",
-#                     time_budget = 60)
+#                      task = "classification",
+#                      time_budget = 60)
 # 
 # # View best model
 # print(result$best_model)
@@ -31,67 +31,69 @@ library(ggplot2)
 ## ----eval=FALSE---------------------------------------------------------------
 # # Run AutoML on regression problem
 # result_reg <- tl_auto_ml(mtcars, mpg ~ .,
-#                         task = "regression",
-#                         time_budget = 60)
+#                          task = "regression",
+#                          time_budget = 60)
 # 
 # # Best model
 # print(result_reg$best_model)
 
 ## ----eval=FALSE---------------------------------------------------------------
-# # AutoML with all features enabled
-# result_full <- tl_auto_ml(
-#   data = iris,
-#   formula = Species ~ .,
-#   task = "auto",                    # Automatically detect task type
-#   use_reduction = TRUE,             # Try PCA preprocessing
-#   use_clustering = TRUE,            # Add cluster features
-#   time_budget = 120,                # 2 minutes
-#   cv_folds = 5,                     # Cross-validation folds
-#   metric = NULL                     # Auto-select metric
-# )
+# # Quick sanity check -- 2 fast models, no CV, done in ~1s
+# quick <- tl_auto_ml(iris, Species ~ .,
+#                     time_budget = 10,
+#                     use_reduction = FALSE,
+#                     use_clustering = FALSE)
+# quick$leaderboard
+# #> baseline_tree, baseline_logistic
+# 
+# # Development iteration -- baselines + forest, some CV
+# medium <- tl_auto_ml(iris, Species ~ .,
+#                      time_budget = 60,
+#                      cv_folds = 3)
+# medium$leaderboard
+# #> 5--7 models depending on data size
+# 
+# # Thorough search -- all phases, full CV
+# thorough <- tl_auto_ml(iris, Species ~ .,
+#                        time_budget = 300,
+#                        cv_folds = 5)
+# thorough$leaderboard
+# #> 9--11 models with cross-validated scores
 
 ## ----eval=FALSE---------------------------------------------------------------
-# # Task type is automatically detected
-# result_auto <- tl_auto_ml(iris, Species ~ ., task = "auto")
-# # Detects: Classification (factor response)
+# # Factor/character response -> classification
+# result_class <- tl_auto_ml(iris, Species ~ ., task = "auto")
 # 
-# result_auto_reg <- tl_auto_ml(mtcars, mpg ~ ., task = "auto")
-# # Detects: Regression (numeric response)
-
-## ----eval=FALSE---------------------------------------------------------------
-# # Quick search (30 seconds)
-# quick_result <- tl_auto_ml(iris, Species ~ ., time_budget = 30)
-# 
-# # Thorough search (10 minutes)
-# thorough_result <- tl_auto_ml(iris, Species ~ ., time_budget = 600)
+# # Numeric response -> regression
+# result_reg <- tl_auto_ml(mtcars, mpg ~ ., task = "auto")
 
 ## ----eval=FALSE---------------------------------------------------------------
 # # Disable dimensionality reduction
 # no_reduction <- tl_auto_ml(iris, Species ~ .,
-#                           use_reduction = FALSE,
-#                           time_budget = 60)
+#                            use_reduction = FALSE,
+#                            time_budget = 60)
 # 
 # # Disable cluster features
 # no_clustering <- tl_auto_ml(iris, Species ~ .,
-#                            use_clustering = FALSE,
-#                            time_budget = 60)
+#                             use_clustering = FALSE,
+#                             time_budget = 60)
 # 
 # # Baseline models only
 # baseline_only <- tl_auto_ml(iris, Species ~ .,
-#                            use_reduction = FALSE,
-#                            use_clustering = FALSE,
-#                            time_budget = 30)
+#                             use_reduction = FALSE,
+#                             use_clustering = FALSE,
+#                             time_budget = 30)
 
 ## ----eval=FALSE---------------------------------------------------------------
 # # Adjust cross-validation folds
 # result_cv <- tl_auto_ml(iris, Species ~ .,
-#                        cv_folds = 10,    # More folds = better estimate, slower
-#                        time_budget = 120)
+#                         cv_folds = 10,
+#                         time_budget = 120)
 # 
 # # Fewer folds for faster evaluation
 # result_fast <- tl_auto_ml(iris, Species ~ .,
-#                          cv_folds = 3,
-#                          time_budget = 60)
+#                           cv_folds = 3,
+#                           time_budget = 60)
 
 ## ----eval=FALSE---------------------------------------------------------------
 # result <- tl_auto_ml(iris, Species ~ ., time_budget = 60)
@@ -110,9 +112,9 @@ library(ggplot2)
 # # View performance comparison
 # leaderboard <- result$leaderboard
 # 
-# # Sort by performance
+# # Sort by score (higher is better for accuracy, lower for RMSE)
 # leaderboard <- leaderboard %>%
-#   arrange(desc(performance))
+#   arrange(desc(score))
 # 
 # print(leaderboard)
 
@@ -129,8 +131,8 @@ library(ggplot2)
 # 
 # # Run AutoML on training data
 # automl_iris <- tl_auto_ml(split$train, Species ~ .,
-#                          time_budget = 90,
-#                          cv_folds = 5)
+#                           time_budget = 90,
+#                           cv_folds = 5)
 # 
 # # Evaluate on test set
 # test_preds <- predict(automl_iris$best_model, new_data = split$test)
@@ -153,8 +155,8 @@ library(ggplot2)
 # 
 # # Run AutoML
 # automl_mpg <- tl_auto_ml(split_mtcars$train, mpg ~ .,
-#                         task = "regression",
-#                         time_budget = 90)
+#                          task = "regression",
+#                          time_budget = 90)
 # 
 # # Evaluate
 # test_preds_mpg <- predict(automl_mpg$best_model, new_data = split_mtcars$test)
@@ -173,7 +175,7 @@ library(ggplot2)
 # 
 # # Run AutoML on preprocessed data
 # automl_processed <- tl_auto_ml(processed$data, Species ~ .,
-#                               time_budget = 60)
+#                                time_budget = 60)
 # 
 # # Note: Need to apply same preprocessing to test data
 # test_processed <- tl_prepare_data(
@@ -182,8 +184,10 @@ library(ggplot2)
 #   scale_method = "standardize"
 # )
 # 
-# test_preds_proc <- predict(automl_processed$best_model,
-#                            new_data = test_processed$data)
+# test_preds_proc <- predict(
+#   automl_processed$best_model,
+#   new_data = test_processed$data
+# )
 
 ## ----eval=FALSE---------------------------------------------------------------
 # # Manual approach: choose one model
@@ -202,31 +206,32 @@ library(ggplot2)
 ## ----eval=FALSE---------------------------------------------------------------
 # # First pass: quick exploration
 # quick_automl <- tl_auto_ml(split$train, Species ~ .,
-#                           time_budget = 30,
-#                           use_reduction = TRUE,
-#                           use_clustering = FALSE)
+#                            time_budget = 30,
+#                            use_reduction = TRUE,
+#                            use_clustering = FALSE)
 # 
-# # Analyze what worked
-# best_approach <- quick_automl$best_model$spec$method
+# # Analyze what worked — best model name is in the leaderboard
+# best_name <- quick_automl$leaderboard$model[1]
+# best_method <- quick_automl$best_model$spec$method
+# cat("Best model:", best_name, "(method:", best_method, ")\n")
 # 
-# # Second pass: focus on promising approaches
-# if (grepl("pca", names(quick_automl$best_model)[1])) {
-#   # If PCA worked well, focus on dimensionality reduction
+# # Second pass: if a PCA variant won, invest more in reduction
+# if (grepl("^pca_", best_name)) {
 #   refined_automl <- tl_auto_ml(split$train, Species ~ .,
-#                               time_budget = 60,
-#                               use_reduction = TRUE,
-#                               use_clustering = TRUE)
+#                                time_budget = 60,
+#                                use_reduction = TRUE,
+#                                use_clustering = TRUE)
 # }
 
 ## ----eval=FALSE---------------------------------------------------------------
 # # Get top 3 models
 # top_models <- automl_iris$leaderboard %>%
-#   arrange(desc(performance)) %>%
+#   arrange(desc(score)) %>%
 #   head(3)
 # 
 # # Make predictions with each
 # ensemble_preds <- list()
-# for (i in 1:nrow(top_models)) {
+# for (i in seq_len(nrow(top_models))) {
 #   model_name <- top_models$model[i]
 #   model <- automl_iris$models[[model_name]]
 #   ensemble_preds[[i]] <- predict(model, new_data = split$test)$.pred
@@ -243,35 +248,44 @@ library(ggplot2)
 ## ----eval=FALSE---------------------------------------------------------------
 # # AutoML automatically uses accuracy for classification
 # result_class <- tl_auto_ml(iris, Species ~ .,
-#                           metric = "accuracy",
-#                           time_budget = 60)
+#                            metric = "accuracy",
+#                            time_budget = 60)
 
 ## ----eval=FALSE---------------------------------------------------------------
 # # AutoML automatically uses RMSE for regression
 # result_reg <- tl_auto_ml(mtcars, mpg ~ .,
-#                         metric = "rmse",
-#                         time_budget = 60)
+#                          metric = "rmse",
+#                          time_budget = 60)
 
 ## ----eval=FALSE---------------------------------------------------------------
-# # Reduce time budget
-# quick_result <- tl_auto_ml(data, formula, time_budget = 30)
+# # 1. Reduce CV folds (biggest impact)
+# fast_result <- tl_auto_ml(data, formula,
+#                           cv_folds = 2,
+#                           time_budget = 30)
 # 
-# # Reduce CV folds
-# fast_result <- tl_auto_ml(data, formula, cv_folds = 3)
-# 
-# # Disable feature engineering
+# # 2. Disable slow phases
 # baseline_result <- tl_auto_ml(data, formula,
-#                              use_reduction = FALSE,
-#                              use_clustering = FALSE)
+#                               use_reduction = FALSE,
+#                               use_clustering = FALSE,
+#                               time_budget = 30)
+# 
+# # 3. Use a budget under 30s to skip forest/SVM/XGBoost entirely
+# quick_result <- tl_auto_ml(data, formula, time_budget = 10)
 
 ## ----eval=FALSE---------------------------------------------------------------
-# # Increase time budget
+# result <- tl_auto_ml(data, formula,
+#                      metric = "accuracy",  # or "rmse" for regression
+#                      time_budget = 60)
+
+## ----eval=FALSE---------------------------------------------------------------
+# # Increase time budget to unlock all phases
 # thorough_result <- tl_auto_ml(data, formula, time_budget = 300)
 # 
 # # Ensure feature engineering is enabled
 # full_result <- tl_auto_ml(data, formula,
-#                          use_reduction = TRUE,
-#                          use_clustering = TRUE)
+#                           use_reduction = TRUE,
+#                           use_clustering = TRUE,
+#                           time_budget = 300)
 
 ## ----eval=FALSE---------------------------------------------------------------
 # # Complete AutoML workflow

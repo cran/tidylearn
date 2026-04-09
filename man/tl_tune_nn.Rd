@@ -19,7 +19,8 @@ tl_tune_nn(
 
 \item{formula}{A formula specifying the model}
 
-\item{is_classification}{Logical indicating if this is a classification problem}
+\item{is_classification}{Logical indicating if this is a
+classification problem}
 
 \item{sizes}{Vector of hidden layer sizes to try}
 
@@ -30,7 +31,10 @@ tl_tune_nn(
 \item{...}{Additional arguments to pass to nnet()}
 }
 \value{
-A list with the best model and tuning results
+A list with elements \code{model} (the best fitted \code{nnet}
+model), \code{best_size} (optimal hidden-layer size), \code{best_decay}
+(optimal weight decay), and \code{tuning_results} (a data frame of all
+parameter combinations and their cross-validated errors).
 }
 \description{
 Tune a neural network model

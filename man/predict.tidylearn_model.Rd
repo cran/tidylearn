@@ -9,16 +9,28 @@
 \arguments{
 \item{object}{A tidylearn model object}
 
-\item{new_data}{A data frame containing the new data. If NULL, uses training data.}
+\item{new_data}{A data frame containing the new data.
+If NULL, uses training data.}
 
-\item{type}{Type of prediction. For supervised: "response" (default), "prob", "class".
-For unsupervised: "scores", "clusters", "transform" depending on method.}
+\item{type}{Type of prediction. For supervised:
+"response" (default), "prob", "class". For
+unsupervised: "scores", "clusters", "transform"
+depending on method.}
 
 \item{...}{Additional arguments}
 }
 \value{
-Predictions as a tibble
+A \link[tibble]{tibble} with a \code{.pred} column containing
+predictions. For classification with \code{type = "prob"}, returns
+columns for each class probability.
 }
 \description{
 Unified prediction interface for both supervised and unsupervised models
+}
+\examples{
+\donttest{
+model <- tl_model(mtcars, mpg ~ wt + hp, method = "linear")
+predict(model)
+predict(model, new_data = mtcars[1:5, ])
+}
 }

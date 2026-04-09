@@ -9,10 +9,12 @@ tidy_gower(data, weights = NULL)
 \arguments{
 \item{data}{A data frame or tibble}
 
-\item{weights}{Optional named vector of variable weights (default: equal weights)}
+\item{weights}{Optional named vector of variable
+weights (default: equal weights)}
 }
 \value{
-A dist object containing Gower distances
+A \code{\link[stats]{dist}} object containing Gower distances, with
+the \code{method} attribute set to \code{"gower"}.
 }
 \description{
 Computes Gower distance for mixed data types (numeric, factor, ordered)

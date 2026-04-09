@@ -2,22 +2,30 @@
 % Please edit documentation in R/supervised-regularization.R
 \name{tl_plot_importance_regularized}
 \alias{tl_plot_importance_regularized}
-\title{Plot variable importance for a regularized regression model}
+\title{Plot variable importance for a regularized model}
 \usage{
 tl_plot_importance_regularized(model, lambda = "1se", top_n = 20, ...)
 }
 \arguments{
 \item{model}{A tidylearn regularized model object}
 
-\item{lambda}{Which lambda to use ("1se" or "min", default: "1se")}
+\item{lambda}{Which lambda to use
+("1se" or "min", default: "1se")}
 
-\item{top_n}{Number of top features to display (default: 20)}
+\item{top_n}{Number of top features to display
+(default: 20)}
 
 \item{...}{Additional arguments}
 }
 \value{
-A ggplot object
+A \code{\link[ggplot2]{ggplot}} object.
 }
 \description{
-Plot variable importance for a regularized regression model
+Plot variable importance for a regularized model
+}
+\examples{
+\donttest{
+model <- tl_model(mtcars, mpg ~ ., method = "lasso")
+tl_plot_importance_regularized(model)
+}
 }

@@ -24,13 +24,21 @@ tl_transfer_learning(
 \item{...}{Additional arguments}
 }
 \value{
-A transfer learning model
+A list with class \code{"tidylearn_transfer"} containing:
+\describe{
+\item{pretrain_model}{The fitted dimensionality reduction model.}
+\item{supervised_model}{The fitted supervised tidylearn model.}
+\item{formula}{The model formula.}
+\item{method}{The supervised learning method used.}
+}
 }
 \description{
-Use unsupervised pre-training (e.g., autoencoder features) before supervised learning
+Use unsupervised pre-training (e.g., autoencoder
+features) before supervised learning
 }
 \examples{
 \donttest{
-model <- tl_transfer_learning(iris, Species ~ ., pretrain_method = "pca")
+model <- tl_transfer_learning(iris, Species ~ .,
+  pretrain_method = "pca", supervised_method = "logistic")
 }
 }

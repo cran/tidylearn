@@ -13,14 +13,17 @@ tidy_dbscan(data, eps, minPts = 5, cols = NULL, distance = "euclidean")
 
 \item{minPts}{Minimum number of points to form a dense region (default: 5)}
 
-\item{cols}{Columns to include (tidy select). If NULL, uses all numeric columns.}
+\item{cols}{Columns to include (tidy select).
+If NULL, uses all numeric columns.}
 
-\item{distance}{Distance metric if data is not a dist object (default: "euclidean")}
+\item{distance}{Distance metric if data is not a
+dist object (default: "euclidean")}
 }
 \value{
 A list of class "tidy_dbscan" containing:
 \itemize{
-\item clusters: tibble with observation IDs and cluster assignments (0 = noise)
+\item clusters: tibble with observation IDs and
+cluster assignments (0 = noise)
 \item core_points: logical vector indicating core points
 \item n_clusters: number of clusters (excluding noise)
 \item n_noise: number of noise points

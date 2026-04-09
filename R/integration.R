@@ -6,20 +6,32 @@
 #' Feature Engineering via Dimensionality Reduction
 #'
 #' Use PCA, MDS, or other dimensionality reduction as a preprocessing step
-#' for supervised learning. This can improve model performance and interpretability.
+#' for supervised learning. This can improve model performance
+#' and interpretability.
 #'
 #' @param data A data frame
 #' @param response Response variable name (will be preserved)
 #' @param method Dimensionality reduction method: "pca", "mds"
 #' @param n_components Number of components to retain
 #' @param ... Additional arguments for the dimensionality reduction method
-#' @return A list containing the transformed data and the reduction model
+#' @return A list with components:
+#'   \describe{
+#'     \item{data}{The transformed data frame with reduced-dimension columns
+#'       and the response variable (if provided).}
+#'     \item{reduction_model}{The fitted tidylearn dimensionality reduction
+#'       model.}
+#'     \item{original_data}{The original input data frame.}
+#'     \item{response}{The response variable name, or \code{NULL}.}
+#'   }
 #' @export
 #' @examples
 #' \donttest{
 #' # Reduce dimensions before classification
-#' reduced <- tl_reduce_dimensions(iris, response = "Species", method = "pca", n_components = 3)
-#' model <- tl_model(reduced$data, Species ~ ., method = "logistic")
+#' reduced <- tl_reduce_dimensions(
+#'   iris, response = "Species",
+#'   method = "pca", n_components = 3
+#' )
+#' model <- tl_model(reduced$data, Species ~ ., method = "tree")
 #' }
 tl_reduce_dimensions <- function(data,
                                  response = NULL,
@@ -29,7 +41,10 @@ tl_reduce_dimensions <- function(data,
   # Separate response if provided
   if (!is.null(response)) {
     if (!response %in% names(data)) {
-      stop("Response variable '", response, "' not found in data", call. = FALSE)
+      stop(
+        "Response variable '", response,
+        "' not found in data", call. = FALSE
+      )
     }
     response_data <- data[[response]]
     predictor_data <- data %>% dplyr::select(-dplyr::all_of(response))
@@ -48,7 +63,8 @@ tl_reduce_dimensions <- function(data,
     # Select components
     if (!is.null(n_components)) {
       pc_cols <- paste0("PC", seq_len(n_components))
-      transformed <- transformed %>% dplyr::select(.obs_id, dplyr::all_of(pc_cols))
+      transformed <- transformed %>%
+        dplyr::select(.obs_id, dplyr::all_of(pc_cols))
     }
 
     # Add response back
@@ -62,7 +78,8 @@ tl_reduce_dimensions <- function(data,
     # Select dimensions
     if (!is.null(n_components)) {
       dim_cols <- paste0("Dim", seq_len(n_components))
-      transformed <- transformed %>% dplyr::select(.obs_id, dplyr::all_of(dim_cols))
+      transformed <- transformed %>%
+        dplyr::select(.obs_id, dplyr::all_of(dim_cols))
     }
 
     # Add response back
@@ -88,7 +105,9 @@ tl_reduce_dimensions <- function(data,
 #' @param response Response variable name (will be excluded from clustering)
 #' @param method Clustering method: "kmeans", "pam", "hclust", "dbscan"
 #' @param ... Additional arguments for clustering
-#' @return Original data with cluster assignment column(s) added
+#' @return The original data frame with an additional factor column named
+#'   \code{cluster_<method>} containing cluster assignments. The fitted
+#'   cluster model is stored as an attribute \code{"cluster_model"}.
 #' @export
 #' @examples
 #' \donttest{
@@ -97,11 +116,17 @@ tl_reduce_dimensions <- function(data,
 #'                                                 method = "kmeans", k = 3)
 #' model <- tl_model(data_with_clusters, Species ~ ., method = "forest")
 #' }
-tl_add_cluster_features <- function(data, response = NULL, method = "kmeans", ...) {
+tl_add_cluster_features <- function(data,
+                                    response = NULL,
+                                    method = "kmeans",
+                                    ...) {
   # Separate response if provided
   if (!is.null(response)) {
     if (!response %in% names(data)) {
-      stop("Response variable '", response, "' not found in data", call. = FALSE)
+      stop(
+        "Response variable '", response,
+        "' not found in data", call. = FALSE
+      )
     }
     predictor_data <- data %>% dplyr::select(-dplyr::all_of(response))
   } else {
@@ -148,14 +173,20 @@ tl_add_cluster_features <- function(data, response = NULL, method = "kmeans", ..
 #' @param cluster_method Clustering method for label propagation
 #' @param supervised_method Supervised learning method for final model
 #' @param ... Additional arguments
-#' @return A tidylearn model trained on pseudo-labeled data
+#' @return A tidylearn model object with additional class
+#'   \code{"tidylearn_semisupervised"}, trained on pseudo-labeled data. The
+#'   model includes a \code{semisupervised_info} element with
+#'   \code{labeled_indices}, \code{cluster_model}, and
+#'   \code{label_mapping}.
 #' @export
 #' @examples
 #' \donttest{
 #' # Use only 10% of labels
 #' labeled_idx <- sample(nrow(iris), size = 15)
 #' model <- tl_semisupervised(iris, Species ~ ., labeled_indices = labeled_idx,
-#'                            cluster_method = "kmeans", supervised_method = "logistic")
+#'   cluster_method = "kmeans",
+#'   supervised_method = "tree"
+#' )
 #' }
 tl_semisupervised <- function(data, formula, labeled_indices,
                               cluster_method = "kmeans",
@@ -165,7 +196,6 @@ tl_semisupervised <- function(data, formula, labeled_indices,
 
   # Create training data with only labeled observations
   labeled_data <- data[labeled_indices, ]
-  unlabeled_data <- data[-labeled_indices, ]
 
   # Cluster the full dataset (excluding response)
   predictor_data <- data %>% dplyr::select(-dplyr::all_of(response_var))
@@ -198,7 +228,10 @@ tl_semisupervised <- function(data, formula, labeled_indices,
   pseudo_labeled <- cluster_labels %>%
     dplyr::left_join(label_mapping, by = "cluster") %>%
     dplyr::mutate(
-      final_label = dplyr::if_else(obs_id %in% labeled_indices, as.character(label), cluster_label)
+      final_label = dplyr::if_else(
+        obs_id %in% labeled_indices,
+        as.character(label), cluster_label
+      )
     )
 
   # Create pseudo-labeled dataset
@@ -227,11 +260,16 @@ tl_semisupervised <- function(data, formula, labeled_indices,
 #' @param data A data frame
 #' @param formula Model formula
 #' @param response Response variable name
-#' @param anomaly_method Method for anomaly detection: "dbscan", "isolation_forest"
+#' @param anomaly_method Method for anomaly detection:
+#'   "dbscan", "isolation_forest"
 #' @param action Action to take: "remove", "flag", "downweight"
 #' @param supervised_method Supervised learning method
 #' @param ... Additional arguments
-#' @return A tidylearn model or list with model and anomaly info
+#' @return A tidylearn model object with additional class
+#'   \code{"tidylearn_anomaly_aware"}. The model includes an
+#'   \code{anomaly_info} element with \code{anomaly_model},
+#'   \code{is_anomaly} (logical vector), \code{n_anomalies}, and
+#'   \code{action}.
 #' @export
 #' @examples
 #' \donttest{
@@ -239,9 +277,10 @@ tl_semisupervised <- function(data, formula, labeled_indices,
 #'                            anomaly_method = "dbscan", action = "flag")
 #' }
 tl_anomaly_aware <- function(data, formula, response,
-                              anomaly_method = "dbscan",
-                              action = "flag",
-                              supervised_method = "logistic", ...) {
+                             anomaly_method = "dbscan",
+                             action = "flag",
+                             supervised_method = "logistic",
+                             ...) {
   # Separate predictors for anomaly detection
   predictor_data <- data %>% dplyr::select(-dplyr::all_of(response))
 
@@ -278,7 +317,10 @@ tl_anomaly_aware <- function(data, formula, response,
   } else if (action == "downweight") {
     # Create weights (anomalies get lower weight)
     weights <- ifelse(is_anomaly, 0.1, 1.0)
-    model <- tl_model(data, formula, method = supervised_method, weights = weights)
+    model <- tl_model(
+      data, formula,
+      method = supervised_method, weights = weights
+    )
   }
 
   # Add anomaly detection info
@@ -303,7 +345,14 @@ tl_anomaly_aware <- function(data, formula, response,
 #' @param k Number of clusters
 #' @param supervised_method Supervised learning method
 #' @param ... Additional arguments
-#' @return A list of models (one per cluster) plus cluster assignments
+#' @return A list with class \code{"tidylearn_stratified"} containing:
+#'   \describe{
+#'     \item{cluster_model}{The fitted clustering model.}
+#'     \item{supervised_models}{Named list of tidylearn models, one per
+#'       cluster.}
+#'     \item{formula}{The model formula.}
+#'     \item{data}{The original training data.}
+#'   }
 #' @export
 #' @examples
 #' \donttest{
@@ -349,7 +398,14 @@ tl_stratified_models <- function(data, formula, cluster_method = "kmeans",
 #' @param object A tidylearn_stratified model object
 #' @param new_data New data for predictions
 #' @param ... Additional arguments
-#' @return A tibble of predictions with cluster assignments
+#' @return A \link[tibble]{tibble} with a \code{.pred} column containing
+#'   predictions and a \code{.cluster} column with cluster assignments.
+#' @examples
+#' \donttest{
+#' models <- tl_stratified_models(mtcars, mpg ~ .,
+#'   cluster_method = "kmeans", k = 2, supervised_method = "linear")
+#' preds <- predict(models)
+#' }
 #' @export
 predict.tidylearn_stratified <- function(object, new_data = NULL, ...) {
   if (is.null(new_data)) {
@@ -370,8 +426,10 @@ predict.tidylearn_stratified <- function(object, new_data = NULL, ...) {
     model_name <- paste0("cluster_", cluster_id)
 
     if (model_name %in% names(object$supervised_models)) {
-      pred <- predict(object$supervised_models[[model_name]],
-                     new_data = new_data[i, , drop = FALSE], ...)
+      pred <- predict(
+        object$supervised_models[[model_name]],
+        new_data = new_data[i, , drop = FALSE], ...
+      )
       predictions[[i]] <- pred$.pred[1]
     } else {
       predictions[[i]] <- NA

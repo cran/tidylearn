@@ -2,7 +2,7 @@
 #' @name tidylearn-pipeline
 #' @description Functions for creating end-to-end model pipelines
 #' @importFrom stats formula
-#' @importFrom dplyr %>% filter select mutate
+#' @importFrom dplyr filter select mutate
 NULL
 
 #' Create a modeling pipeline
@@ -13,9 +13,21 @@ NULL
 #' @param models A list of models to train
 #' @param evaluation A list of evaluation criteria
 #' @param ... Additional arguments
-#' @return A tidylearn pipeline object
+#' @return A \code{tidylearn_pipeline} object (S3 list) with components
+#'   \code{$formula}, \code{$data}, \code{$preprocessing},
+#'   \code{$models}, \code{$evaluation}, and \code{$results}
+#'   (initially \code{NULL}; populated after \code{\link{tl_run_pipeline}}).
+#' @examples
+#' \donttest{
+#' pipe <- tl_pipeline(iris, Species ~ .,
+#'   models = list(tree = list(method = "tree")))
+#' print(pipe)
+#' }
 #' @export
-tl_pipeline <- function(data, formula, preprocessing = NULL, models = NULL, evaluation = NULL, ...) {
+tl_pipeline <- function(data, formula,
+                        preprocessing = NULL,
+                        models = NULL,
+                        evaluation = NULL, ...) {
   # Create default preprocessing if not provided
   if (is.null(preprocessing)) {
     preprocessing <- list(
@@ -30,8 +42,7 @@ tl_pipeline <- function(data, formula, preprocessing = NULL, models = NULL, eval
     # Determine if classification or regression
     response_var <- all.vars(formula)[1]
     y <- data[[response_var]]
-    is_classification <- is.factor(y) || is.character(y) ||
-      (is.numeric(y) && length(unique(y)) <= 10)
+    is_classification <- is.factor(y) || is.character(y)
 
     if (is_classification) {
       models <- list(
@@ -53,8 +64,7 @@ tl_pipeline <- function(data, formula, preprocessing = NULL, models = NULL, eval
     # Determine if classification or regression
     response_var <- all.vars(formula)[1]
     y <- data[[response_var]]
-    is_classification <- is.factor(y) || is.character(y) ||
-      (is.numeric(y) && length(unique(y)) <= 10)
+    is_classification <- is.factor(y) || is.character(y)
 
     if (is_classification) {
       evaluation <- list(
@@ -92,7 +102,20 @@ tl_pipeline <- function(data, formula, preprocessing = NULL, models = NULL, eval
 #'
 #' @param pipeline A tidylearn pipeline object
 #' @param verbose Logical; whether to print progress
-#' @return A tidylearn pipeline with results
+#' @return The input \code{tidylearn_pipeline} object with its
+#'   \code{$results} component populated. Results include
+#'   \code{$processed_data}, \code{$model_results} (a named list of
+#'   per-model fits and metrics), \code{$best_model_name},
+#'   \code{$best_model} (the winning \code{tidylearn_model}), and
+#'   \code{$metric_values}.
+#' @examples
+#' \donttest{
+#' pipe <- tl_pipeline(iris, Species ~ .,
+#'   models = list(tree = list(method = "tree")),
+#'   evaluation = list(metrics = "accuracy", validation = "cv",
+#'     cv_folds = 2, best_metric = "accuracy"))
+#' pipe <- tl_run_pipeline(pipe, verbose = FALSE)
+#' }
 #' @export
 tl_run_pipeline <- function(pipeline, verbose = TRUE) {
   # Check if pipeline is valid
@@ -128,7 +151,8 @@ tl_run_pipeline <- function(pipeline, verbose = TRUE) {
           med <- median(processed_data[[col]], na.rm = TRUE)
           processed_data[[col]][na_idx] <- med
         }
-      } else if (is.factor(processed_data[[col]]) || is.character(processed_data[[col]])) {
+      } else if (is.factor(processed_data[[col]]) ||
+                   is.character(processed_data[[col]])) {
         # Impute with mode for categorical
         na_idx <- is.na(processed_data[[col]])
         if (any(na_idx)) {
@@ -155,9 +179,9 @@ tl_run_pipeline <- function(pipeline, verbose = TRUE) {
     numeric_cols <- sapply(processed_data, is.numeric)
     numeric_cols[response_var] <- FALSE  # Don't standardize response
 
-    # Standardize each numeric column
+    # Standardize each numeric column (as.vector avoids matrix-column)
     for (col in names(processed_data)[numeric_cols]) {
-      processed_data[[col]] <- scale(processed_data[[col]])
+      processed_data[[col]] <- as.vector(scale(processed_data[[col]]))
     }
   }
 
@@ -190,7 +214,10 @@ tl_run_pipeline <- function(pipeline, verbose = TRUE) {
     }
 
     # Create a single train/test split
-    train_idx <- sample(nrow(processed_data), round(train_prop * nrow(processed_data)))
+    train_idx <- sample(
+      nrow(processed_data),
+      round(train_prop * nrow(processed_data))
+    )
     train_data <- processed_data[train_idx, ]
     test_data <- processed_data[-train_idx, ]
   }
@@ -236,7 +263,10 @@ tl_run_pipeline <- function(pipeline, verbose = TRUE) {
         fold_model <- do.call(tl_model, model_args)
 
         # Evaluate on test fold
-        fold_metrics <- tl_evaluate(fold_model, test_fold, metrics = evaluation$metrics)
+        fold_metrics <- tl_evaluate(
+          fold_model, test_fold,
+          metrics = evaluation$metrics
+        )
 
         # Store fold results
         cv_results[[i]] <- list(
@@ -275,7 +305,7 @@ tl_run_pipeline <- function(pipeline, verbose = TRUE) {
       )
 
       if (verbose) {
-        for (i in 1:nrow(avg_metrics)) {
+        for (i in seq_len(nrow(avg_metrics))) {
           metric <- avg_metrics$metric[i]
           mean_val <- avg_metrics$mean_value[i]
           sd_val <- avg_metrics$sd_value[i]
@@ -299,7 +329,10 @@ tl_run_pipeline <- function(pipeline, verbose = TRUE) {
       split_model <- do.call(tl_model, model_args)
 
       # Evaluate on test data
-      test_metrics <- tl_evaluate(split_model, test_data, metrics = evaluation$metrics)
+      test_metrics <- tl_evaluate(
+        split_model, test_data,
+        metrics = evaluation$metrics
+      )
 
       # Store results
       model_results[[model_name]] <- list(
@@ -308,7 +341,7 @@ tl_run_pipeline <- function(pipeline, verbose = TRUE) {
       )
 
       if (verbose) {
-        for (i in 1:nrow(test_metrics)) {
+        for (i in seq_len(nrow(test_metrics))) {
           metric <- test_metrics$metric[i]
           value <- test_metrics$value[i]
 
@@ -326,34 +359,51 @@ tl_run_pipeline <- function(pipeline, verbose = TRUE) {
   }
 
   # Extract metric values for each model
-  metric_values <- sapply(names(model_results), function(model_name) {
-    result <- model_results[[model_name]]
+  metric_values <- sapply(
+    names(model_results),
+    function(model_name) {
+      result <- model_results[[model_name]]
 
-    if (evaluation$validation == "cv") {
-      # Get from average metrics
-      metric_row <- result$avg_metrics$metric == best_metric
-      if (any(metric_row)) {
-        return(result$avg_metrics$mean_value[metric_row])
+      if (evaluation$validation == "cv") {
+        metric_row <- result$avg_metrics$metric ==
+          best_metric
+        if (any(metric_row)) {
+          val <- result$avg_metrics$mean_value[metric_row]
+          if (is.nan(val) || is.na(val)) NA_real_ else val
+        } else {
+          NA_real_
+        }
       } else {
-        return(NA)
-      }
-    } else {
-      # Get from test metrics
-      metric_row <- result$test_metrics$metric == best_metric
-      if (any(metric_row)) {
-        return(result$test_metrics$value[metric_row])
-      } else {
-        return(NA)
+        metric_row <- result$test_metrics$metric ==
+          best_metric
+        if (any(metric_row)) {
+          val <- result$test_metrics$value[metric_row]
+          if (is.nan(val) || is.na(val)) NA_real_ else val
+        } else {
+          NA_real_
+        }
       }
     }
-  })
+  )
 
   # Determine if higher or lower is better for this metric
-  metrics_higher_better <- c("accuracy", "precision", "recall", "f1", "auc", "rsq")
-  is_higher_better <- best_metric %in% metrics_higher_better
+  metrics_higher_better <- c(
+    "accuracy", "precision", "recall",
+    "f1", "auc", "rsq"
+  )
+  is_higher_better <- best_metric %in%
+    metrics_higher_better
 
-  # Find best model
-  if (is_higher_better) {
+  # Find best model (use na.rm-safe which.max/which.min)
+  valid_values <- !is.na(metric_values)
+  if (!any(valid_values)) {
+    best_idx <- 1L
+    warning(
+      "Could not determine best model from metric '",
+      best_metric, "' -- all values NA. Using first model.",
+      call. = FALSE
+    )
+  } else if (is_higher_better) {
     best_idx <- which.max(metric_values)
   } else {
     best_idx <- which.min(metric_values)
@@ -382,7 +432,17 @@ tl_run_pipeline <- function(pipeline, verbose = TRUE) {
 #' Get the best model from a pipeline
 #'
 #' @param pipeline A tidylearn pipeline object with results
-#' @return The best tidylearn model
+#' @return The best \code{tidylearn_model} object from the pipeline,
+#'   selected by the metric specified in \code{evaluation$best_metric}.
+#' @examples
+#' \donttest{
+#' pipe <- tl_pipeline(iris, Species ~ .,
+#'   models = list(tree = list(method = "tree")),
+#'   evaluation = list(metrics = "accuracy", validation = "cv",
+#'     cv_folds = 2, best_metric = "accuracy"))
+#' pipe <- tl_run_pipeline(pipe, verbose = FALSE)
+#' best <- tl_get_best_model(pipe)
+#' }
 #' @export
 tl_get_best_model <- function(pipeline) {
   # Check if pipeline has results
@@ -399,8 +459,11 @@ tl_get_best_model <- function(pipeline) {
 #' Compare models from a pipeline
 #'
 #' @param pipeline A tidylearn pipeline object with results
-#' @param metrics Character vector of metrics to compare (if NULL, uses all available)
-#' @return A comparison plot of model performance
+#' @param metrics Character vector of metrics to compare
+#'   (if NULL, uses all available)
+#' @return A \code{\link[ggplot2]{ggplot}} object showing a faceted bar
+#'   chart comparing metric values across models, with the best model
+#'   highlighted.
 #' @importFrom ggplot2 ggplot aes geom_col facet_wrap labs theme_minimal
 #' @export
 tl_compare_pipeline_models <- function(pipeline, metrics = NULL) {
@@ -421,7 +484,8 @@ tl_compare_pipeline_models <- function(pipeline, metrics = NULL) {
   for (model_name in names(model_results)) {
     result <- model_results[[model_name]]
 
-    if (!is.null(pipeline$evaluation) && pipeline$evaluation$validation == "cv") {
+    if (!is.null(pipeline$evaluation) &&
+          pipeline$evaluation$validation == "cv") {
       # Get from average metrics
       model_metrics <- result$avg_metrics
 
@@ -464,11 +528,17 @@ tl_compare_pipeline_models <- function(pipeline, metrics = NULL) {
   }
 
   # Add highlight for best model
-  comparison_data$is_best <- comparison_data$model == pipeline$results$best_model_name
+  comparison_data$is_best <-
+    comparison_data$model ==
+    pipeline$results$best_model_name
 
   # Determine which metrics are "higher is better"
-  metrics_higher_better <- c("accuracy", "precision", "recall", "f1", "auc", "rsq")
-  comparison_data$higher_better <- comparison_data$metric %in% metrics_higher_better
+  metrics_higher_better <- c(
+    "accuracy", "precision", "recall",
+    "f1", "auc", "rsq"
+  )
+  comparison_data$higher_better <-
+    comparison_data$metric %in% metrics_higher_better
 
   # Create comparison plot
   p <- ggplot2::ggplot(
@@ -510,7 +580,9 @@ tl_compare_pipeline_models <- function(pipeline, metrics = NULL) {
 #' @param type Type of prediction (default: "response")
 #' @param model_name Name of model to use (if NULL, uses the best model)
 #' @param ... Additional arguments passed to predict
-#' @return Predictions
+#' @return A \link[tibble]{tibble} with a \code{.pred} column containing
+#'   predictions from the selected (or best) pipeline model, after
+#'   applying the same preprocessing steps used during training.
 #' @export
 tl_predict_pipeline <- function(pipeline,
                                 new_data,
@@ -550,13 +622,17 @@ tl_predict_pipeline <- function(pipeline,
           if (any(na_idx)) {
             # Use median from original processed data if available
             if (col %in% names(pipeline$results$processed_data)) {
-              med <- median(pipeline$results$processed_data[[col]], na.rm = TRUE)
+              med <- median(
+                pipeline$results$processed_data[[col]],
+                na.rm = TRUE
+              )
             } else {
               med <- median(processed_new_data[[col]], na.rm = TRUE)
             }
             processed_new_data[[col]][na_idx] <- med
           }
-        } else if (is.factor(processed_new_data[[col]]) || is.character(processed_new_data[[col]])) {
+        } else if (is.factor(processed_new_data[[col]]) ||
+                     is.character(processed_new_data[[col]])) {
           # Impute with mode for categorical
           na_idx <- is.na(processed_new_data[[col]])
           if (any(na_idx)) {
@@ -565,7 +641,10 @@ tl_predict_pipeline <- function(pipeline,
               if (is.factor(pipeline$results$processed_data[[col]])) {
                 tab <- table(pipeline$results$processed_data[[col]])
               } else {
-                tab <- table(pipeline$results$processed_data[[col]], useNA = "no")
+                tab <- table(
+                  pipeline$results$processed_data[[col]],
+                  useNA = "no"
+                )
               }
             } else {
               if (is.factor(processed_new_data[[col]])) {
@@ -596,7 +675,9 @@ tl_predict_pipeline <- function(pipeline,
           col_mean <- mean(pipeline$results$processed_data[[col]], na.rm = TRUE)
           col_sd <- sd(pipeline$results$processed_data[[col]], na.rm = TRUE)
 
-          processed_new_data[[col]] <- (processed_new_data[[col]] - col_mean) / col_sd
+          processed_new_data[[col]] <-
+            (processed_new_data[[col]] - col_mean) /
+            col_sd
         } else {
           # Just standardize with its own mean and sd
           processed_new_data[[col]] <- scale(processed_new_data[[col]])
@@ -613,7 +694,13 @@ tl_predict_pipeline <- function(pipeline,
 #'
 #' @param pipeline A tidylearn pipeline object
 #' @param file Path to save the pipeline
-#' @return Invisible NULL
+#' @return Called for its side effect of saving to disk; returns
+#'   \code{NULL} invisibly.
+#' @examples
+#' \donttest{
+#' pipe <- tl_pipeline(iris, Species ~ .)
+#' tl_save_pipeline(pipe, tempfile(fileext = ".rds"))
+#' }
 #' @export
 tl_save_pipeline <- function(pipeline, file) {
   # Validate input
@@ -630,7 +717,15 @@ tl_save_pipeline <- function(pipeline, file) {
 #' Load a pipeline from disk
 #'
 #' @param file Path to the pipeline file
-#' @return A tidylearn pipeline object
+#' @return A \code{tidylearn_pipeline} object previously saved with
+#'   \code{\link{tl_save_pipeline}}.
+#' @examples
+#' \donttest{
+#' pipe <- tl_pipeline(iris, Species ~ .)
+#' f <- tempfile(fileext = ".rds")
+#' tl_save_pipeline(pipe, f)
+#' pipe2 <- tl_load_pipeline(f)
+#' }
 #' @export
 tl_load_pipeline <- function(file) {
   # Load RDS
@@ -648,7 +743,12 @@ tl_load_pipeline <- function(file) {
 #'
 #' @param x A tidylearn pipeline object
 #' @param ... Additional arguments (not used)
-#' @return Invisibly returns the pipeline
+#' @return The input pipeline object \code{x}, returned invisibly.
+#' @examples
+#' \donttest{
+#' pipe <- tl_pipeline(iris, Species ~ .)
+#' print(pipe)
+#' }
 #' @export
 print.tidylearn_pipeline <- function(x, ...) {
   # Extract pipeline components
@@ -707,7 +807,13 @@ print.tidylearn_pipeline <- function(x, ...) {
 #'
 #' @param object A tidylearn pipeline object
 #' @param ... Additional arguments (not used)
-#' @return Invisibly returns the pipeline
+#' @return The input pipeline \code{object}, returned invisibly. Called
+#'   for its side effect of printing detailed pipeline and model results.
+#' @examples
+#' \donttest{
+#' pipe <- tl_pipeline(iris, Species ~ .)
+#' summary(pipe)
+#' }
 #' @export
 summary.tidylearn_pipeline <- function(object, ...) {
   # If no results, just print the pipeline
@@ -731,7 +837,7 @@ summary.tidylearn_pipeline <- function(object, ...) {
     if (!is.null(object$evaluation) && object$evaluation$validation == "cv") {
       # Print average metrics with standard deviation
       cat("Cross-validation metrics:\n")
-      for (i in 1:nrow(result$avg_metrics)) {
+      for (i in seq_len(nrow(result$avg_metrics))) {
         metric <- result$avg_metrics$metric[i]
         mean_val <- result$avg_metrics$mean_value[i]
         sd_val <- result$avg_metrics$sd_value[i]
@@ -742,7 +848,7 @@ summary.tidylearn_pipeline <- function(object, ...) {
     } else {
       # Print test metrics
       cat("Test metrics:\n")
-      for (i in 1:nrow(result$test_metrics)) {
+      for (i in seq_len(nrow(result$test_metrics))) {
         metric <- result$test_metrics$metric[i]
         value <- result$test_metrics$value[i]
 

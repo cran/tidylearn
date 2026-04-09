@@ -379,20 +379,22 @@ learning.</p>
 <span id="cb2-15"><a href="#cb2-15" tabindex="-1"></a><span class="co">#&gt; 4 4       -2.29  0.595 -0.0910 setosa </span></span>
 <span id="cb2-16"><a href="#cb2-16" tabindex="-1"></a><span class="co">#&gt; 5 5       -2.38 -0.645 -0.0157 setosa </span></span>
 <span id="cb2-17"><a href="#cb2-17" tabindex="-1"></a><span class="co">#&gt; 6 6       -2.07 -1.48  -0.0269 setosa</span></span></code></pre></div>
-<div class="sourceCode" id="cb3"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb3-1"><a href="#cb3-1" tabindex="-1"></a><span class="co"># Train classifier on reduced features (remove .obs_id column first)</span></span>
-<span id="cb3-2"><a href="#cb3-2" tabindex="-1"></a>reduced_data <span class="ot">&lt;-</span> reduced<span class="sc">$</span>data <span class="sc">%&gt;%</span> <span class="fu">select</span>(<span class="sc">-</span><span class="fu">starts_with</span>(<span class="st">&quot;.obs&quot;</span>))</span>
-<span id="cb3-3"><a href="#cb3-3" tabindex="-1"></a>model_reduced <span class="ot">&lt;-</span> <span class="fu">tl_model</span>(reduced_data, Species <span class="sc">~</span> ., <span class="at">method =</span> <span class="st">&quot;logistic&quot;</span>)</span>
-<span id="cb3-4"><a href="#cb3-4" tabindex="-1"></a><span class="co">#&gt; Warning: glm.fit: algorithm did not converge</span></span>
-<span id="cb3-5"><a href="#cb3-5" tabindex="-1"></a><span class="co">#&gt; Warning: glm.fit: fitted probabilities numerically 0 or 1 occurred</span></span>
-<span id="cb3-6"><a href="#cb3-6" tabindex="-1"></a><span class="fu">print</span>(model_reduced)</span>
-<span id="cb3-7"><a href="#cb3-7" tabindex="-1"></a><span class="co">#&gt; tidylearn Model</span></span>
-<span id="cb3-8"><a href="#cb3-8" tabindex="-1"></a><span class="co">#&gt; ===============</span></span>
-<span id="cb3-9"><a href="#cb3-9" tabindex="-1"></a><span class="co">#&gt; Paradigm: supervised </span></span>
-<span id="cb3-10"><a href="#cb3-10" tabindex="-1"></a><span class="co">#&gt; Method: logistic </span></span>
-<span id="cb3-11"><a href="#cb3-11" tabindex="-1"></a><span class="co">#&gt; Task: Classification </span></span>
-<span id="cb3-12"><a href="#cb3-12" tabindex="-1"></a><span class="co">#&gt; Formula: Species ~ . </span></span>
-<span id="cb3-13"><a href="#cb3-13" tabindex="-1"></a><span class="co">#&gt; </span></span>
-<span id="cb3-14"><a href="#cb3-14" tabindex="-1"></a><span class="co">#&gt; Training observations: 150</span></span></code></pre></div>
+<div class="sourceCode" id="cb3"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb3-1"><a href="#cb3-1" tabindex="-1"></a><span class="co"># Train classifier on reduced features.</span></span>
+<span id="cb3-2"><a href="#cb3-2" tabindex="-1"></a><span class="co"># PCA output includes a .obs_id row-identifier column — drop it before</span></span>
+<span id="cb3-3"><a href="#cb3-3" tabindex="-1"></a><span class="co"># modeling so it isn&#39;t treated as a predictor in the formula.</span></span>
+<span id="cb3-4"><a href="#cb3-4" tabindex="-1"></a>reduced_data <span class="ot">&lt;-</span> reduced<span class="sc">$</span>data <span class="sc">%&gt;%</span> <span class="fu">select</span>(<span class="sc">-</span><span class="fu">starts_with</span>(<span class="st">&quot;.obs&quot;</span>))</span>
+<span id="cb3-5"><a href="#cb3-5" tabindex="-1"></a>model_reduced <span class="ot">&lt;-</span> <span class="fu">tl_model</span>(reduced_data, Species <span class="sc">~</span> ., <span class="at">method =</span> <span class="st">&quot;logistic&quot;</span>)</span>
+<span id="cb3-6"><a href="#cb3-6" tabindex="-1"></a><span class="co">#&gt; Warning: glm.fit: algorithm did not converge</span></span>
+<span id="cb3-7"><a href="#cb3-7" tabindex="-1"></a><span class="co">#&gt; Warning: glm.fit: fitted probabilities numerically 0 or 1 occurred</span></span>
+<span id="cb3-8"><a href="#cb3-8" tabindex="-1"></a><span class="fu">print</span>(model_reduced)</span>
+<span id="cb3-9"><a href="#cb3-9" tabindex="-1"></a><span class="co">#&gt; tidylearn Model</span></span>
+<span id="cb3-10"><a href="#cb3-10" tabindex="-1"></a><span class="co">#&gt; ===============</span></span>
+<span id="cb3-11"><a href="#cb3-11" tabindex="-1"></a><span class="co">#&gt; Paradigm: supervised </span></span>
+<span id="cb3-12"><a href="#cb3-12" tabindex="-1"></a><span class="co">#&gt; Method: logistic </span></span>
+<span id="cb3-13"><a href="#cb3-13" tabindex="-1"></a><span class="co">#&gt; Task: Classification </span></span>
+<span id="cb3-14"><a href="#cb3-14" tabindex="-1"></a><span class="co">#&gt; Formula: Species ~ . </span></span>
+<span id="cb3-15"><a href="#cb3-15" tabindex="-1"></a><span class="co">#&gt; </span></span>
+<span id="cb3-16"><a href="#cb3-16" tabindex="-1"></a><span class="co">#&gt; Training observations: 150</span></span></code></pre></div>
 <div class="sourceCode" id="cb4"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb4-1"><a href="#cb4-1" tabindex="-1"></a><span class="co"># Make predictions</span></span>
 <span id="cb4-2"><a href="#cb4-2" tabindex="-1"></a>preds <span class="ot">&lt;-</span> <span class="fu">predict</span>(model_reduced)</span>
 <span id="cb4-3"><a href="#cb4-3" tabindex="-1"></a>accuracy <span class="ot">&lt;-</span> <span class="fu">mean</span>(preds<span class="sc">$</span>.pred <span class="sc">==</span> iris<span class="sc">$</span>Species)</span>
@@ -413,9 +415,9 @@ learning.</p>
 <span id="cb5-10"><a href="#cb5-10" tabindex="-1"></a></span>
 <span id="cb5-11"><a href="#cb5-11" tabindex="-1"></a><span class="co"># Model with PCA features</span></span>
 <span id="cb5-12"><a href="#cb5-12" tabindex="-1"></a>reduced_train <span class="ot">&lt;-</span> <span class="fu">tl_reduce_dimensions</span>(split<span class="sc">$</span>train,</span>
-<span id="cb5-13"><a href="#cb5-13" tabindex="-1"></a>                                     <span class="at">response =</span> <span class="st">&quot;Species&quot;</span>,</span>
-<span id="cb5-14"><a href="#cb5-14" tabindex="-1"></a>                                     <span class="at">method =</span> <span class="st">&quot;pca&quot;</span>,</span>
-<span id="cb5-15"><a href="#cb5-15" tabindex="-1"></a>                                     <span class="at">n_components =</span> <span class="dv">3</span>)</span>
+<span id="cb5-13"><a href="#cb5-13" tabindex="-1"></a>                                      <span class="at">response =</span> <span class="st">&quot;Species&quot;</span>,</span>
+<span id="cb5-14"><a href="#cb5-14" tabindex="-1"></a>                                      <span class="at">method =</span> <span class="st">&quot;pca&quot;</span>,</span>
+<span id="cb5-15"><a href="#cb5-15" tabindex="-1"></a>                                      <span class="at">n_components =</span> <span class="dv">3</span>)</span>
 <span id="cb5-16"><a href="#cb5-16" tabindex="-1"></a></span>
 <span id="cb5-17"><a href="#cb5-17" tabindex="-1"></a><span class="co"># Remove .obs_id column before modeling (it&#39;s just an identifier)</span></span>
 <span id="cb5-18"><a href="#cb5-18" tabindex="-1"></a>reduced_train_data <span class="ot">&lt;-</span> reduced_train<span class="sc">$</span>data <span class="sc">%&gt;%</span> <span class="fu">select</span>(<span class="sc">-</span><span class="fu">starts_with</span>(<span class="st">&quot;.obs&quot;</span>))</span>
@@ -425,20 +427,23 @@ learning.</p>
 <span id="cb5-22"><a href="#cb5-22" tabindex="-1"></a></span>
 <span id="cb5-23"><a href="#cb5-23" tabindex="-1"></a><span class="co"># Need to transform test data using same PCA</span></span>
 <span id="cb5-24"><a href="#cb5-24" tabindex="-1"></a>test_predictors <span class="ot">&lt;-</span> split<span class="sc">$</span>test <span class="sc">%&gt;%</span> <span class="fu">select</span>(<span class="sc">-</span>Species)</span>
-<span id="cb5-25"><a href="#cb5-25" tabindex="-1"></a>test_transformed <span class="ot">&lt;-</span> <span class="fu">predict</span>(reduced_train<span class="sc">$</span>reduction_model, <span class="at">new_data =</span> test_predictors)</span>
-<span id="cb5-26"><a href="#cb5-26" tabindex="-1"></a>test_transformed<span class="sc">$</span>Species <span class="ot">&lt;-</span> split<span class="sc">$</span>test<span class="sc">$</span>Species</span>
-<span id="cb5-27"><a href="#cb5-27" tabindex="-1"></a>test_transformed <span class="ot">&lt;-</span> test_transformed <span class="sc">%&gt;%</span> <span class="fu">select</span>(<span class="sc">-</span><span class="fu">starts_with</span>(<span class="st">&quot;.obs&quot;</span>))</span>
-<span id="cb5-28"><a href="#cb5-28" tabindex="-1"></a></span>
-<span id="cb5-29"><a href="#cb5-29" tabindex="-1"></a>preds_pca <span class="ot">&lt;-</span> <span class="fu">predict</span>(model_pca, <span class="at">new_data =</span> test_transformed)</span>
-<span id="cb5-30"><a href="#cb5-30" tabindex="-1"></a>acc_pca <span class="ot">&lt;-</span> <span class="fu">mean</span>(preds_pca<span class="sc">$</span>.pred <span class="sc">==</span> split<span class="sc">$</span>test<span class="sc">$</span>Species)</span>
+<span id="cb5-25"><a href="#cb5-25" tabindex="-1"></a>test_transformed <span class="ot">&lt;-</span> <span class="fu">predict</span>(</span>
+<span id="cb5-26"><a href="#cb5-26" tabindex="-1"></a>  reduced_train<span class="sc">$</span>reduction_model,</span>
+<span id="cb5-27"><a href="#cb5-27" tabindex="-1"></a>  <span class="at">new_data =</span> test_predictors</span>
+<span id="cb5-28"><a href="#cb5-28" tabindex="-1"></a>)</span>
+<span id="cb5-29"><a href="#cb5-29" tabindex="-1"></a>test_transformed<span class="sc">$</span>Species <span class="ot">&lt;-</span> split<span class="sc">$</span>test<span class="sc">$</span>Species</span>
+<span id="cb5-30"><a href="#cb5-30" tabindex="-1"></a>test_transformed <span class="ot">&lt;-</span> test_transformed <span class="sc">%&gt;%</span> <span class="fu">select</span>(<span class="sc">-</span><span class="fu">starts_with</span>(<span class="st">&quot;.obs&quot;</span>))</span>
 <span id="cb5-31"><a href="#cb5-31" tabindex="-1"></a></span>
-<span id="cb5-32"><a href="#cb5-32" tabindex="-1"></a><span class="co"># Compare results</span></span>
-<span id="cb5-33"><a href="#cb5-33" tabindex="-1"></a><span class="fu">cat</span>(<span class="st">&quot;Original features (4):&quot;</span>, <span class="fu">round</span>(acc_original <span class="sc">*</span> <span class="dv">100</span>, <span class="dv">1</span>), <span class="st">&quot;%</span><span class="sc">\n</span><span class="st">&quot;</span>)</span>
-<span id="cb5-34"><a href="#cb5-34" tabindex="-1"></a><span class="co">#&gt; Original features (4): 0 %</span></span>
-<span id="cb5-35"><a href="#cb5-35" tabindex="-1"></a><span class="fu">cat</span>(<span class="st">&quot;PCA features (3):&quot;</span>, <span class="fu">round</span>(acc_pca <span class="sc">*</span> <span class="dv">100</span>, <span class="dv">1</span>), <span class="st">&quot;%</span><span class="sc">\n</span><span class="st">&quot;</span>)</span>
-<span id="cb5-36"><a href="#cb5-36" tabindex="-1"></a><span class="co">#&gt; PCA features (3): 0 %</span></span>
-<span id="cb5-37"><a href="#cb5-37" tabindex="-1"></a><span class="fu">cat</span>(<span class="st">&quot;Feature reduction:&quot;</span>, <span class="fu">round</span>((<span class="dv">1</span> <span class="sc">-</span> <span class="dv">3</span><span class="sc">/</span><span class="dv">4</span>) <span class="sc">*</span> <span class="dv">100</span>, <span class="dv">1</span>), <span class="st">&quot;%</span><span class="sc">\n</span><span class="st">&quot;</span>)</span>
-<span id="cb5-38"><a href="#cb5-38" tabindex="-1"></a><span class="co">#&gt; Feature reduction: 25 %</span></span></code></pre></div>
+<span id="cb5-32"><a href="#cb5-32" tabindex="-1"></a>preds_pca <span class="ot">&lt;-</span> <span class="fu">predict</span>(model_pca, <span class="at">new_data =</span> test_transformed)</span>
+<span id="cb5-33"><a href="#cb5-33" tabindex="-1"></a>acc_pca <span class="ot">&lt;-</span> <span class="fu">mean</span>(preds_pca<span class="sc">$</span>.pred <span class="sc">==</span> split<span class="sc">$</span>test<span class="sc">$</span>Species)</span>
+<span id="cb5-34"><a href="#cb5-34" tabindex="-1"></a></span>
+<span id="cb5-35"><a href="#cb5-35" tabindex="-1"></a><span class="co"># Compare results</span></span>
+<span id="cb5-36"><a href="#cb5-36" tabindex="-1"></a><span class="fu">cat</span>(<span class="st">&quot;Original features (4):&quot;</span>, <span class="fu">round</span>(acc_original <span class="sc">*</span> <span class="dv">100</span>, <span class="dv">1</span>), <span class="st">&quot;%</span><span class="sc">\n</span><span class="st">&quot;</span>)</span>
+<span id="cb5-37"><a href="#cb5-37" tabindex="-1"></a><span class="co">#&gt; Original features (4): 0 %</span></span>
+<span id="cb5-38"><a href="#cb5-38" tabindex="-1"></a><span class="fu">cat</span>(<span class="st">&quot;PCA features (3):&quot;</span>, <span class="fu">round</span>(acc_pca <span class="sc">*</span> <span class="dv">100</span>, <span class="dv">1</span>), <span class="st">&quot;%</span><span class="sc">\n</span><span class="st">&quot;</span>)</span>
+<span id="cb5-39"><a href="#cb5-39" tabindex="-1"></a><span class="co">#&gt; PCA features (3): 0 %</span></span>
+<span id="cb5-40"><a href="#cb5-40" tabindex="-1"></a><span class="fu">cat</span>(<span class="st">&quot;Feature reduction:&quot;</span>, <span class="fu">round</span>((<span class="dv">1</span> <span class="sc">-</span> <span class="dv">3</span> <span class="sc">/</span> <span class="dv">4</span>) <span class="sc">*</span> <span class="dv">100</span>, <span class="dv">1</span>), <span class="st">&quot;%</span><span class="sc">\n</span><span class="st">&quot;</span>)</span>
+<span id="cb5-41"><a href="#cb5-41" tabindex="-1"></a><span class="co">#&gt; Feature reduction: 25 %</span></span></code></pre></div>
 </div>
 </div>
 <div id="cluster-based-feature-engineering" class="section level2">
@@ -449,9 +454,9 @@ performance.</p>
 <h3>Adding Cluster Features</h3>
 <div class="sourceCode" id="cb6"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb6-1"><a href="#cb6-1" tabindex="-1"></a><span class="co"># Add cluster features</span></span>
 <span id="cb6-2"><a href="#cb6-2" tabindex="-1"></a>data_clustered <span class="ot">&lt;-</span> <span class="fu">tl_add_cluster_features</span>(iris,</span>
-<span id="cb6-3"><a href="#cb6-3" tabindex="-1"></a>                                         <span class="at">response =</span> <span class="st">&quot;Species&quot;</span>,</span>
-<span id="cb6-4"><a href="#cb6-4" tabindex="-1"></a>                                         <span class="at">method =</span> <span class="st">&quot;kmeans&quot;</span>,</span>
-<span id="cb6-5"><a href="#cb6-5" tabindex="-1"></a>                                         <span class="at">k =</span> <span class="dv">3</span>)</span>
+<span id="cb6-3"><a href="#cb6-3" tabindex="-1"></a>                                          <span class="at">response =</span> <span class="st">&quot;Species&quot;</span>,</span>
+<span id="cb6-4"><a href="#cb6-4" tabindex="-1"></a>                                          <span class="at">method =</span> <span class="st">&quot;kmeans&quot;</span>,</span>
+<span id="cb6-5"><a href="#cb6-5" tabindex="-1"></a>                                          <span class="at">k =</span> <span class="dv">3</span>)</span>
 <span id="cb6-6"><a href="#cb6-6" tabindex="-1"></a></span>
 <span id="cb6-7"><a href="#cb6-7" tabindex="-1"></a><span class="co"># Check new features</span></span>
 <span id="cb6-8"><a href="#cb6-8" tabindex="-1"></a><span class="fu">names</span>(data_clustered)</span>
@@ -481,9 +486,9 @@ performance.</p>
 <span id="cb8-8"><a href="#cb8-8" tabindex="-1"></a></span>
 <span id="cb8-9"><a href="#cb8-9" tabindex="-1"></a><span class="co"># With cluster features</span></span>
 <span id="cb8-10"><a href="#cb8-10" tabindex="-1"></a>train_clustered <span class="ot">&lt;-</span> <span class="fu">tl_add_cluster_features</span>(split_comp<span class="sc">$</span>train,</span>
-<span id="cb8-11"><a href="#cb8-11" tabindex="-1"></a>                                          <span class="at">response =</span> <span class="st">&quot;Species&quot;</span>,</span>
-<span id="cb8-12"><a href="#cb8-12" tabindex="-1"></a>                                          <span class="at">method =</span> <span class="st">&quot;kmeans&quot;</span>,</span>
-<span id="cb8-13"><a href="#cb8-13" tabindex="-1"></a>                                          <span class="at">k =</span> <span class="dv">3</span>)</span>
+<span id="cb8-11"><a href="#cb8-11" tabindex="-1"></a>                                           <span class="at">response =</span> <span class="st">&quot;Species&quot;</span>,</span>
+<span id="cb8-12"><a href="#cb8-12" tabindex="-1"></a>                                           <span class="at">method =</span> <span class="st">&quot;kmeans&quot;</span>,</span>
+<span id="cb8-13"><a href="#cb8-13" tabindex="-1"></a>                                           <span class="at">k =</span> <span class="dv">3</span>)</span>
 <span id="cb8-14"><a href="#cb8-14" tabindex="-1"></a>model_with_cluster <span class="ot">&lt;-</span> <span class="fu">tl_model</span>(train_clustered, Species <span class="sc">~</span> ., <span class="at">method =</span> <span class="st">&quot;forest&quot;</span>)</span>
 <span id="cb8-15"><a href="#cb8-15" tabindex="-1"></a></span>
 <span id="cb8-16"><a href="#cb8-16" tabindex="-1"></a><span class="co"># Need to get cluster model for test data</span></span>
@@ -513,9 +518,9 @@ propagation.</p>
 <span id="cb9-4"><a href="#cb9-4" tabindex="-1"></a></span>
 <span id="cb9-5"><a href="#cb9-5" tabindex="-1"></a><span class="co"># Train semi-supervised model</span></span>
 <span id="cb9-6"><a href="#cb9-6" tabindex="-1"></a>model_semi <span class="ot">&lt;-</span> <span class="fu">tl_semisupervised</span>(iris, Species <span class="sc">~</span> .,</span>
-<span id="cb9-7"><a href="#cb9-7" tabindex="-1"></a>                               <span class="at">labeled_indices =</span> labeled_indices,</span>
-<span id="cb9-8"><a href="#cb9-8" tabindex="-1"></a>                               <span class="at">cluster_method =</span> <span class="st">&quot;kmeans&quot;</span>,</span>
-<span id="cb9-9"><a href="#cb9-9" tabindex="-1"></a>                               <span class="at">supervised_method =</span> <span class="st">&quot;logistic&quot;</span>)</span>
+<span id="cb9-7"><a href="#cb9-7" tabindex="-1"></a>                                <span class="at">labeled_indices =</span> labeled_indices,</span>
+<span id="cb9-8"><a href="#cb9-8" tabindex="-1"></a>                                <span class="at">cluster_method =</span> <span class="st">&quot;kmeans&quot;</span>,</span>
+<span id="cb9-9"><a href="#cb9-9" tabindex="-1"></a>                                <span class="at">supervised_method =</span> <span class="st">&quot;logistic&quot;</span>)</span>
 <span id="cb9-10"><a href="#cb9-10" tabindex="-1"></a><span class="co">#&gt; Warning: glm.fit: algorithm did not converge</span></span>
 <span id="cb9-11"><a href="#cb9-11" tabindex="-1"></a><span class="co">#&gt; Warning: glm.fit: fitted probabilities numerically 0 or 1 occurred</span></span>
 <span id="cb9-12"><a href="#cb9-12" tabindex="-1"></a></span>
@@ -544,8 +549,11 @@ propagation.</p>
 <span id="cb11-5"><a href="#cb11-5" tabindex="-1"></a><span class="fu">cat</span>(<span class="st">&quot;Accuracy with only&quot;</span>, <span class="fu">length</span>(labeled_indices), <span class="st">&quot;labels:&quot;</span>,</span>
 <span id="cb11-6"><a href="#cb11-6" tabindex="-1"></a>    <span class="fu">round</span>(accuracy_semi <span class="sc">*</span> <span class="dv">100</span>, <span class="dv">1</span>), <span class="st">&quot;%</span><span class="sc">\n</span><span class="st">&quot;</span>)</span>
 <span id="cb11-7"><a href="#cb11-7" tabindex="-1"></a><span class="co">#&gt; Accuracy with only 15 labels: 0 %</span></span>
-<span id="cb11-8"><a href="#cb11-8" tabindex="-1"></a><span class="fu">cat</span>(<span class="st">&quot;Proportion of data labeled:&quot;</span>, <span class="fu">round</span>(<span class="fu">length</span>(labeled_indices)<span class="sc">/</span><span class="fu">nrow</span>(iris) <span class="sc">*</span> <span class="dv">100</span>, <span class="dv">1</span>), <span class="st">&quot;%</span><span class="sc">\n</span><span class="st">&quot;</span>)</span>
-<span id="cb11-9"><a href="#cb11-9" tabindex="-1"></a><span class="co">#&gt; Proportion of data labeled: 10 %</span></span></code></pre></div>
+<span id="cb11-8"><a href="#cb11-8" tabindex="-1"></a>labeled_pct <span class="ot">&lt;-</span> <span class="fu">round</span>(</span>
+<span id="cb11-9"><a href="#cb11-9" tabindex="-1"></a>  <span class="fu">length</span>(labeled_indices) <span class="sc">/</span> <span class="fu">nrow</span>(iris) <span class="sc">*</span> <span class="dv">100</span>, <span class="dv">1</span></span>
+<span id="cb11-10"><a href="#cb11-10" tabindex="-1"></a>)</span>
+<span id="cb11-11"><a href="#cb11-11" tabindex="-1"></a><span class="fu">cat</span>(<span class="st">&quot;Proportion of data labeled:&quot;</span>, labeled_pct, <span class="st">&quot;%</span><span class="sc">\n</span><span class="st">&quot;</span>)</span>
+<span id="cb11-12"><a href="#cb11-12" tabindex="-1"></a><span class="co">#&gt; Proportion of data labeled: 10 %</span></span></code></pre></div>
 </div>
 <div id="comparison-semi-supervised-vs-fully-supervised" class="section level3">
 <h3>Comparison: Semi-Supervised vs Fully Supervised</h3>
@@ -558,8 +566,9 @@ propagation.</p>
 <span id="cb12-7"><a href="#cb12-7" tabindex="-1"></a></span>
 <span id="cb12-8"><a href="#cb12-8" tabindex="-1"></a><span class="fu">cat</span>(<span class="st">&quot;Fully supervised (15 samples):&quot;</span>, <span class="fu">round</span>(accuracy_full <span class="sc">*</span> <span class="dv">100</span>, <span class="dv">1</span>), <span class="st">&quot;%</span><span class="sc">\n</span><span class="st">&quot;</span>)</span>
 <span id="cb12-9"><a href="#cb12-9" tabindex="-1"></a><span class="co">#&gt; Fully supervised (15 samples): 0 %</span></span>
-<span id="cb12-10"><a href="#cb12-10" tabindex="-1"></a><span class="fu">cat</span>(<span class="st">&quot;Semi-supervised (15 labels + propagation):&quot;</span>, <span class="fu">round</span>(accuracy_semi <span class="sc">*</span> <span class="dv">100</span>, <span class="dv">1</span>), <span class="st">&quot;%</span><span class="sc">\n</span><span class="st">&quot;</span>)</span>
-<span id="cb12-11"><a href="#cb12-11" tabindex="-1"></a><span class="co">#&gt; Semi-supervised (15 labels + propagation): 0 %</span></span></code></pre></div>
+<span id="cb12-10"><a href="#cb12-10" tabindex="-1"></a><span class="fu">cat</span>(<span class="st">&quot;Semi-supervised (15 labels + propagation):&quot;</span>,</span>
+<span id="cb12-11"><a href="#cb12-11" tabindex="-1"></a>    <span class="fu">round</span>(accuracy_semi <span class="sc">*</span> <span class="dv">100</span>, <span class="dv">1</span>), <span class="st">&quot;%</span><span class="sc">\n</span><span class="st">&quot;</span>)</span>
+<span id="cb12-12"><a href="#cb12-12" tabindex="-1"></a><span class="co">#&gt; Semi-supervised (15 labels + propagation): 0 %</span></span></code></pre></div>
 </div>
 </div>
 <div id="anomaly-aware-modeling" class="section level2">
@@ -569,10 +578,10 @@ propagation.</p>
 <h3>Flagging Anomalies</h3>
 <div class="sourceCode" id="cb13"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb13-1"><a href="#cb13-1" tabindex="-1"></a><span class="co"># Flag anomalies as a feature</span></span>
 <span id="cb13-2"><a href="#cb13-2" tabindex="-1"></a>model_anomaly_flag <span class="ot">&lt;-</span> <span class="fu">tl_anomaly_aware</span>(iris, Species <span class="sc">~</span> .,</span>
-<span id="cb13-3"><a href="#cb13-3" tabindex="-1"></a>                                      <span class="at">response =</span> <span class="st">&quot;Species&quot;</span>,</span>
-<span id="cb13-4"><a href="#cb13-4" tabindex="-1"></a>                                      <span class="at">anomaly_method =</span> <span class="st">&quot;dbscan&quot;</span>,</span>
-<span id="cb13-5"><a href="#cb13-5" tabindex="-1"></a>                                      <span class="at">action =</span> <span class="st">&quot;flag&quot;</span>,</span>
-<span id="cb13-6"><a href="#cb13-6" tabindex="-1"></a>                                      <span class="at">supervised_method =</span> <span class="st">&quot;logistic&quot;</span>)</span>
+<span id="cb13-3"><a href="#cb13-3" tabindex="-1"></a>                                       <span class="at">response =</span> <span class="st">&quot;Species&quot;</span>,</span>
+<span id="cb13-4"><a href="#cb13-4" tabindex="-1"></a>                                       <span class="at">anomaly_method =</span> <span class="st">&quot;dbscan&quot;</span>,</span>
+<span id="cb13-5"><a href="#cb13-5" tabindex="-1"></a>                                       <span class="at">action =</span> <span class="st">&quot;flag&quot;</span>,</span>
+<span id="cb13-6"><a href="#cb13-6" tabindex="-1"></a>                                       <span class="at">supervised_method =</span> <span class="st">&quot;logistic&quot;</span>)</span>
 <span id="cb13-7"><a href="#cb13-7" tabindex="-1"></a></span>
 <span id="cb13-8"><a href="#cb13-8" tabindex="-1"></a><span class="co"># Check anomaly info</span></span>
 <span id="cb13-9"><a href="#cb13-9" tabindex="-1"></a><span class="fu">cat</span>(<span class="st">&quot;Anomalies detected:&quot;</span>, model_anomaly_flag<span class="sc">$</span>anomaly_info<span class="sc">$</span>n_anomalies, <span class="st">&quot;</span><span class="sc">\n</span><span class="st">&quot;</span>)</span></code></pre></div>
@@ -581,10 +590,10 @@ propagation.</p>
 <h3>Removing Anomalies</h3>
 <div class="sourceCode" id="cb14"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb14-1"><a href="#cb14-1" tabindex="-1"></a><span class="co"># Remove anomalies before training</span></span>
 <span id="cb14-2"><a href="#cb14-2" tabindex="-1"></a>model_anomaly_remove <span class="ot">&lt;-</span> <span class="fu">tl_anomaly_aware</span>(iris, Species <span class="sc">~</span> .,</span>
-<span id="cb14-3"><a href="#cb14-3" tabindex="-1"></a>                                        <span class="at">response =</span> <span class="st">&quot;Species&quot;</span>,</span>
-<span id="cb14-4"><a href="#cb14-4" tabindex="-1"></a>                                        <span class="at">anomaly_method =</span> <span class="st">&quot;dbscan&quot;</span>,</span>
-<span id="cb14-5"><a href="#cb14-5" tabindex="-1"></a>                                        <span class="at">action =</span> <span class="st">&quot;remove&quot;</span>,</span>
-<span id="cb14-6"><a href="#cb14-6" tabindex="-1"></a>                                        <span class="at">supervised_method =</span> <span class="st">&quot;logistic&quot;</span>)</span>
+<span id="cb14-3"><a href="#cb14-3" tabindex="-1"></a>                                         <span class="at">response =</span> <span class="st">&quot;Species&quot;</span>,</span>
+<span id="cb14-4"><a href="#cb14-4" tabindex="-1"></a>                                         <span class="at">anomaly_method =</span> <span class="st">&quot;dbscan&quot;</span>,</span>
+<span id="cb14-5"><a href="#cb14-5" tabindex="-1"></a>                                         <span class="at">action =</span> <span class="st">&quot;remove&quot;</span>,</span>
+<span id="cb14-6"><a href="#cb14-6" tabindex="-1"></a>                                         <span class="at">supervised_method =</span> <span class="st">&quot;logistic&quot;</span>)</span>
 <span id="cb14-7"><a href="#cb14-7" tabindex="-1"></a></span>
 <span id="cb14-8"><a href="#cb14-8" tabindex="-1"></a><span class="fu">cat</span>(<span class="st">&quot;Anomalies removed:&quot;</span>, model_anomaly_remove<span class="sc">$</span>anomalies_removed, <span class="st">&quot;</span><span class="sc">\n</span><span class="st">&quot;</span>)</span></code></pre></div>
 </div>
@@ -596,20 +605,18 @@ propagation.</p>
 <h3>Training Stratified Models</h3>
 <div class="sourceCode" id="cb15"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb15-1"><a href="#cb15-1" tabindex="-1"></a><span class="co"># Train separate models for different clusters</span></span>
 <span id="cb15-2"><a href="#cb15-2" tabindex="-1"></a>stratified_models <span class="ot">&lt;-</span> <span class="fu">tl_stratified_models</span>(mtcars, mpg <span class="sc">~</span> .,</span>
-<span id="cb15-3"><a href="#cb15-3" tabindex="-1"></a>                                         <span class="at">cluster_method =</span> <span class="st">&quot;kmeans&quot;</span>,</span>
-<span id="cb15-4"><a href="#cb15-4" tabindex="-1"></a>                                         <span class="at">k =</span> <span class="dv">3</span>,</span>
-<span id="cb15-5"><a href="#cb15-5" tabindex="-1"></a>                                         <span class="at">supervised_method =</span> <span class="st">&quot;linear&quot;</span>)</span>
-<span id="cb15-6"><a href="#cb15-6" tabindex="-1"></a><span class="co">#&gt; Warning in tl_model_supervised(data, formula, method, ...): Response appears to</span></span>
-<span id="cb15-7"><a href="#cb15-7" tabindex="-1"></a><span class="co">#&gt; be categorical but is stored as numeric. Consider converting to factor.</span></span>
-<span id="cb15-8"><a href="#cb15-8" tabindex="-1"></a><span class="co">#&gt; Warning in tl_model_supervised(data, formula, method, ...): Response appears to</span></span>
-<span id="cb15-9"><a href="#cb15-9" tabindex="-1"></a><span class="co">#&gt; be categorical but is stored as numeric. Consider converting to factor.</span></span>
-<span id="cb15-10"><a href="#cb15-10" tabindex="-1"></a></span>
-<span id="cb15-11"><a href="#cb15-11" tabindex="-1"></a><span class="co"># Check structure</span></span>
-<span id="cb15-12"><a href="#cb15-12" tabindex="-1"></a><span class="fu">names</span>(stratified_models)</span>
-<span id="cb15-13"><a href="#cb15-13" tabindex="-1"></a><span class="co">#&gt; [1] &quot;cluster_model&quot;     &quot;supervised_models&quot; &quot;formula&quot;          </span></span>
-<span id="cb15-14"><a href="#cb15-14" tabindex="-1"></a><span class="co">#&gt; [4] &quot;data&quot;</span></span>
-<span id="cb15-15"><a href="#cb15-15" tabindex="-1"></a><span class="fu">length</span>(stratified_models<span class="sc">$</span>supervised_models)</span>
-<span id="cb15-16"><a href="#cb15-16" tabindex="-1"></a><span class="co">#&gt; [1] 3</span></span></code></pre></div>
+<span id="cb15-3"><a href="#cb15-3" tabindex="-1"></a>                                          <span class="at">cluster_method =</span> <span class="st">&quot;kmeans&quot;</span>,</span>
+<span id="cb15-4"><a href="#cb15-4" tabindex="-1"></a>                                          <span class="at">k =</span> <span class="dv">3</span>,</span>
+<span id="cb15-5"><a href="#cb15-5" tabindex="-1"></a>                                          <span class="at">supervised_method =</span> <span class="st">&quot;linear&quot;</span>)</span>
+<span id="cb15-6"><a href="#cb15-6" tabindex="-1"></a><span class="co">#&gt; Note: Response &#39;mpg&#39; has 6 unique numeric values. Treating as regression. Convert to factor for classification.</span></span>
+<span id="cb15-7"><a href="#cb15-7" tabindex="-1"></a><span class="co">#&gt; Note: Response &#39;mpg&#39; has 8 unique numeric values. Treating as regression. Convert to factor for classification.</span></span>
+<span id="cb15-8"><a href="#cb15-8" tabindex="-1"></a></span>
+<span id="cb15-9"><a href="#cb15-9" tabindex="-1"></a><span class="co"># Check structure</span></span>
+<span id="cb15-10"><a href="#cb15-10" tabindex="-1"></a><span class="fu">names</span>(stratified_models)</span>
+<span id="cb15-11"><a href="#cb15-11" tabindex="-1"></a><span class="co">#&gt; [1] &quot;cluster_model&quot;     &quot;supervised_models&quot; &quot;formula&quot;          </span></span>
+<span id="cb15-12"><a href="#cb15-12" tabindex="-1"></a><span class="co">#&gt; [4] &quot;data&quot;</span></span>
+<span id="cb15-13"><a href="#cb15-13" tabindex="-1"></a><span class="fu">length</span>(stratified_models<span class="sc">$</span>supervised_models)</span>
+<span id="cb15-14"><a href="#cb15-14" tabindex="-1"></a><span class="co">#&gt; [1] 3</span></span></code></pre></div>
 <div class="sourceCode" id="cb16"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb16-1"><a href="#cb16-1" tabindex="-1"></a><span class="co"># Predictions using stratified models</span></span>
 <span id="cb16-2"><a href="#cb16-2" tabindex="-1"></a>preds_stratified <span class="ot">&lt;-</span> <span class="fu">predict</span>(stratified_models)</span>
 <span id="cb16-3"><a href="#cb16-3" tabindex="-1"></a><span class="fu">head</span>(preds_stratified)</span>
@@ -643,16 +650,16 @@ propagation.</p>
 <span id="cb18-3"><a href="#cb18-3" tabindex="-1"></a></span>
 <span id="cb18-4"><a href="#cb18-4" tabindex="-1"></a><span class="co"># Step 2: Reduce dimensions</span></span>
 <span id="cb18-5"><a href="#cb18-5" tabindex="-1"></a>workflow_reduced <span class="ot">&lt;-</span> <span class="fu">tl_reduce_dimensions</span>(workflow_split<span class="sc">$</span>train,</span>
-<span id="cb18-6"><a href="#cb18-6" tabindex="-1"></a>                                        <span class="at">response =</span> <span class="st">&quot;Species&quot;</span>,</span>
-<span id="cb18-7"><a href="#cb18-7" tabindex="-1"></a>                                        <span class="at">method =</span> <span class="st">&quot;pca&quot;</span>,</span>
-<span id="cb18-8"><a href="#cb18-8" tabindex="-1"></a>                                        <span class="at">n_components =</span> <span class="dv">3</span>)</span>
+<span id="cb18-6"><a href="#cb18-6" tabindex="-1"></a>                                         <span class="at">response =</span> <span class="st">&quot;Species&quot;</span>,</span>
+<span id="cb18-7"><a href="#cb18-7" tabindex="-1"></a>                                         <span class="at">method =</span> <span class="st">&quot;pca&quot;</span>,</span>
+<span id="cb18-8"><a href="#cb18-8" tabindex="-1"></a>                                         <span class="at">n_components =</span> <span class="dv">3</span>)</span>
 <span id="cb18-9"><a href="#cb18-9" tabindex="-1"></a></span>
 <span id="cb18-10"><a href="#cb18-10" tabindex="-1"></a><span class="co"># Step 3: Add cluster features to reduced data (remove .obs_id first)</span></span>
 <span id="cb18-11"><a href="#cb18-11" tabindex="-1"></a>workflow_reduced_clean <span class="ot">&lt;-</span> workflow_reduced<span class="sc">$</span>data <span class="sc">%&gt;%</span> <span class="fu">select</span>(<span class="sc">-</span><span class="fu">starts_with</span>(<span class="st">&quot;.obs&quot;</span>))</span>
 <span id="cb18-12"><a href="#cb18-12" tabindex="-1"></a>workflow_clustered <span class="ot">&lt;-</span> <span class="fu">tl_add_cluster_features</span>(workflow_reduced_clean,</span>
-<span id="cb18-13"><a href="#cb18-13" tabindex="-1"></a>                                             <span class="at">response =</span> <span class="st">&quot;Species&quot;</span>,</span>
-<span id="cb18-14"><a href="#cb18-14" tabindex="-1"></a>                                             <span class="at">method =</span> <span class="st">&quot;kmeans&quot;</span>,</span>
-<span id="cb18-15"><a href="#cb18-15" tabindex="-1"></a>                                             <span class="at">k =</span> <span class="dv">3</span>)</span>
+<span id="cb18-13"><a href="#cb18-13" tabindex="-1"></a>                                              <span class="at">response =</span> <span class="st">&quot;Species&quot;</span>,</span>
+<span id="cb18-14"><a href="#cb18-14" tabindex="-1"></a>                                              <span class="at">method =</span> <span class="st">&quot;kmeans&quot;</span>,</span>
+<span id="cb18-15"><a href="#cb18-15" tabindex="-1"></a>                                              <span class="at">k =</span> <span class="dv">3</span>)</span>
 <span id="cb18-16"><a href="#cb18-16" tabindex="-1"></a></span>
 <span id="cb18-17"><a href="#cb18-17" tabindex="-1"></a><span class="co"># Step 4: Train final model</span></span>
 <span id="cb18-18"><a href="#cb18-18" tabindex="-1"></a>workflow_model <span class="ot">&lt;-</span> <span class="fu">tl_model</span>(workflow_clustered, Species <span class="sc">~</span> ., <span class="at">method =</span> <span class="st">&quot;forest&quot;</span>)</span>
@@ -669,7 +676,7 @@ propagation.</p>
 <div class="sourceCode" id="cb19"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb19-1"><a href="#cb19-1" tabindex="-1"></a><span class="co"># Transform test data through same pipeline</span></span>
 <span id="cb19-2"><a href="#cb19-2" tabindex="-1"></a><span class="co"># 1. Apply PCA transformation</span></span>
 <span id="cb19-3"><a href="#cb19-3" tabindex="-1"></a>test_pca <span class="ot">&lt;-</span> <span class="fu">predict</span>(workflow_reduced<span class="sc">$</span>reduction_model,</span>
-<span id="cb19-4"><a href="#cb19-4" tabindex="-1"></a>                   <span class="at">new_data =</span> workflow_split<span class="sc">$</span>test[, <span class="sc">-</span><span class="dv">5</span>])</span>
+<span id="cb19-4"><a href="#cb19-4" tabindex="-1"></a>                    <span class="at">new_data =</span> workflow_split<span class="sc">$</span>test[, <span class="sc">-</span><span class="dv">5</span>])</span>
 <span id="cb19-5"><a href="#cb19-5" tabindex="-1"></a>test_pca<span class="sc">$</span>Species <span class="ot">&lt;-</span> workflow_split<span class="sc">$</span>test<span class="sc">$</span>Species</span>
 <span id="cb19-6"><a href="#cb19-6" tabindex="-1"></a></span>
 <span id="cb19-7"><a href="#cb19-7" tabindex="-1"></a><span class="co"># 2. Get cluster assignments</span></span>
@@ -970,23 +977,28 @@ propagation.</p>
 <span id="cb20-11"><a href="#cb20-11" tabindex="-1"></a></span>
 <span id="cb20-12"><a href="#cb20-12" tabindex="-1"></a><span class="co"># Create target variable (default risk)</span></span>
 <span id="cb20-13"><a href="#cb20-13" tabindex="-1"></a>credit_data<span class="sc">$</span>default <span class="ot">&lt;-</span> <span class="fu">factor</span>(</span>
-<span id="cb20-14"><a href="#cb20-14" tabindex="-1"></a>  <span class="fu">ifelse</span>(credit_data<span class="sc">$</span>debt_ratio <span class="sc">&gt;</span> <span class="fl">0.4</span> <span class="sc">&amp;</span> credit_data<span class="sc">$</span>credit_score <span class="sc">&lt;</span> <span class="dv">650</span>, <span class="st">&quot;Yes&quot;</span>, <span class="st">&quot;No&quot;</span>)</span>
-<span id="cb20-15"><a href="#cb20-15" tabindex="-1"></a>)</span>
-<span id="cb20-16"><a href="#cb20-16" tabindex="-1"></a></span>
-<span id="cb20-17"><a href="#cb20-17" tabindex="-1"></a><span class="co"># Split data</span></span>
-<span id="cb20-18"><a href="#cb20-18" tabindex="-1"></a>credit_split <span class="ot">&lt;-</span> <span class="fu">tl_split</span>(credit_data, <span class="at">prop =</span> <span class="fl">0.7</span>, <span class="at">stratify =</span> <span class="st">&quot;default&quot;</span>, <span class="at">seed =</span> <span class="dv">123</span>)</span></code></pre></div>
+<span id="cb20-14"><a href="#cb20-14" tabindex="-1"></a>  <span class="fu">ifelse</span>(</span>
+<span id="cb20-15"><a href="#cb20-15" tabindex="-1"></a>    credit_data<span class="sc">$</span>debt_ratio <span class="sc">&gt;</span> <span class="fl">0.4</span> <span class="sc">&amp;</span> credit_data<span class="sc">$</span>credit_score <span class="sc">&lt;</span> <span class="dv">650</span>,</span>
+<span id="cb20-16"><a href="#cb20-16" tabindex="-1"></a>    <span class="st">&quot;Yes&quot;</span>, <span class="st">&quot;No&quot;</span></span>
+<span id="cb20-17"><a href="#cb20-17" tabindex="-1"></a>  )</span>
+<span id="cb20-18"><a href="#cb20-18" tabindex="-1"></a>)</span>
+<span id="cb20-19"><a href="#cb20-19" tabindex="-1"></a></span>
+<span id="cb20-20"><a href="#cb20-20" tabindex="-1"></a><span class="co"># Split data</span></span>
+<span id="cb20-21"><a href="#cb20-21" tabindex="-1"></a>credit_split <span class="ot">&lt;-</span> <span class="fu">tl_split</span>(</span>
+<span id="cb20-22"><a href="#cb20-22" tabindex="-1"></a>  credit_data, <span class="at">prop =</span> <span class="fl">0.7</span>, <span class="at">stratify =</span> <span class="st">&quot;default&quot;</span>, <span class="at">seed =</span> <span class="dv">123</span></span>
+<span id="cb20-23"><a href="#cb20-23" tabindex="-1"></a>)</span></code></pre></div>
 <div class="sourceCode" id="cb21"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb21-1"><a href="#cb21-1" tabindex="-1"></a><span class="co"># Strategy 1: Add customer segments as features</span></span>
 <span id="cb21-2"><a href="#cb21-2" tabindex="-1"></a>credit_clustered <span class="ot">&lt;-</span> <span class="fu">tl_add_cluster_features</span>(credit_split<span class="sc">$</span>train,</span>
-<span id="cb21-3"><a href="#cb21-3" tabindex="-1"></a>                                           <span class="at">response =</span> <span class="st">&quot;default&quot;</span>,</span>
-<span id="cb21-4"><a href="#cb21-4" tabindex="-1"></a>                                           <span class="at">method =</span> <span class="st">&quot;kmeans&quot;</span>,</span>
-<span id="cb21-5"><a href="#cb21-5" tabindex="-1"></a>                                           <span class="at">k =</span> <span class="dv">4</span>)</span>
+<span id="cb21-3"><a href="#cb21-3" tabindex="-1"></a>                                            <span class="at">response =</span> <span class="st">&quot;default&quot;</span>,</span>
+<span id="cb21-4"><a href="#cb21-4" tabindex="-1"></a>                                            <span class="at">method =</span> <span class="st">&quot;kmeans&quot;</span>,</span>
+<span id="cb21-5"><a href="#cb21-5" tabindex="-1"></a>                                            <span class="at">k =</span> <span class="dv">4</span>)</span>
 <span id="cb21-6"><a href="#cb21-6" tabindex="-1"></a></span>
 <span id="cb21-7"><a href="#cb21-7" tabindex="-1"></a>model_credit <span class="ot">&lt;-</span> <span class="fu">tl_model</span>(credit_clustered, default <span class="sc">~</span> ., <span class="at">method =</span> <span class="st">&quot;forest&quot;</span>)</span>
 <span id="cb21-8"><a href="#cb21-8" tabindex="-1"></a></span>
 <span id="cb21-9"><a href="#cb21-9" tabindex="-1"></a><span class="co"># Transform test data</span></span>
 <span id="cb21-10"><a href="#cb21-10" tabindex="-1"></a>cluster_model_credit <span class="ot">&lt;-</span> <span class="fu">attr</span>(credit_clustered, <span class="st">&quot;cluster_model&quot;</span>)</span>
 <span id="cb21-11"><a href="#cb21-11" tabindex="-1"></a>test_clusters_credit <span class="ot">&lt;-</span> <span class="fu">predict</span>(cluster_model_credit,</span>
-<span id="cb21-12"><a href="#cb21-12" tabindex="-1"></a>                               <span class="at">new_data =</span> credit_split<span class="sc">$</span>test[, <span class="sc">-</span><span class="dv">6</span>])</span>
+<span id="cb21-12"><a href="#cb21-12" tabindex="-1"></a>                                <span class="at">new_data =</span> credit_split<span class="sc">$</span>test[, <span class="sc">-</span><span class="dv">6</span>])</span>
 <span id="cb21-13"><a href="#cb21-13" tabindex="-1"></a>test_credit <span class="ot">&lt;-</span> credit_split<span class="sc">$</span>test</span>
 <span id="cb21-14"><a href="#cb21-14" tabindex="-1"></a>test_credit<span class="sc">$</span>cluster_kmeans <span class="ot">&lt;-</span> <span class="fu">as.factor</span>(test_clusters_credit<span class="sc">$</span>cluster)</span>
 <span id="cb21-15"><a href="#cb21-15" tabindex="-1"></a></span>
@@ -1046,33 +1058,35 @@ glmnet, randomForest, etc.) to enable multi-step workflows with a
 consistent interface.</p>
 <div class="sourceCode" id="cb22"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb22-1"><a href="#cb22-1" tabindex="-1"></a><span class="co"># Final integrated example</span></span>
 <span id="cb22-2"><a href="#cb22-2" tabindex="-1"></a>final_data <span class="ot">&lt;-</span> iris</span>
-<span id="cb22-3"><a href="#cb22-3" tabindex="-1"></a>final_split <span class="ot">&lt;-</span> <span class="fu">tl_split</span>(final_data, <span class="at">prop =</span> <span class="fl">0.7</span>, <span class="at">stratify =</span> <span class="st">&quot;Species&quot;</span>, <span class="at">seed =</span> <span class="dv">999</span>)</span>
-<span id="cb22-4"><a href="#cb22-4" tabindex="-1"></a></span>
-<span id="cb22-5"><a href="#cb22-5" tabindex="-1"></a><span class="co"># Combine PCA + clustering</span></span>
-<span id="cb22-6"><a href="#cb22-6" tabindex="-1"></a>final_reduced <span class="ot">&lt;-</span> <span class="fu">tl_reduce_dimensions</span>(final_split<span class="sc">$</span>train,</span>
-<span id="cb22-7"><a href="#cb22-7" tabindex="-1"></a>                                     <span class="at">response =</span> <span class="st">&quot;Species&quot;</span>,</span>
-<span id="cb22-8"><a href="#cb22-8" tabindex="-1"></a>                                     <span class="at">method =</span> <span class="st">&quot;pca&quot;</span>,</span>
-<span id="cb22-9"><a href="#cb22-9" tabindex="-1"></a>                                     <span class="at">n_components =</span> <span class="dv">3</span>)</span>
-<span id="cb22-10"><a href="#cb22-10" tabindex="-1"></a><span class="co"># Remove .obs_id column before clustering</span></span>
-<span id="cb22-11"><a href="#cb22-11" tabindex="-1"></a>final_reduced_clean <span class="ot">&lt;-</span> final_reduced<span class="sc">$</span>data <span class="sc">%&gt;%</span> <span class="fu">select</span>(<span class="sc">-</span><span class="fu">starts_with</span>(<span class="st">&quot;.obs&quot;</span>))</span>
-<span id="cb22-12"><a href="#cb22-12" tabindex="-1"></a>final_clustered <span class="ot">&lt;-</span> <span class="fu">tl_add_cluster_features</span>(final_reduced_clean,</span>
-<span id="cb22-13"><a href="#cb22-13" tabindex="-1"></a>                                          <span class="at">response =</span> <span class="st">&quot;Species&quot;</span>,</span>
-<span id="cb22-14"><a href="#cb22-14" tabindex="-1"></a>                                          <span class="at">method =</span> <span class="st">&quot;kmeans&quot;</span>,</span>
-<span id="cb22-15"><a href="#cb22-15" tabindex="-1"></a>                                          <span class="at">k =</span> <span class="dv">3</span>)</span>
-<span id="cb22-16"><a href="#cb22-16" tabindex="-1"></a>final_model <span class="ot">&lt;-</span> <span class="fu">tl_model</span>(final_clustered, Species <span class="sc">~</span> ., <span class="at">method =</span> <span class="st">&quot;logistic&quot;</span>)</span>
-<span id="cb22-17"><a href="#cb22-17" tabindex="-1"></a><span class="co">#&gt; Warning: glm.fit: algorithm did not converge</span></span>
-<span id="cb22-18"><a href="#cb22-18" tabindex="-1"></a></span>
-<span id="cb22-19"><a href="#cb22-19" tabindex="-1"></a><span class="fu">cat</span>(<span class="st">&quot;Final integrated model created successfully!</span><span class="sc">\n</span><span class="st">&quot;</span>)</span>
-<span id="cb22-20"><a href="#cb22-20" tabindex="-1"></a><span class="co">#&gt; Final integrated model created successfully!</span></span>
-<span id="cb22-21"><a href="#cb22-21" tabindex="-1"></a><span class="fu">print</span>(final_model)</span>
-<span id="cb22-22"><a href="#cb22-22" tabindex="-1"></a><span class="co">#&gt; tidylearn Model</span></span>
-<span id="cb22-23"><a href="#cb22-23" tabindex="-1"></a><span class="co">#&gt; ===============</span></span>
-<span id="cb22-24"><a href="#cb22-24" tabindex="-1"></a><span class="co">#&gt; Paradigm: supervised </span></span>
-<span id="cb22-25"><a href="#cb22-25" tabindex="-1"></a><span class="co">#&gt; Method: logistic </span></span>
-<span id="cb22-26"><a href="#cb22-26" tabindex="-1"></a><span class="co">#&gt; Task: Classification </span></span>
-<span id="cb22-27"><a href="#cb22-27" tabindex="-1"></a><span class="co">#&gt; Formula: Species ~ . </span></span>
-<span id="cb22-28"><a href="#cb22-28" tabindex="-1"></a><span class="co">#&gt; </span></span>
-<span id="cb22-29"><a href="#cb22-29" tabindex="-1"></a><span class="co">#&gt; Training observations: 105</span></span></code></pre></div>
+<span id="cb22-3"><a href="#cb22-3" tabindex="-1"></a>final_split <span class="ot">&lt;-</span> <span class="fu">tl_split</span>(</span>
+<span id="cb22-4"><a href="#cb22-4" tabindex="-1"></a>  final_data, <span class="at">prop =</span> <span class="fl">0.7</span>, <span class="at">stratify =</span> <span class="st">&quot;Species&quot;</span>, <span class="at">seed =</span> <span class="dv">999</span></span>
+<span id="cb22-5"><a href="#cb22-5" tabindex="-1"></a>)</span>
+<span id="cb22-6"><a href="#cb22-6" tabindex="-1"></a></span>
+<span id="cb22-7"><a href="#cb22-7" tabindex="-1"></a><span class="co"># Combine PCA + clustering</span></span>
+<span id="cb22-8"><a href="#cb22-8" tabindex="-1"></a>final_reduced <span class="ot">&lt;-</span> <span class="fu">tl_reduce_dimensions</span>(final_split<span class="sc">$</span>train,</span>
+<span id="cb22-9"><a href="#cb22-9" tabindex="-1"></a>                                      <span class="at">response =</span> <span class="st">&quot;Species&quot;</span>,</span>
+<span id="cb22-10"><a href="#cb22-10" tabindex="-1"></a>                                      <span class="at">method =</span> <span class="st">&quot;pca&quot;</span>,</span>
+<span id="cb22-11"><a href="#cb22-11" tabindex="-1"></a>                                      <span class="at">n_components =</span> <span class="dv">3</span>)</span>
+<span id="cb22-12"><a href="#cb22-12" tabindex="-1"></a><span class="co"># Remove .obs_id column before clustering</span></span>
+<span id="cb22-13"><a href="#cb22-13" tabindex="-1"></a>final_reduced_clean <span class="ot">&lt;-</span> final_reduced<span class="sc">$</span>data <span class="sc">%&gt;%</span> <span class="fu">select</span>(<span class="sc">-</span><span class="fu">starts_with</span>(<span class="st">&quot;.obs&quot;</span>))</span>
+<span id="cb22-14"><a href="#cb22-14" tabindex="-1"></a>final_clustered <span class="ot">&lt;-</span> <span class="fu">tl_add_cluster_features</span>(final_reduced_clean,</span>
+<span id="cb22-15"><a href="#cb22-15" tabindex="-1"></a>                                           <span class="at">response =</span> <span class="st">&quot;Species&quot;</span>,</span>
+<span id="cb22-16"><a href="#cb22-16" tabindex="-1"></a>                                           <span class="at">method =</span> <span class="st">&quot;kmeans&quot;</span>,</span>
+<span id="cb22-17"><a href="#cb22-17" tabindex="-1"></a>                                           <span class="at">k =</span> <span class="dv">3</span>)</span>
+<span id="cb22-18"><a href="#cb22-18" tabindex="-1"></a>final_model <span class="ot">&lt;-</span> <span class="fu">tl_model</span>(final_clustered, Species <span class="sc">~</span> ., <span class="at">method =</span> <span class="st">&quot;logistic&quot;</span>)</span>
+<span id="cb22-19"><a href="#cb22-19" tabindex="-1"></a><span class="co">#&gt; Warning: glm.fit: algorithm did not converge</span></span>
+<span id="cb22-20"><a href="#cb22-20" tabindex="-1"></a></span>
+<span id="cb22-21"><a href="#cb22-21" tabindex="-1"></a><span class="fu">cat</span>(<span class="st">&quot;Final integrated model created successfully!</span><span class="sc">\n</span><span class="st">&quot;</span>)</span>
+<span id="cb22-22"><a href="#cb22-22" tabindex="-1"></a><span class="co">#&gt; Final integrated model created successfully!</span></span>
+<span id="cb22-23"><a href="#cb22-23" tabindex="-1"></a><span class="fu">print</span>(final_model)</span>
+<span id="cb22-24"><a href="#cb22-24" tabindex="-1"></a><span class="co">#&gt; tidylearn Model</span></span>
+<span id="cb22-25"><a href="#cb22-25" tabindex="-1"></a><span class="co">#&gt; ===============</span></span>
+<span id="cb22-26"><a href="#cb22-26" tabindex="-1"></a><span class="co">#&gt; Paradigm: supervised </span></span>
+<span id="cb22-27"><a href="#cb22-27" tabindex="-1"></a><span class="co">#&gt; Method: logistic </span></span>
+<span id="cb22-28"><a href="#cb22-28" tabindex="-1"></a><span class="co">#&gt; Task: Classification </span></span>
+<span id="cb22-29"><a href="#cb22-29" tabindex="-1"></a><span class="co">#&gt; Formula: Species ~ . </span></span>
+<span id="cb22-30"><a href="#cb22-30" tabindex="-1"></a><span class="co">#&gt; </span></span>
+<span id="cb22-31"><a href="#cb22-31" tabindex="-1"></a><span class="co">#&gt; Training observations: 105</span></span></code></pre></div>
 </div>
 
 

@@ -1,23 +1,35 @@
 #' @title Model Selection Functions for tidylearn
 #' @name tidylearn-model-selection
-#' @description Functions for stepwise model selection, cross-validation, and hyperparameter tuning
+#' @description Functions for stepwise model selection,
+#'   cross-validation, and hyperparameter tuning
 #' @importFrom stats AIC BIC step
-#' @importFrom dplyr %>% filter select mutate
+#' @importFrom dplyr filter select mutate
 NULL
 
 #' Perform stepwise selection on a linear model
 #'
 #' @param data A data frame containing the training data
 #' @param formula A formula specifying the initial model
-#' @param direction Direction of stepwise selection: "forward", "backward", or "both"
+#' @param direction Direction of stepwise selection:
+#'   "forward", "backward", or "both"
 #' @param criterion Criterion for selection: "AIC" or "BIC"
 #' @param trace Logical; whether to print progress
 #' @param steps Maximum number of steps to take
 #' @param ... Additional arguments to pass to step()
-#' @return A selected model
+#' @return A \code{tidylearn_model} object of class
+#'   \code{tidylearn_linear} wrapping the selected \code{\link[stats]{lm}}
+#'   model. Access the underlying model via \code{$fit} and the selected
+#'   formula via \code{$spec$formula}.
+#' @examples
+#' \donttest{
+#' model <- tl_step_selection(mtcars, mpg ~ ., direction = "backward")
+#' summary(model)
+#' }
 #' @export
 tl_step_selection <- function(data, formula, direction = "backward",
-                              criterion = "AIC", trace = FALSE, steps = 1000, ...) {
+                              criterion = "AIC",
+                              trace = FALSE,
+                              steps = 1000, ...) {
   # Input validation
   direction <- match.arg(direction, c("forward", "backward", "both"))
   criterion <- match.arg(criterion, c("AIC", "BIC"))
@@ -78,7 +90,7 @@ tl_step_selection <- function(data, formula, direction = "backward",
     class = c("tidylearn_linear", "tidylearn_model")
   )
 
-  return(model)
+  model
 }
 
 #' Compare models using cross-validation
@@ -88,7 +100,23 @@ tl_step_selection <- function(data, formula, direction = "backward",
 #' @param folds Number of cross-validation folds
 #' @param metrics Character vector of metrics to compute
 #' @param ... Additional arguments
-#' @return A tibble with cross-validation results for all models
+#' @return A list with two elements:
+#'   \describe{
+#'     \item{\code{$fold_metrics}}{A data frame with columns
+#'       \code{metric}, \code{value}, \code{fold}, and \code{model}
+#'       containing per-fold results for every model.}
+#'     \item{\code{$summary}}{A data frame with columns \code{model},
+#'       \code{metric}, \code{mean_value}, \code{sd_value},
+#'       \code{min_value}, and \code{max_value} summarizing
+#'       cross-validation performance.}
+#'   }
+#' @examples
+#' \donttest{
+#' m1 <- tl_model(mtcars, mpg ~ wt, method = "linear")
+#' m2 <- tl_model(mtcars, mpg ~ wt + hp, method = "linear")
+#' cv <- tl_compare_cv(mtcars, list(simple = m1, full = m2), folds = 3)
+#' cv$summary
+#' }
 #' @export
 tl_compare_cv <- function(data, models, folds = 5, metrics = NULL, ...) {
   # Check if all models are tidylearn models
@@ -106,11 +134,14 @@ tl_compare_cv <- function(data, models, folds = 5, metrics = NULL, ...) {
   # Check if all models are of the same type (classification or regression)
   model_types <- sapply(models, function(model) model$spec$is_classification)
   if (length(unique(model_types)) > 1) {
-    stop("All models must be of the same type (classification or regression)", call. = FALSE)
+    stop(
+      "All models must be of the same type ",
+      "(classification or regression)",
+      call. = FALSE
+    )
   }
 
   is_classification <- model_types[1]
-  response_var <- models[[1]]$spec$response_var
 
   # Default metrics based on problem type
   if (is.null(metrics)) {
@@ -140,7 +171,10 @@ tl_compare_cv <- function(data, models, folds = 5, metrics = NULL, ...) {
       method <- model$spec$method
 
       # Train model on this fold
-      fold_model <- tl_model(train_data, formula = formula, method = method, ...)
+      fold_model <- tl_model(
+        train_data, formula = formula,
+        method = method, ...
+      )
 
       # Evaluate model on test data
       fold_metrics <- tl_evaluate(fold_model, test_data, metrics = metrics)
@@ -149,10 +183,10 @@ tl_compare_cv <- function(data, models, folds = 5, metrics = NULL, ...) {
       fold_metrics$fold <- j
       fold_metrics$model <- model_name
 
-      return(fold_metrics)
+      fold_metrics
     })
 
-    return(fold_results)
+    fold_results
   })
 
   # Combine results from all models
@@ -170,18 +204,27 @@ tl_compare_cv <- function(data, models, folds = 5, metrics = NULL, ...) {
     )
 
   # Return both detailed and summary results
-  return(list(
+  list(
     fold_metrics = all_cv_results,
     summary = summary_results
-  ))
+  )
 }
 
 #' Plot comparison of cross-validation results
 #'
 #' @param cv_results Results from tl_compare_cv function
-#' @param metrics Character vector of metrics to plot (if NULL, plots all metrics)
-#' @return A ggplot object
+#' @param metrics Character vector of metrics to plot
+#'   (if NULL, plots all metrics)
+#' @return A \code{\link[ggplot2]{ggplot}} object showing boxplots of
+#'   cross-validation metric distributions for each model.
 #' @importFrom ggplot2 ggplot aes geom_boxplot facet_wrap labs theme_minimal
+#' @examples
+#' \donttest{
+#' m1 <- tl_model(mtcars, mpg ~ wt, method = "linear")
+#' m2 <- tl_model(mtcars, mpg ~ wt + hp, method = "linear")
+#' cv <- tl_compare_cv(mtcars, list(simple = m1, full = m2), folds = 3)
+#' tl_plot_cv_comparison(cv)
+#' }
 #' @export
 tl_plot_cv_comparison <- function(cv_results, metrics = NULL) {
   # Extract fold metrics
@@ -209,7 +252,7 @@ tl_plot_cv_comparison <- function(cv_results, metrics = NULL) {
     ggplot2::theme_minimal() +
     ggplot2::theme(axis.text.x = ggplot2::element_text(angle = 45, hjust = 1))
 
-  return(p)
+  p
 }
 
 #' Perform statistical comparison of models using cross-validation
@@ -218,11 +261,24 @@ tl_plot_cv_comparison <- function(cv_results, metrics = NULL) {
 #' @param baseline_model Name of the model to use as baseline for comparison
 #' @param test Type of statistical test: "t.test" or "wilcox"
 #' @param metric Name of the metric to compare
-#' @return A data frame with statistical test results
+#' @return A data frame with columns \code{metric}, \code{model},
+#'   \code{baseline}, \code{mean_diff}, \code{p_value}, and
+#'   \code{p_adj} (Holm-adjusted p-value) containing pairwise
+#'   statistical comparisons against the baseline model.
 #' @importFrom stats t.test wilcox.test p.adjust
+#' @examples
+#' \donttest{
+#' m1 <- tl_model(mtcars, mpg ~ wt, method = "linear")
+#' m2 <- tl_model(mtcars, mpg ~ wt + hp, method = "linear")
+#' cv <- tl_compare_cv(mtcars, list(simple = m1, full = m2), folds = 3)
+#' tl_test_model_difference(cv, baseline_model = "simple", metric = "rmse")
+#' }
 #' @export
-tl_test_model_difference <- function(cv_results, baseline_model = NULL,
-                                     test = "t.test", metric = NULL) {
+tl_test_model_difference <- function(
+    cv_results,
+    baseline_model = NULL,
+    test = "t.test",
+    metric = NULL) {
   # Input validation
   test <- match.arg(test, c("t.test", "wilcox"))
 
@@ -235,14 +291,20 @@ tl_test_model_difference <- function(cv_results, baseline_model = NULL,
   if (is.null(baseline_model)) {
     baseline_model <- models[1]
   } else if (!baseline_model %in% models) {
-    stop("Baseline model not found in CV results", call. = FALSE)
+    stop(
+      "Baseline model not found in CV results",
+      call. = FALSE
+    )
   }
 
   if (is.null(metric)) {
     metrics <- unique(fold_metrics$metric)
   } else {
     if (!metric %in% unique(fold_metrics$metric)) {
-      stop("Metric not found in CV results", call. = FALSE)
+      stop(
+        "Metric not found in CV results",
+        call. = FALSE
+      )
     }
     metrics <- metric
   }
@@ -259,47 +321,65 @@ tl_test_model_difference <- function(cv_results, baseline_model = NULL,
       dplyr::pull(.data$value)
 
     # Compare each model to baseline
-    model_comparisons <- lapply(setdiff(models, baseline_model), function(model_name) {
-      # Get current model data
-      model_data <- metric_data %>%
-        dplyr::filter(.data$model == model_name) %>%
-        dplyr::pull(.data$value)
+    other_models <- setdiff(models, baseline_model)
+    model_comparisons <- lapply(
+      other_models,
+      function(model_name) {
+        # Get current model data
+        model_data <- metric_data %>%
+          dplyr::filter(
+            .data$model == model_name
+          ) %>%
+          dplyr::pull(.data$value)
 
-      # Perform statistical test
-      if (test == "t.test") {
-        test_result <- stats::t.test(model_data, baseline_data, paired = TRUE)
-      } else {
-        test_result <- stats::wilcox.test(model_data, baseline_data, paired = TRUE)
+        # Perform statistical test
+        if (test == "t.test") {
+          test_result <- stats::t.test(
+            model_data, baseline_data,
+            paired = TRUE
+          )
+        } else {
+          test_result <- stats::wilcox.test(
+            model_data, baseline_data,
+            paired = TRUE
+          )
+        }
+
+        # Calculate mean difference
+        mean_diff <-
+          mean(model_data, na.rm = TRUE) -
+          mean(baseline_data, na.rm = TRUE)
+
+        # Return results
+        data.frame(
+          metric = m,
+          model = model_name,
+          baseline = baseline_model,
+          mean_diff = mean_diff,
+          p_value = test_result$p.value
+        )
       }
-
-      # Calculate mean difference
-      mean_diff <- mean(model_data, na.rm = TRUE) - mean(baseline_data, na.rm = TRUE)
-
-      # Return results
-      return(data.frame(
-        metric = m,
-        model = model_name,
-        baseline = baseline_model,
-        mean_diff = mean_diff,
-        p_value = test_result$p.value
-      ))
-    })
+    )
 
     # Combine results for all models
-    model_results <- do.call(rbind, model_comparisons)
+    model_results <- do.call(
+      rbind, model_comparisons
+    )
 
-    # Adjust p-values for multiple comparisons if needed
+    # Adjust p-values for multiple comparisons
     if (length(models) > 2) {
-      model_results$p_adj <- stats::p.adjust(model_results$p_value, method = "holm")
+      model_results$p_adj <- stats::p.adjust(
+        model_results$p_value, method = "holm"
+      )
     } else {
       model_results$p_adj <- model_results$p_value
     }
 
-    return(model_results)
+    model_results
   })
 
   # Combine results for all metrics
   all_results <- do.call(rbind, results)
 
-  return(all_results)
+  all_results
 }

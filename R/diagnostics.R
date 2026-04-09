@@ -1,6 +1,7 @@
 #' @title Advanced Diagnostics Functions for tidylearn
 #' @name tidylearn-diagnostics
-#' @description Functions for advanced model diagnostics, assumption checking, and outlier detection
+#' @description Functions for advanced model diagnostics,
+#'   assumption checking, and outlier detection
 #' @importFrom stats influence.measures cooks.distance hatvalues dffits dfbetas
 #' @importFrom stats lm.influence rstudent rstandard
 #' @importFrom stats shapiro.test bartlett.test kruskal.test
@@ -14,7 +15,18 @@ NULL
 #' @param threshold_cook Cook's distance threshold (default: 4/n)
 #' @param threshold_leverage Leverage threshold (default: 2*(p+1)/n)
 #' @param threshold_dffits DFFITS threshold (default: 2*sqrt((p+1)/n))
-#' @return A data frame with influence measures
+#' @return A data frame with one row per observation containing influence
+#'   measures: \code{cooks_distance}, \code{leverage}, \code{dffits},
+#'   \code{std_residual}, \code{stud_residual}, boolean flags for each
+#'   threshold (\code{is_cook_influential}, \code{is_leverage_influential},
+#'   \code{is_dffits_influential}, \code{is_outlier}), per-coefficient
+#'   \code{dfbetas_*} columns, and an overall \code{is_influential} flag.
+#'   Threshold values are stored as attributes.
+#' @examples
+#' \donttest{
+#' model <- tl_model(mtcars, mpg ~ wt + hp, method = "linear")
+#' tl_influence_measures(model)
+#' }
 #' @export
 tl_influence_measures <- function(model, threshold_cook = NULL,
                                   threshold_leverage = NULL,
@@ -24,7 +36,7 @@ tl_influence_measures <- function(model, threshold_cook = NULL,
     "linear", "logistic", "polynomial", "ridge", "lasso", "elastic_net"
   )
   if (!inherits(model, "tidylearn_model") ||
-      !model$spec$method %in% supported_methods) {
+        !model$spec$method %in% supported_methods) {
     stop(
       "Influence measures are only available for linear-based models",
       call. = FALSE
@@ -39,9 +51,13 @@ tl_influence_measures <- function(model, threshold_cook = NULL,
   p <- length(coef(fit)) - 1  # Number of predictors (excluding intercept)
 
   # Set default thresholds if not provided
-  if (is.null(threshold_cook)) threshold_cook <- 4/n
-  if (is.null(threshold_leverage)) threshold_leverage <- 2*(p+1)/n
-  if (is.null(threshold_dffits)) threshold_dffits <- 2*sqrt((p+1)/n)
+  if (is.null(threshold_cook)) threshold_cook <- 4 / n
+  if (is.null(threshold_leverage)) {
+    threshold_leverage <- 2 * (p + 1) / n
+  }
+  if (is.null(threshold_dffits)) {
+    threshold_dffits <- 2 * sqrt((p + 1) / n)
+  }
 
   # Calculate influence measures
   cooks_d <- cooks.distance(fit)
@@ -64,9 +80,12 @@ tl_influence_measures <- function(model, threshold_cook = NULL,
   )
 
   # Add flags for influential observations
-  influence_df$is_cook_influential <- influence_df$cooks_distance > threshold_cook
-  influence_df$is_leverage_influential <- influence_df$leverage > threshold_leverage
-  influence_df$is_dffits_influential <- abs(influence_df$dffits) > threshold_dffits
+  influence_df$is_cook_influential <-
+    influence_df$cooks_distance > threshold_cook
+  influence_df$is_leverage_influential <-
+    influence_df$leverage > threshold_leverage
+  influence_df$is_dffits_influential <-
+    abs(influence_df$dffits) > threshold_dffits
   influence_df$is_outlier <- abs(influence_df$std_residual) > 3
 
   # Add dfbetas as separate columns
@@ -99,11 +118,20 @@ tl_influence_measures <- function(model, threshold_cook = NULL,
 #' @param threshold_dffits DFFITS threshold (default: 2*sqrt((p+1)/n))
 #' @param n_labels Number of points to label (default: 3)
 #' @param label_size Text size for labels (default: 3)
-#' @return A ggplot object
+#' @return A \code{\link[ggplot2]{ggplot}} object.
+#' @examples
+#' \donttest{
+#' model <- tl_model(mtcars, mpg ~ wt + hp, method = "linear")
+#' tl_plot_influence(model, plot_type = "cook")
+#' }
 #' @export
-tl_plot_influence <- function(model, plot_type = "cook", threshold_cook = NULL,
-                              threshold_leverage = NULL, threshold_dffits = NULL,
-                              n_labels = 3, label_size = 3) {
+tl_plot_influence <- function(model,
+                              plot_type = "cook",
+                              threshold_cook = NULL,
+                              threshold_leverage = NULL,
+                              threshold_dffits = NULL,
+                              n_labels = 3,
+                              label_size = 3) {
   # Get influence measures
   influence_df <- tl_influence_measures(
     model,
@@ -122,7 +150,10 @@ tl_plot_influence <- function(model, plot_type = "cook", threshold_cook = NULL,
     # Cook's distance plot
     # Identify top points to label
     n_to_label <- min(n_labels, nrow(influence_df))
-    top_idx <- order(influence_df$cooks_distance, decreasing = TRUE)[1:n_to_label]
+    top_idx <- order(
+      influence_df$cooks_distance,
+      decreasing = TRUE
+    )[1:n_to_label]
     influence_df$label <- ifelse(
       influence_df$observation %in% influence_df$observation[top_idx],
       as.character(influence_df$observation),
@@ -168,7 +199,10 @@ tl_plot_influence <- function(model, plot_type = "cook", threshold_cook = NULL,
     # Leverage-Residual plot (Bubble plot with Cook's distance)
     # Identify top points to label
     n_to_label <- min(n_labels, nrow(influence_df))
-    top_idx <- order(influence_df$cooks_distance, decreasing = TRUE)[1:n_to_label]
+    top_idx <- order(
+      influence_df$cooks_distance,
+      decreasing = TRUE
+    )[1:n_to_label]
     influence_df$label <- ifelse(
       influence_df$observation %in% influence_df$observation[top_idx],
       as.character(influence_df$observation),
@@ -273,7 +307,18 @@ tl_plot_influence <- function(model, plot_type = "cook", threshold_cook = NULL,
 #' @param model A tidylearn model object
 #' @param test Logical; whether to perform statistical tests
 #' @param verbose Logical; whether to print test results and explanations
-#' @return A list with assumption check results
+#' @return A named list with one element per assumption checked
+#'   (\code{linearity}, \code{independence}, \code{homoscedasticity},
+#'   \code{normality}, \code{multicollinearity}, \code{outliers}), each
+#'   containing \code{assumption} (character label), \code{check} (logical
+#'   or \code{NULL}), \code{details} (character), and
+#'   \code{recommendation} (character). An additional \code{overall} element
+#'   summarises the number of assumptions checked, violated, and satisfied.
+#' @examples
+#' \donttest{
+#' model <- tl_model(mtcars, mpg ~ wt + hp, method = "linear")
+#' tl_check_assumptions(model)
+#' }
 #' @export
 tl_check_assumptions <- function(model, test = TRUE, verbose = TRUE) {
   # Check if model is supported
@@ -281,7 +326,7 @@ tl_check_assumptions <- function(model, test = TRUE, verbose = TRUE) {
     "linear", "logistic", "polynomial", "ridge", "lasso", "elastic_net"
   )
   if (!inherits(model, "tidylearn_model") ||
-      !model$spec$method %in% supported) {
+        !model$spec$method %in% supported) {
     stop(
       "Assumption checking is only available for linear-based models",
       call. = FALSE
@@ -294,7 +339,6 @@ tl_check_assumptions <- function(model, test = TRUE, verbose = TRUE) {
 
   # Get residuals
   residuals <- residuals(fit)
-  std_residuals <- rstandard(fit)
   fitted_values <- fitted(fit)
 
   # Initialize results list
@@ -393,7 +437,8 @@ tl_check_assumptions <- function(model, test = TRUE, verbose = TRUE) {
 
   # 4. Normality of Residuals
   # Shapiro-Wilk test
-  if (test && length(residuals) <= 5000) {  # Shapiro-Wilk limited to 5000 observations
+  # Shapiro-Wilk limited to 5000 observations
+  if (test && length(residuals) <= 5000) {
     sw_test <- shapiro.test(residuals)
     sw_p_value <- sw_test$p.value
     norm_recommendation <- if (sw_p_value < 0.05) {
@@ -579,8 +624,8 @@ tl_check_assumptions <- function(model, test = TRUE, verbose = TRUE) {
 
   # Print summary if verbose
   if (verbose) {
-    cat("Model Assumptions Check Summary:\n")
-    cat("--------------------------------\n")
+    message("Model Assumptions Check Summary:")
+    message("--------------------------------")
     for (name in names(assumptions)) {
       check <- assumptions[[name]]
       check_status <- if (is.null(check$check)) {
@@ -591,17 +636,20 @@ tl_check_assumptions <- function(model, test = TRUE, verbose = TRUE) {
         "VIOLATED"
       }
 
-      cat(paste0(
+      message(
         check$assumption, ": ", check_status, "\n",
         "  Details: ", check$details, "\n",
-        "  Recommendation: ", check$recommendation, "\n\n"
-      ))
+        "  Recommendation: ", check$recommendation, "\n"
+      )
     }
   }
 
   # Add overall assessment
-  checks <- sapply(assumptions, function(x) x$check)
-  checks <- checks[!is.null(checks)]
+  checks <- Filter(
+    Negate(is.null),
+    lapply(assumptions, function(x) x$check)
+  )
+  checks <- unlist(checks)
 
   if (length(checks) > 0) {
     overall_status <- if (all(checks)) {
@@ -634,7 +682,15 @@ tl_check_assumptions <- function(model, test = TRUE, verbose = TRUE) {
 #' @param include_assumptions Logical; whether to include assumption checks
 #' @param include_performance Logical; whether to include performance metrics
 #' @param arrange_plots Layout arrangement (e.g., "grid", "row", "column")
-#' @return A plot grid with diagnostic plots
+#' @return A \code{\link[gridExtra]{grid.arrange}} object (a
+#'   \code{\link[grid]{grob}}) containing the arranged diagnostic plots.
+#' @examples
+#' \donttest{
+#' if (requireNamespace("gridExtra")) {
+#'   model <- tl_model(mtcars, mpg ~ wt + hp, method = "linear")
+#'   tl_diagnostic_dashboard(model)
+#' }
+#' }
 #' @export
 tl_diagnostic_dashboard <- function(model, include_influence = TRUE,
                                     include_assumptions = TRUE,
@@ -669,7 +725,8 @@ tl_diagnostic_dashboard <- function(model, include_influence = TRUE,
     ggplot2::theme_minimal()
 
   # Add scale-location plot
-  plots$scale_location <- tl_plot_diagnostics(model, which = 3)[[1]]
+  diag_plots <- tl_plot_diagnostics(model, which = 3)
+  plots$scale_location <- diag_plots[["scale_location"]]
 
   # Add influence plots if requested
   if (include_influence) {
@@ -785,7 +842,25 @@ tl_diagnostic_dashboard <- function(model, include_influence = TRUE,
 #'   "iqr", "mahalanobis"
 #' @param threshold Threshold for outlier detection
 #' @param plot Logical; whether to create a plot of outliers
-#' @return A list with outlier detection results
+#' @return A list with outlier detection results:
+#'   \describe{
+#'     \item{method}{The detection method used (character).}
+#'     \item{method_name}{Human-readable method name (character).}
+#'     \item{threshold}{The threshold value used (numeric).}
+#'     \item{threshold_label}{Formatted threshold description (character).}
+#'     \item{outlier_flags}{A logical matrix (observations x variables).}
+#'     \item{any_outlier}{Logical vector indicating if each observation is an
+#'       outlier in any variable.}
+#'     \item{outlier_counts}{List with \code{total}, \code{by_variable}, and
+#'       \code{by_observation} counts.}
+#'     \item{outlier_indices}{Integer vector of outlier row indices.}
+#'     \item{plot}{A \code{\link[ggplot2]{ggplot}} object, or \code{NULL} if
+#'       \code{plot = FALSE}.}
+#'   }
+#' @examples
+#' \donttest{
+#' tl_detect_outliers(mtcars, variables = c("mpg", "wt"), method = "iqr")
+#' }
 #' @export
 tl_detect_outliers <- function(data, variables = NULL, method = "iqr",
                                threshold = NULL, plot = TRUE) {
@@ -813,13 +888,14 @@ tl_detect_outliers <- function(data, variables = NULL, method = "iqr",
 
   # Set default threshold based on method
   if (is.null(threshold)) {
-    threshold <- switch(method,
-                        "boxplot" = 1.5,     # IQR multiplier
-                        "z-score" = 3,       # Standard deviations
-                        "cook" = 4 / nrow(data),
-                        "iqr" = 1.5,
-                        "mahalanobis" = 0.975,
-                        2                    # Default multiplier
+    threshold <- switch(
+      method,
+      "boxplot" = 1.5, # IQR multiplier
+      "z-score" = 3, # Standard deviations
+      "cook" = 4 / nrow(data),
+      "iqr" = 1.5,
+      "mahalanobis" = 0.975,
+      2 # Default multiplier
     )
   }
 
@@ -883,7 +959,10 @@ tl_detect_outliers <- function(data, variables = NULL, method = "iqr",
   } else if (method == "mahalanobis") {
     # Mahalanobis distance for multivariate outlier detection
     if (length(variables) < 2) {
-      stop("Mahalanobis distance method requires at least 2 variables", call. = FALSE)
+      stop(
+        "Mahalanobis distance requires at least 2 variables",
+        call. = FALSE
+      )
     }
 
     # Calculate center (means) and covariance matrix
@@ -912,7 +991,8 @@ tl_detect_outliers <- function(data, variables = NULL, method = "iqr",
 
   } else {
     stop(
-      "Invalid method. Use 'boxplot', 'z-score', 'cook', 'iqr', or 'mahalanobis'.",
+      "Invalid method. Use 'boxplot', 'z-score',",
+      " 'cook', 'iqr', or 'mahalanobis'.",
       call. = FALSE
     )
   }
@@ -939,7 +1019,7 @@ tl_detect_outliers <- function(data, variables = NULL, method = "iqr",
       if (requireNamespace("GGally", quietly = TRUE)) {
         outlier_plot <- GGally::ggpairs(
           plot_data,
-          columns = 1:length(variables),
+          columns = seq_along(variables),
           aes(color = is_outlier),
           progress = FALSE
         ) +
@@ -972,7 +1052,7 @@ tl_detect_outliers <- function(data, variables = NULL, method = "iqr",
     } else if (method == "cook") {
       # For Cook's distance, create index plot
       plot_data <- data.frame(
-        observation = 1:length(cooks_d),
+        observation = seq_along(cooks_d),
         cooks_distance = cooks_d,
         is_outlier = cooks_d > threshold
       )
@@ -986,7 +1066,11 @@ tl_detect_outliers <- function(data, variables = NULL, method = "iqr",
         )
       ) +
         ggplot2::geom_point() +
-        ggplot2::geom_hline(yintercept = threshold, linetype = "dashed", color = "red") +
+        ggplot2::geom_hline(
+          yintercept = threshold,
+          linetype = "dashed",
+          color = "red"
+        ) +
         ggplot2::scale_color_manual(values = c("blue", "red")) +
         ggplot2::labs(
           title = paste("Outlier Detection using", method_name),
@@ -1008,7 +1092,7 @@ tl_detect_outliers <- function(data, variables = NULL, method = "iqr",
 
       # Add outlier flag
       plot_data$is_outlier <- FALSE
-      for (i in 1:nrow(plot_data)) {
+      for (i in seq_len(nrow(plot_data))) {
         var_idx <- match(plot_data$variable[i], variables)
         obs_idx <- (i - 1) %% nrow(data) + 1
         plot_data$is_outlier[i] <- outlier_flags[obs_idx, var_idx]
@@ -1023,7 +1107,11 @@ tl_detect_outliers <- function(data, variables = NULL, method = "iqr",
         )
       ) +
         ggplot2::geom_boxplot(outlier.shape = NA) +
-        ggplot2::geom_jitter(ggplot2::aes(color = is_outlier), width = 0.2, alpha = 0.7) +
+        ggplot2::geom_jitter(
+          ggplot2::aes(color = is_outlier),
+          width = 0.2,
+          alpha = 0.7
+        ) +
         ggplot2::scale_fill_manual(values = c("lightblue", "lightpink")) +
         ggplot2::scale_color_manual(values = c("blue", "red")) +
         ggplot2::labs(

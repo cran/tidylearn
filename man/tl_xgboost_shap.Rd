@@ -9,15 +9,26 @@ tl_xgboost_shap(model, data = NULL, n_samples = 100, trees_idx = NULL)
 \arguments{
 \item{model}{A tidylearn XGBoost model object}
 
-\item{data}{Data for SHAP value calculation (default: NULL, uses training data)}
+\item{data}{Data for SHAP value calculation
+(default: NULL, uses training data)}
 
 \item{n_samples}{Number of samples to use (default: 100, NULL for all)}
 
 \item{trees_idx}{Trees to include (default: NULL, uses all trees)}
 }
 \value{
-A data frame with SHAP values
+A data frame with one column of SHAP values per feature, a
+\code{BIAS} column, a \code{row_id} column, and the original data columns
+appended for reference.
 }
 \description{
 Generate SHAP values for XGBoost model interpretation
+}
+\examples{
+\donttest{
+if (requireNamespace("xgboost", quietly = TRUE)) {
+  model <- tl_model(mtcars, mpg ~ ., method = "xgboost")
+  shap <- tl_xgboost_shap(model, n_samples = 20)
+}
+}
 }

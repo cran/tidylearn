@@ -9,15 +9,25 @@ tidy_dist(data, method = "euclidean", cols = NULL, ...)
 \arguments{
 \item{data}{A data frame or tibble}
 
-\item{method}{Character; distance method (default: "euclidean"). Options: "euclidean", "manhattan", "maximum", "gower"}
+\item{method}{Character; distance method
+(default: "euclidean"). Options: "euclidean",
+"manhattan", "maximum", "gower"}
 
-\item{cols}{Columns to include (tidy select). If NULL, uses all numeric columns.}
+\item{cols}{Columns to include (tidy select).
+If NULL, uses all numeric columns.}
 
 \item{...}{Additional arguments passed to distance functions}
 }
 \value{
-A dist object with tidy attributes
+A \code{\link[stats]{dist}} object containing the computed
+distance matrix.
 }
 \description{
 Compute distance matrices with tidy output
+}
+\examples{
+\donttest{
+d <- tidy_dist(iris[, 1:4], method = "euclidean")
+}
+
 }

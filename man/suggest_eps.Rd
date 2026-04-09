@@ -13,7 +13,8 @@ suggest_eps(data, minPts = 5, method = "percentile", percentile = 0.95)
 
 \item{method}{Method to suggest eps: "knee" (default), "percentile"}
 
-\item{percentile}{If method="percentile", which percentile to use (default: 0.95)}
+\item{percentile}{If method="percentile", which
+percentile to use (default: 0.95)}
 }
 \value{
 A list containing:

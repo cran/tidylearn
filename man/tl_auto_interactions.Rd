@@ -24,11 +24,21 @@ tl_auto_interactions(
 
 \item{max_p_value}{Maximum p-value for significance}
 
-\item{exclude_vars}{Character vector of variables to exclude from interaction testing}
+\item{exclude_vars}{Character vector of variables to exclude
+from interaction testing}
 }
 \value{
-A tidylearn model with important interactions
+A tidylearn model object (class \code{"tidylearn_model"}) fitted
+with the top significant interaction terms added to the formula.
+The interaction test results and selected interactions are stored as
+attributes \code{"interaction_tests"} and
+\code{"selected_interactions"}.
 }
 \description{
 Find important interactions automatically
+}
+\examples{
+\donttest{
+model <- tl_auto_interactions(mtcars, mpg ~ wt + hp + cyl, top_n = 2)
+}
 }

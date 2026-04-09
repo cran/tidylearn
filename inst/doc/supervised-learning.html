@@ -504,16 +504,19 @@ dataset:</p>
 <div id="polynomial-regression" class="section level3">
 <h3>Polynomial Regression</h3>
 <div class="sourceCode" id="cb14"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb14-1"><a href="#cb14-1" tabindex="-1"></a><span class="co"># Polynomial regression for non-linear relationships</span></span>
-<span id="cb14-2"><a href="#cb14-2" tabindex="-1"></a>model_poly <span class="ot">&lt;-</span> <span class="fu">tl_model</span>(split_reg<span class="sc">$</span>train, mpg <span class="sc">~</span> wt, <span class="at">method =</span> <span class="st">&quot;polynomial&quot;</span>, <span class="at">degree =</span> <span class="dv">2</span>)</span>
-<span id="cb14-3"><a href="#cb14-3" tabindex="-1"></a><span class="fu">print</span>(model_poly)</span>
-<span id="cb14-4"><a href="#cb14-4" tabindex="-1"></a><span class="co">#&gt; tidylearn Model</span></span>
-<span id="cb14-5"><a href="#cb14-5" tabindex="-1"></a><span class="co">#&gt; ===============</span></span>
-<span id="cb14-6"><a href="#cb14-6" tabindex="-1"></a><span class="co">#&gt; Paradigm: supervised </span></span>
-<span id="cb14-7"><a href="#cb14-7" tabindex="-1"></a><span class="co">#&gt; Method: polynomial </span></span>
-<span id="cb14-8"><a href="#cb14-8" tabindex="-1"></a><span class="co">#&gt; Task: Regression </span></span>
-<span id="cb14-9"><a href="#cb14-9" tabindex="-1"></a><span class="co">#&gt; Formula: mpg ~ wt </span></span>
-<span id="cb14-10"><a href="#cb14-10" tabindex="-1"></a><span class="co">#&gt; </span></span>
-<span id="cb14-11"><a href="#cb14-11" tabindex="-1"></a><span class="co">#&gt; Training observations: 22</span></span></code></pre></div>
+<span id="cb14-2"><a href="#cb14-2" tabindex="-1"></a>model_poly <span class="ot">&lt;-</span> <span class="fu">tl_model</span>(</span>
+<span id="cb14-3"><a href="#cb14-3" tabindex="-1"></a>  split_reg<span class="sc">$</span>train, mpg <span class="sc">~</span> wt,</span>
+<span id="cb14-4"><a href="#cb14-4" tabindex="-1"></a>  <span class="at">method =</span> <span class="st">&quot;polynomial&quot;</span>, <span class="at">degree =</span> <span class="dv">2</span></span>
+<span id="cb14-5"><a href="#cb14-5" tabindex="-1"></a>)</span>
+<span id="cb14-6"><a href="#cb14-6" tabindex="-1"></a><span class="fu">print</span>(model_poly)</span>
+<span id="cb14-7"><a href="#cb14-7" tabindex="-1"></a><span class="co">#&gt; tidylearn Model</span></span>
+<span id="cb14-8"><a href="#cb14-8" tabindex="-1"></a><span class="co">#&gt; ===============</span></span>
+<span id="cb14-9"><a href="#cb14-9" tabindex="-1"></a><span class="co">#&gt; Paradigm: supervised </span></span>
+<span id="cb14-10"><a href="#cb14-10" tabindex="-1"></a><span class="co">#&gt; Method: polynomial </span></span>
+<span id="cb14-11"><a href="#cb14-11" tabindex="-1"></a><span class="co">#&gt; Task: Regression </span></span>
+<span id="cb14-12"><a href="#cb14-12" tabindex="-1"></a><span class="co">#&gt; Formula: mpg ~ wt </span></span>
+<span id="cb14-13"><a href="#cb14-13" tabindex="-1"></a><span class="co">#&gt; </span></span>
+<span id="cb14-14"><a href="#cb14-14" tabindex="-1"></a><span class="co">#&gt; Training observations: 22</span></span></code></pre></div>
 <div class="sourceCode" id="cb15"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb15-1"><a href="#cb15-1" tabindex="-1"></a><span class="co"># Predictions</span></span>
 <span id="cb15-2"><a href="#cb15-2" tabindex="-1"></a>preds_poly <span class="ot">&lt;-</span> <span class="fu">predict</span>(model_poly, <span class="at">new_data =</span> split_reg<span class="sc">$</span>test)</span>
 <span id="cb15-3"><a href="#cb15-3" tabindex="-1"></a></span>
@@ -569,11 +572,14 @@ complexity.</p>
 <div id="elastic-net" class="section level3">
 <h3>Elastic Net</h3>
 <div class="sourceCode" id="cb20"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb20-1"><a href="#cb20-1" tabindex="-1"></a><span class="co"># Elastic Net - combines L1 and L2 regularization</span></span>
-<span id="cb20-2"><a href="#cb20-2" tabindex="-1"></a>model_enet <span class="ot">&lt;-</span> <span class="fu">tl_model</span>(split_reg<span class="sc">$</span>train, mpg <span class="sc">~</span> ., <span class="at">method =</span> <span class="st">&quot;elastic_net&quot;</span>, <span class="at">alpha =</span> <span class="fl">0.5</span>)</span>
-<span id="cb20-3"><a href="#cb20-3" tabindex="-1"></a><span class="fu">print</span>(model_enet)</span>
-<span id="cb20-4"><a href="#cb20-4" tabindex="-1"></a></span>
-<span id="cb20-5"><a href="#cb20-5" tabindex="-1"></a><span class="co"># Predictions</span></span>
-<span id="cb20-6"><a href="#cb20-6" tabindex="-1"></a>preds_enet <span class="ot">&lt;-</span> <span class="fu">predict</span>(model_enet, <span class="at">new_data =</span> split_reg<span class="sc">$</span>test)</span></code></pre></div>
+<span id="cb20-2"><a href="#cb20-2" tabindex="-1"></a>model_enet <span class="ot">&lt;-</span> <span class="fu">tl_model</span>(</span>
+<span id="cb20-3"><a href="#cb20-3" tabindex="-1"></a>  split_reg<span class="sc">$</span>train, mpg <span class="sc">~</span> .,</span>
+<span id="cb20-4"><a href="#cb20-4" tabindex="-1"></a>  <span class="at">method =</span> <span class="st">&quot;elastic_net&quot;</span>, <span class="at">alpha =</span> <span class="fl">0.5</span></span>
+<span id="cb20-5"><a href="#cb20-5" tabindex="-1"></a>)</span>
+<span id="cb20-6"><a href="#cb20-6" tabindex="-1"></a><span class="fu">print</span>(model_enet)</span>
+<span id="cb20-7"><a href="#cb20-7" tabindex="-1"></a></span>
+<span id="cb20-8"><a href="#cb20-8" tabindex="-1"></a><span class="co"># Predictions</span></span>
+<span id="cb20-9"><a href="#cb20-9" tabindex="-1"></a>preds_enet <span class="ot">&lt;-</span> <span class="fu">predict</span>(model_enet, <span class="at">new_data =</span> split_reg<span class="sc">$</span>test)</span></code></pre></div>
 </div>
 </div>
 <div id="model-comparison" class="section level2">
@@ -640,10 +646,14 @@ complexity.</p>
 <span id="cb25-2"><a href="#cb25-2" tabindex="-1"></a>model_interact <span class="ot">&lt;-</span> <span class="fu">tl_model</span>(split_reg<span class="sc">$</span>train, mpg <span class="sc">~</span> wt <span class="sc">*</span> hp, <span class="at">method =</span> <span class="st">&quot;linear&quot;</span>)</span>
 <span id="cb25-3"><a href="#cb25-3" tabindex="-1"></a></span>
 <span id="cb25-4"><a href="#cb25-4" tabindex="-1"></a><span class="co"># Polynomial terms using I()</span></span>
-<span id="cb25-5"><a href="#cb25-5" tabindex="-1"></a>model_poly_manual <span class="ot">&lt;-</span> <span class="fu">tl_model</span>(split_reg<span class="sc">$</span>train, mpg <span class="sc">~</span> wt <span class="sc">+</span> <span class="fu">I</span>(wt<span class="sc">^</span><span class="dv">2</span>), <span class="at">method =</span> <span class="st">&quot;linear&quot;</span>)</span>
-<span id="cb25-6"><a href="#cb25-6" tabindex="-1"></a></span>
-<span id="cb25-7"><a href="#cb25-7" tabindex="-1"></a><span class="co"># Subset of predictors</span></span>
-<span id="cb25-8"><a href="#cb25-8" tabindex="-1"></a>model_subset <span class="ot">&lt;-</span> <span class="fu">tl_model</span>(split_reg<span class="sc">$</span>train, mpg <span class="sc">~</span> wt <span class="sc">+</span> hp <span class="sc">+</span> disp, <span class="at">method =</span> <span class="st">&quot;linear&quot;</span>)</span></code></pre></div>
+<span id="cb25-5"><a href="#cb25-5" tabindex="-1"></a>model_poly_manual <span class="ot">&lt;-</span> <span class="fu">tl_model</span>(</span>
+<span id="cb25-6"><a href="#cb25-6" tabindex="-1"></a>  split_reg<span class="sc">$</span>train, mpg <span class="sc">~</span> wt <span class="sc">+</span> <span class="fu">I</span>(wt<span class="sc">^</span><span class="dv">2</span>), <span class="at">method =</span> <span class="st">&quot;linear&quot;</span></span>
+<span id="cb25-7"><a href="#cb25-7" tabindex="-1"></a>)</span>
+<span id="cb25-8"><a href="#cb25-8" tabindex="-1"></a></span>
+<span id="cb25-9"><a href="#cb25-9" tabindex="-1"></a><span class="co"># Subset of predictors</span></span>
+<span id="cb25-10"><a href="#cb25-10" tabindex="-1"></a>model_subset <span class="ot">&lt;-</span> <span class="fu">tl_model</span>(</span>
+<span id="cb25-11"><a href="#cb25-11" tabindex="-1"></a>  split_reg<span class="sc">$</span>train, mpg <span class="sc">~</span> wt <span class="sc">+</span> hp <span class="sc">+</span> disp, <span class="at">method =</span> <span class="st">&quot;linear&quot;</span></span>
+<span id="cb25-12"><a href="#cb25-12" tabindex="-1"></a>)</span></code></pre></div>
 </div>
 </div>
 <div id="handling-different-data-types" class="section level2">
@@ -676,8 +686,8 @@ complexity.</p>
 <h3>Missing Values</h3>
 <div class="sourceCode" id="cb27"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb27-1"><a href="#cb27-1" tabindex="-1"></a><span class="co"># Create data with missing values</span></span>
 <span id="cb27-2"><a href="#cb27-2" tabindex="-1"></a>mtcars_missing <span class="ot">&lt;-</span> mtcars</span>
-<span id="cb27-3"><a href="#cb27-3" tabindex="-1"></a>mtcars_missing[<span class="fu">sample</span>(<span class="dv">1</span><span class="sc">:</span><span class="fu">nrow</span>(mtcars_missing), <span class="dv">5</span>), <span class="st">&quot;hp&quot;</span>] <span class="ot">&lt;-</span> <span class="cn">NA</span></span>
-<span id="cb27-4"><a href="#cb27-4" tabindex="-1"></a>mtcars_missing[<span class="fu">sample</span>(<span class="dv">1</span><span class="sc">:</span><span class="fu">nrow</span>(mtcars_missing), <span class="dv">3</span>), <span class="st">&quot;wt&quot;</span>] <span class="ot">&lt;-</span> <span class="cn">NA</span></span>
+<span id="cb27-3"><a href="#cb27-3" tabindex="-1"></a>mtcars_missing[<span class="fu">sample</span>(<span class="fu">seq_len</span>(<span class="fu">nrow</span>(mtcars_missing)), <span class="dv">5</span>), <span class="st">&quot;hp&quot;</span>] <span class="ot">&lt;-</span> <span class="cn">NA</span></span>
+<span id="cb27-4"><a href="#cb27-4" tabindex="-1"></a>mtcars_missing[<span class="fu">sample</span>(<span class="fu">seq_len</span>(<span class="fu">nrow</span>(mtcars_missing)), <span class="dv">3</span>), <span class="st">&quot;wt&quot;</span>] <span class="ot">&lt;-</span> <span class="cn">NA</span></span>
 <span id="cb27-5"><a href="#cb27-5" tabindex="-1"></a></span>
 <span id="cb27-6"><a href="#cb27-6" tabindex="-1"></a><span class="co"># Preprocess to handle missing values</span></span>
 <span id="cb27-7"><a href="#cb27-7" tabindex="-1"></a>processed_missing <span class="ot">&lt;-</span> <span class="fu">tl_prepare_data</span>(</span>
@@ -727,15 +737,18 @@ objects</li>
 </ul>
 <div class="sourceCode" id="cb28"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb28-1"><a href="#cb28-1" tabindex="-1"></a><span class="co"># Complete workflow example</span></span>
 <span id="cb28-2"><a href="#cb28-2" tabindex="-1"></a>final_split <span class="ot">&lt;-</span> <span class="fu">tl_split</span>(iris, <span class="at">prop =</span> <span class="fl">0.7</span>, <span class="at">stratify =</span> <span class="st">&quot;Species&quot;</span>, <span class="at">seed =</span> <span class="dv">42</span>)</span>
-<span id="cb28-3"><a href="#cb28-3" tabindex="-1"></a>final_prep <span class="ot">&lt;-</span> <span class="fu">tl_prepare_data</span>(final_split<span class="sc">$</span>train, Species <span class="sc">~</span> ., <span class="at">scale_method =</span> <span class="st">&quot;standardize&quot;</span>)</span>
-<span id="cb28-4"><a href="#cb28-4" tabindex="-1"></a><span class="co">#&gt; Scaling numeric features using method: standardize</span></span>
-<span id="cb28-5"><a href="#cb28-5" tabindex="-1"></a>final_model <span class="ot">&lt;-</span> <span class="fu">tl_model</span>(final_prep<span class="sc">$</span>data, Species <span class="sc">~</span> ., <span class="at">method =</span> <span class="st">&quot;forest&quot;</span>)</span>
-<span id="cb28-6"><a href="#cb28-6" tabindex="-1"></a>final_preds <span class="ot">&lt;-</span> <span class="fu">predict</span>(final_model, <span class="at">new_data =</span> final_split<span class="sc">$</span>test)</span>
-<span id="cb28-7"><a href="#cb28-7" tabindex="-1"></a></span>
-<span id="cb28-8"><a href="#cb28-8" tabindex="-1"></a><span class="co"># Evaluate</span></span>
-<span id="cb28-9"><a href="#cb28-9" tabindex="-1"></a>accuracy <span class="ot">&lt;-</span> <span class="fu">mean</span>(final_preds<span class="sc">$</span>.pred <span class="sc">==</span> final_split<span class="sc">$</span>test<span class="sc">$</span>Species)</span>
-<span id="cb28-10"><a href="#cb28-10" tabindex="-1"></a><span class="fu">cat</span>(<span class="st">&quot;Test Accuracy:&quot;</span>, <span class="fu">round</span>(accuracy <span class="sc">*</span> <span class="dv">100</span>, <span class="dv">1</span>), <span class="st">&quot;%</span><span class="sc">\n</span><span class="st">&quot;</span>)</span>
-<span id="cb28-11"><a href="#cb28-11" tabindex="-1"></a><span class="co">#&gt; Test Accuracy: 33.3 %</span></span></code></pre></div>
+<span id="cb28-3"><a href="#cb28-3" tabindex="-1"></a>final_prep <span class="ot">&lt;-</span> <span class="fu">tl_prepare_data</span>(</span>
+<span id="cb28-4"><a href="#cb28-4" tabindex="-1"></a>  final_split<span class="sc">$</span>train, Species <span class="sc">~</span> .,</span>
+<span id="cb28-5"><a href="#cb28-5" tabindex="-1"></a>  <span class="at">scale_method =</span> <span class="st">&quot;standardize&quot;</span></span>
+<span id="cb28-6"><a href="#cb28-6" tabindex="-1"></a>)</span>
+<span id="cb28-7"><a href="#cb28-7" tabindex="-1"></a><span class="co">#&gt; Scaling numeric features using method: standardize</span></span>
+<span id="cb28-8"><a href="#cb28-8" tabindex="-1"></a>final_model <span class="ot">&lt;-</span> <span class="fu">tl_model</span>(final_prep<span class="sc">$</span>data, Species <span class="sc">~</span> ., <span class="at">method =</span> <span class="st">&quot;forest&quot;</span>)</span>
+<span id="cb28-9"><a href="#cb28-9" tabindex="-1"></a>final_preds <span class="ot">&lt;-</span> <span class="fu">predict</span>(final_model, <span class="at">new_data =</span> final_split<span class="sc">$</span>test)</span>
+<span id="cb28-10"><a href="#cb28-10" tabindex="-1"></a></span>
+<span id="cb28-11"><a href="#cb28-11" tabindex="-1"></a><span class="co"># Evaluate</span></span>
+<span id="cb28-12"><a href="#cb28-12" tabindex="-1"></a>accuracy <span class="ot">&lt;-</span> <span class="fu">mean</span>(final_preds<span class="sc">$</span>.pred <span class="sc">==</span> final_split<span class="sc">$</span>test<span class="sc">$</span>Species)</span>
+<span id="cb28-13"><a href="#cb28-13" tabindex="-1"></a><span class="fu">cat</span>(<span class="st">&quot;Test Accuracy:&quot;</span>, <span class="fu">round</span>(accuracy <span class="sc">*</span> <span class="dv">100</span>, <span class="dv">1</span>), <span class="st">&quot;%</span><span class="sc">\n</span><span class="st">&quot;</span>)</span>
+<span id="cb28-14"><a href="#cb28-14" tabindex="-1"></a><span class="co">#&gt; Test Accuracy: 33.3 %</span></span></code></pre></div>
 </div>
 
 

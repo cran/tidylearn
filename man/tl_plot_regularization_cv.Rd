@@ -2,19 +2,27 @@
 % Please edit documentation in R/supervised-regularization.R
 \name{tl_plot_regularization_cv}
 \alias{tl_plot_regularization_cv}
-\title{Plot cross-validation results for a regularized regression model}
+\title{Plot cross-validation results for a regularized model}
 \usage{
 tl_plot_regularization_cv(model, ...)
 }
 \arguments{
-\item{model}{A tidylearn regularized model object (ridge, lasso, or elastic_net)}
+\item{model}{A tidylearn regularized model object
+(ridge, lasso, or elastic_net)}
 
 \item{...}{Additional arguments (currently unused)}
 }
 \value{
-A ggplot object showing CV error vs lambda
+A \code{\link[ggplot2]{ggplot}} object.
 }
 \description{
-Shows the cross-validation error as a function of lambda for ridge, lasso,
-or elastic net models fitted with cv.glmnet.
+Shows the cross-validation error as a function of
+lambda for ridge, lasso, or elastic net models fitted
+with cv.glmnet.
+}
+\examples{
+\donttest{
+model <- tl_model(mtcars, mpg ~ ., method = "ridge")
+tl_plot_regularization_cv(model)
+}
 }

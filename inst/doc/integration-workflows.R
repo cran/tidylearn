@@ -22,7 +22,9 @@ reduced <- tl_reduce_dimensions(iris,
 head(reduced$data)
 
 ## -----------------------------------------------------------------------------
-# Train classifier on reduced features (remove .obs_id column first)
+# Train classifier on reduced features.
+# PCA output includes a .obs_id row-identifier column — drop it before
+# modeling so it isn't treated as a predictor in the formula.
 reduced_data <- reduced$data %>% select(-starts_with(".obs"))
 model_reduced <- tl_model(reduced_data, Species ~ ., method = "logistic")
 print(model_reduced)
@@ -44,9 +46,9 @@ acc_original <- mean(preds_original$.pred == split$test$Species)
 
 # Model with PCA features
 reduced_train <- tl_reduce_dimensions(split$train,
-                                     response = "Species",
-                                     method = "pca",
-                                     n_components = 3)
+                                      response = "Species",
+                                      method = "pca",
+                                      n_components = 3)
 
 # Remove .obs_id column before modeling (it's just an identifier)
 reduced_train_data <- reduced_train$data %>% select(-starts_with(".obs"))
@@ -54,7 +56,10 @@ model_pca <- tl_model(reduced_train_data, Species ~ ., method = "logistic")
 
 # Need to transform test data using same PCA
 test_predictors <- split$test %>% select(-Species)
-test_transformed <- predict(reduced_train$reduction_model, new_data = test_predictors)
+test_transformed <- predict(
+  reduced_train$reduction_model,
+  new_data = test_predictors
+)
 test_transformed$Species <- split$test$Species
 test_transformed <- test_transformed %>% select(-starts_with(".obs"))
 
@@ -64,14 +69,14 @@ acc_pca <- mean(preds_pca$.pred == split$test$Species)
 # Compare results
 cat("Original features (4):", round(acc_original * 100, 1), "%\n")
 cat("PCA features (3):", round(acc_pca * 100, 1), "%\n")
-cat("Feature reduction:", round((1 - 3/4) * 100, 1), "%\n")
+cat("Feature reduction:", round((1 - 3 / 4) * 100, 1), "%\n")
 
 ## -----------------------------------------------------------------------------
 # Add cluster features
 data_clustered <- tl_add_cluster_features(iris,
-                                         response = "Species",
-                                         method = "kmeans",
-                                         k = 3)
+                                          response = "Species",
+                                          method = "kmeans",
+                                          k = 3)
 
 # Check new features
 names(data_clustered)
@@ -92,9 +97,9 @@ acc_no_cluster <- mean(preds_no_cluster$.pred == split_comp$test$Species)
 
 # With cluster features
 train_clustered <- tl_add_cluster_features(split_comp$train,
-                                          response = "Species",
-                                          method = "kmeans",
-                                          k = 3)
+                                           response = "Species",
+                                           method = "kmeans",
+                                           k = 3)
 model_with_cluster <- tl_model(train_clustered, Species ~ ., method = "forest")
 
 # Need to get cluster model for test data
@@ -116,9 +121,9 @@ labeled_indices <- sample(nrow(iris), size = 15)  # Only 15 out of 150 labeled!
 
 # Train semi-supervised model
 model_semi <- tl_semisupervised(iris, Species ~ .,
-                               labeled_indices = labeled_indices,
-                               cluster_method = "kmeans",
-                               supervised_method = "logistic")
+                                labeled_indices = labeled_indices,
+                                cluster_method = "kmeans",
+                                supervised_method = "logistic")
 
 print(model_semi)
 
@@ -134,7 +139,10 @@ accuracy_semi <- mean(preds_semi$.pred == iris$Species)
 
 cat("Accuracy with only", length(labeled_indices), "labels:",
     round(accuracy_semi * 100, 1), "%\n")
-cat("Proportion of data labeled:", round(length(labeled_indices)/nrow(iris) * 100, 1), "%\n")
+labeled_pct <- round(
+  length(labeled_indices) / nrow(iris) * 100, 1
+)
+cat("Proportion of data labeled:", labeled_pct, "%\n")
 
 ## -----------------------------------------------------------------------------
 # Fully supervised with same amount of data
@@ -144,15 +152,16 @@ preds_full <- predict(model_full, new_data = iris)
 accuracy_full <- mean(preds_full$.pred == iris$Species)
 
 cat("Fully supervised (15 samples):", round(accuracy_full * 100, 1), "%\n")
-cat("Semi-supervised (15 labels + propagation):", round(accuracy_semi * 100, 1), "%\n")
+cat("Semi-supervised (15 labels + propagation):",
+    round(accuracy_semi * 100, 1), "%\n")
 
 ## ----eval=FALSE---------------------------------------------------------------
 # # Flag anomalies as a feature
 # model_anomaly_flag <- tl_anomaly_aware(iris, Species ~ .,
-#                                       response = "Species",
-#                                       anomaly_method = "dbscan",
-#                                       action = "flag",
-#                                       supervised_method = "logistic")
+#                                        response = "Species",
+#                                        anomaly_method = "dbscan",
+#                                        action = "flag",
+#                                        supervised_method = "logistic")
 # 
 # # Check anomaly info
 # cat("Anomalies detected:", model_anomaly_flag$anomaly_info$n_anomalies, "\n")
@@ -160,19 +169,19 @@ cat("Semi-supervised (15 labels + propagation):", round(accuracy_semi * 100, 1),
 ## ----eval=FALSE---------------------------------------------------------------
 # # Remove anomalies before training
 # model_anomaly_remove <- tl_anomaly_aware(iris, Species ~ .,
-#                                         response = "Species",
-#                                         anomaly_method = "dbscan",
-#                                         action = "remove",
-#                                         supervised_method = "logistic")
+#                                          response = "Species",
+#                                          anomaly_method = "dbscan",
+#                                          action = "remove",
+#                                          supervised_method = "logistic")
 # 
 # cat("Anomalies removed:", model_anomaly_remove$anomalies_removed, "\n")
 
 ## -----------------------------------------------------------------------------
 # Train separate models for different clusters
 stratified_models <- tl_stratified_models(mtcars, mpg ~ .,
-                                         cluster_method = "kmeans",
-                                         k = 3,
-                                         supervised_method = "linear")
+                                          cluster_method = "kmeans",
+                                          k = 3,
+                                          supervised_method = "linear")
 
 # Check structure
 names(stratified_models)
@@ -200,16 +209,16 @@ workflow_split <- tl_split(iris, prop = 0.7, stratify = "Species", seed = 42)
 
 # Step 2: Reduce dimensions
 workflow_reduced <- tl_reduce_dimensions(workflow_split$train,
-                                        response = "Species",
-                                        method = "pca",
-                                        n_components = 3)
+                                         response = "Species",
+                                         method = "pca",
+                                         n_components = 3)
 
 # Step 3: Add cluster features to reduced data (remove .obs_id first)
 workflow_reduced_clean <- workflow_reduced$data %>% select(-starts_with(".obs"))
 workflow_clustered <- tl_add_cluster_features(workflow_reduced_clean,
-                                             response = "Species",
-                                             method = "kmeans",
-                                             k = 3)
+                                              response = "Species",
+                                              method = "kmeans",
+                                              k = 3)
 
 # Step 4: Train final model
 workflow_model <- tl_model(workflow_clustered, Species ~ ., method = "forest")
@@ -220,7 +229,7 @@ print(workflow_model)
 # Transform test data through same pipeline
 # 1. Apply PCA transformation
 test_pca <- predict(workflow_reduced$reduction_model,
-                   new_data = workflow_split$test[, -5])
+                    new_data = workflow_split$test[, -5])
 test_pca$Species <- workflow_split$test$Species
 
 # 2. Get cluster assignments
@@ -249,25 +258,30 @@ credit_data <- data.frame(
 
 # Create target variable (default risk)
 credit_data$default <- factor(
-  ifelse(credit_data$debt_ratio > 0.4 & credit_data$credit_score < 650, "Yes", "No")
+  ifelse(
+    credit_data$debt_ratio > 0.4 & credit_data$credit_score < 650,
+    "Yes", "No"
+  )
 )
 
 # Split data
-credit_split <- tl_split(credit_data, prop = 0.7, stratify = "default", seed = 123)
+credit_split <- tl_split(
+  credit_data, prop = 0.7, stratify = "default", seed = 123
+)
 
 ## -----------------------------------------------------------------------------
 # Strategy 1: Add customer segments as features
 credit_clustered <- tl_add_cluster_features(credit_split$train,
-                                           response = "default",
-                                           method = "kmeans",
-                                           k = 4)
+                                            response = "default",
+                                            method = "kmeans",
+                                            k = 4)
 
 model_credit <- tl_model(credit_clustered, default ~ ., method = "forest")
 
 # Transform test data
 cluster_model_credit <- attr(credit_clustered, "cluster_model")
 test_clusters_credit <- predict(cluster_model_credit,
-                               new_data = credit_split$test[, -6])
+                                new_data = credit_split$test[, -6])
 test_credit <- credit_split$test
 test_credit$cluster_kmeans <- as.factor(test_clusters_credit$cluster)
 
@@ -279,19 +293,21 @@ cat("Credit Risk Model Accuracy:", round(accuracy_credit * 100, 1), "%\n")
 ## -----------------------------------------------------------------------------
 # Final integrated example
 final_data <- iris
-final_split <- tl_split(final_data, prop = 0.7, stratify = "Species", seed = 999)
+final_split <- tl_split(
+  final_data, prop = 0.7, stratify = "Species", seed = 999
+)
 
 # Combine PCA + clustering
 final_reduced <- tl_reduce_dimensions(final_split$train,
-                                     response = "Species",
-                                     method = "pca",
-                                     n_components = 3)
+                                      response = "Species",
+                                      method = "pca",
+                                      n_components = 3)
 # Remove .obs_id column before clustering
 final_reduced_clean <- final_reduced$data %>% select(-starts_with(".obs"))
 final_clustered <- tl_add_cluster_features(final_reduced_clean,
-                                          response = "Species",
-                                          method = "kmeans",
-                                          k = 3)
+                                           response = "Species",
+                                           method = "kmeans",
+                                           k = 3)
 final_model <- tl_model(final_clustered, Species ~ ., method = "logistic")
 
 cat("Final integrated model created successfully!\n")

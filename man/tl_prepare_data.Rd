@@ -20,11 +20,14 @@ tl_prepare_data(
 
 \item{formula}{Optional formula (for supervised learning)}
 
-\item{impute_method}{Method for missing value imputation: "mean", "median", "mode", "knn"}
+\item{impute_method}{Method for missing value imputation:
+"mean", "median", "mode", "knn"}
 
-\item{scale_method}{Scaling method: "standardize", "normalize", "robust", "none"}
+\item{scale_method}{Scaling method: "standardize",
+"normalize", "robust", "none"}
 
-\item{encode_categorical}{Whether to encode categorical variables (default: TRUE)}
+\item{encode_categorical}{Whether to encode categorical
+variables (default: TRUE)}
 
 \item{remove_zero_variance}{Remove zero-variance features (default: TRUE)}
 
@@ -33,10 +36,19 @@ tl_prepare_data(
 \item{correlation_cutoff}{Correlation threshold for removal (default: 0.95)}
 }
 \value{
-A list containing processed data and preprocessing metadata
+A list with components:
+\describe{
+\item{\code{data}}{The processed data frame.}
+\item{\code{original_data}}{The original unprocessed data frame.}
+\item{\code{preprocessing_steps}}{A list of metadata for each
+preprocessing step applied (imputation values, encoding maps,
+scaling parameters, etc.).}
+\item{\code{formula}}{The formula passed in (or \code{NULL}).}
+}
 }
 \description{
-Unified preprocessing functions that work with both supervised and unsupervised workflows
+Unified preprocessing functions that work with both
+supervised and unsupervised workflows
 Prepare Data for Machine Learning
 }
 \details{
@@ -46,6 +58,6 @@ encoding, and feature engineering
 \examples{
 \donttest{
 processed <- tl_prepare_data(iris, Species ~ ., scale_method = "standardize")
-model <- tl_model(processed$data, Species ~ ., method = "logistic")
+model <- tl_model(processed$data, Species ~ ., method = "tree")
 }
 }

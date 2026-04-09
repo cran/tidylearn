@@ -83,7 +83,10 @@ cat("RMSE:", round(rmse, 2), "\n")
 
 ## -----------------------------------------------------------------------------
 # Polynomial regression for non-linear relationships
-model_poly <- tl_model(split_reg$train, mpg ~ wt, method = "polynomial", degree = 2)
+model_poly <- tl_model(
+  split_reg$train, mpg ~ wt,
+  method = "polynomial", degree = 2
+)
 print(model_poly)
 
 ## -----------------------------------------------------------------------------
@@ -125,7 +128,10 @@ cat("Random Forest RMSE:", round(rmse_rf, 2), "\n")
 
 ## ----eval=FALSE---------------------------------------------------------------
 # # Elastic Net - combines L1 and L2 regularization
-# model_enet <- tl_model(split_reg$train, mpg ~ ., method = "elastic_net", alpha = 0.5)
+# model_enet <- tl_model(
+#   split_reg$train, mpg ~ .,
+#   method = "elastic_net", alpha = 0.5
+# )
 # print(model_enet)
 # 
 # # Predictions
@@ -180,10 +186,14 @@ print(model_processed)
 model_interact <- tl_model(split_reg$train, mpg ~ wt * hp, method = "linear")
 
 # Polynomial terms using I()
-model_poly_manual <- tl_model(split_reg$train, mpg ~ wt + I(wt^2), method = "linear")
+model_poly_manual <- tl_model(
+  split_reg$train, mpg ~ wt + I(wt^2), method = "linear"
+)
 
 # Subset of predictors
-model_subset <- tl_model(split_reg$train, mpg ~ wt + hp + disp, method = "linear")
+model_subset <- tl_model(
+  split_reg$train, mpg ~ wt + hp + disp, method = "linear"
+)
 
 ## -----------------------------------------------------------------------------
 # Create dataset with categorical variables
@@ -203,8 +213,8 @@ print(model_cat)
 ## -----------------------------------------------------------------------------
 # Create data with missing values
 mtcars_missing <- mtcars
-mtcars_missing[sample(1:nrow(mtcars_missing), 5), "hp"] <- NA
-mtcars_missing[sample(1:nrow(mtcars_missing), 3), "wt"] <- NA
+mtcars_missing[sample(seq_len(nrow(mtcars_missing)), 5), "hp"] <- NA
+mtcars_missing[sample(seq_len(nrow(mtcars_missing)), 3), "wt"] <- NA
 
 # Preprocess to handle missing values
 processed_missing <- tl_prepare_data(
@@ -220,7 +230,10 @@ model_imputed <- tl_model(processed_missing$data, mpg ~ ., method = "linear")
 ## -----------------------------------------------------------------------------
 # Complete workflow example
 final_split <- tl_split(iris, prop = 0.7, stratify = "Species", seed = 42)
-final_prep <- tl_prepare_data(final_split$train, Species ~ ., scale_method = "standardize")
+final_prep <- tl_prepare_data(
+  final_split$train, Species ~ .,
+  scale_method = "standardize"
+)
 final_model <- tl_model(final_prep$data, Species ~ ., method = "forest")
 final_preds <- predict(final_model, new_data = final_split$test)
 

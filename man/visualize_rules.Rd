@@ -9,15 +9,28 @@ visualize_rules(rules_obj, method = "scatter", top_n = 50, ...)
 \arguments{
 \item{rules_obj}{A tidy_apriori object, rules object, or rules tibble}
 
-\item{method}{Visualization method: "scatter" (default), "graph", "grouped", "paracoord"}
+\item{method}{Visualization method: "scatter"
+(default), "graph", "grouped", "paracoord"}
 
 \item{top_n}{Number of top rules to visualize (default: 50)}
 
 \item{...}{Additional arguments passed to plot() for rules visualization}
 }
 \value{
-Visualization (side effect) or ggplot object
+A \code{\link[ggplot2]{ggplot}} object when \code{method = "scatter"}.
+For other methods, the plot is produced as a side effect via
+\pkg{arulesViz}.
 }
 \description{
 Create visualizations of association rules
+}
+\examples{
+\donttest{
+if (requireNamespace("arules", quietly = TRUE)) {
+  data("Groceries", package = "arules")
+  res <- tidy_apriori(Groceries, support = 0.001, confidence = 0.5)
+  visualize_rules(res, method = "scatter")
+}
+}
+
 }

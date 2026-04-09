@@ -3,9 +3,11 @@
 #' Unified interface for MDS methods with tidy output
 #'
 #' @param data A data frame, tibble, or distance matrix
-#' @param method Character; "classical" (default), "metric", "nonmetric", "sammon", or "kruskal"
+#' @param method Character; "classical" (default),
+#'   "metric", "nonmetric", "sammon", or "kruskal"
 #' @param ndim Number of dimensions for output (default: 2)
-#' @param distance Character; distance metric if data is not already a dist object (default: "euclidean")
+#' @param distance Character; distance metric if data is
+#'   not already a dist object (default: "euclidean")
 #' @param ... Additional arguments passed to specific MDS functions
 #'
 #' @return A list of class "tidy_mds" containing:
@@ -22,7 +24,9 @@
 #' print(mds_result)
 #'
 #' @export
-tidy_mds <- function(data, method = "classical", ndim = 2, distance = "euclidean", ...) {
+tidy_mds <- function(data, method = "classical",
+                     ndim = 2, distance = "euclidean",
+                     ...) {
 
   # Convert to distance matrix if needed
   if (inherits(data, "dist")) {
@@ -54,7 +58,23 @@ tidy_mds <- function(data, method = "classical", ndim = 2, distance = "euclidean
 #' @param ndim Number of dimensions (default: 2)
 #' @param add_rownames Preserve row names from distance matrix (default: TRUE)
 #'
-#' @return A tidy_mds object
+#' @return A list of class \code{"tidy_mds"} containing:
+#' \itemize{
+#'   \item config: tibble of MDS coordinates
+#'   \item stress: \code{NA} (not applicable for classical MDS)
+#'   \item gof: goodness-of-fit (proportion of variance retained)
+#'   \item eigenvalues: numeric vector of eigenvalues
+#'   \item method: \code{"Classical MDS"}
+#'   \item model: the \code{\link[stats]{cmdscale}} result
+#' }
+#'
+#' @examples
+#' \donttest{
+#' d <- dist(USArrests)
+#' mds <- tidy_mds_classical(d)
+#' print(mds)
+#' }
+#'
 #' @export
 tidy_mds_classical <- function(dist_mat, ndim = 2, add_rownames = TRUE) {
 
@@ -104,10 +124,24 @@ tidy_mds_classical <- function(dist_mat, ndim = 2, add_rownames = TRUE) {
 #'
 #' @param dist_mat A distance matrix (dist object)
 #' @param ndim Number of dimensions (default: 2)
-#' @param type Character; "ratio" for metric, "ordinal" for non-metric (default: "ratio")
+#' @param type Character; "ratio" for metric, "ordinal"
+#'   for non-metric (default: "ratio")
 #' @param ... Additional arguments passed to smacof::mds()
 #'
-#' @return A tidy_mds object
+#' @return A list of class \code{"tidy_mds"} containing:
+#' \itemize{
+#'   \item config: tibble of MDS coordinates
+#'   \item stress: stress value from the SMACOF algorithm
+#'   \item method: character string describing the MDS type
+#'   \item model: the \code{\link[smacof]{mds}} result
+#' }
+#'
+#' @examples
+#' \donttest{
+#' d <- dist(USArrests)
+#' mds <- tidy_mds_smacof(d, type = "ratio")
+#' }
+#'
 #' @export
 tidy_mds_smacof <- function(dist_mat, ndim = 2, type = "ratio", ...) {
 
@@ -151,7 +185,20 @@ tidy_mds_smacof <- function(dist_mat, ndim = 2, type = "ratio", ...) {
 #' @param ndim Number of dimensions (default: 2)
 #' @param ... Additional arguments passed to MASS::sammon()
 #'
-#' @return A tidy_mds object
+#' @return A list of class \code{"tidy_mds"} containing:
+#' \itemize{
+#'   \item config: tibble of MDS coordinates
+#'   \item stress: Sammon stress value
+#'   \item method: \code{"Sammon Mapping"}
+#'   \item model: the \code{\link[MASS]{sammon}} result
+#' }
+#'
+#' @examples
+#' \donttest{
+#' d <- dist(USArrests)
+#' mds <- tidy_mds_sammon(d)
+#' }
+#'
 #' @export
 tidy_mds_sammon <- function(dist_mat, ndim = 2, ...) {
 
@@ -193,7 +240,20 @@ tidy_mds_sammon <- function(dist_mat, ndim = 2, ...) {
 #' @param ndim Number of dimensions (default: 2)
 #' @param ... Additional arguments passed to MASS::isoMDS()
 #'
-#' @return A tidy_mds object
+#' @return A list of class \code{"tidy_mds"} containing:
+#' \itemize{
+#'   \item config: tibble of MDS coordinates
+#'   \item stress: Kruskal stress value
+#'   \item method: \code{"Kruskal's isoMDS"}
+#'   \item model: the \code{\link[MASS]{isoMDS}} result
+#' }
+#'
+#' @examples
+#' \donttest{
+#' d <- dist(USArrests)
+#' mds <- tidy_mds_kruskal(d)
+#' }
+#'
 #' @export
 tidy_mds_kruskal <- function(dist_mat, ndim = 2, ...) {
 
@@ -237,7 +297,14 @@ tidy_mds_kruskal <- function(dist_mat, ndim = 2, ...) {
 #' @param dim_x Which dimension for x-axis (default: 1)
 #' @param dim_y Which dimension for y-axis (default: 2)
 #'
-#' @return A ggplot object
+#' @return A \code{\link[ggplot2]{ggplot}} object.
+#'
+#' @examples
+#' \donttest{
+#' mds <- tidy_mds(USArrests, method = "classical")
+#' plot_mds(mds)
+#' }
+#'
 #' @export
 plot_mds <- function(mds_obj, color_by = NULL, label_points = TRUE,
                      dim_x = 1, dim_y = 2) {
@@ -251,18 +318,27 @@ plot_mds <- function(mds_obj, color_by = NULL, label_points = TRUE,
   dim_y_name <- paste0("Dim", dim_y)
 
   # Base plot
-  p <- ggplot2::ggplot(config, ggplot2::aes(x = .data[[dim_x_name]], y = .data[[dim_y_name]]))
+  p <- ggplot2::ggplot(
+    config,
+    ggplot2::aes(x = .data[[dim_x_name]], y = .data[[dim_y_name]])
+  )
 
   # Add points
   if (!is.null(color_by)) {
-    p <- p + ggplot2::geom_point(ggplot2::aes(color = .data[[color_by]]), size = 3, alpha = 0.7)
+    p <- p + ggplot2::geom_point(
+      ggplot2::aes(color = .data[[color_by]]),
+      size = 3, alpha = 0.7
+    )
   } else {
     p <- p + ggplot2::geom_point(size = 3, alpha = 0.7, color = "steelblue")
   }
 
   # Add labels
   if (label_points && ".obs_id" %in% names(config)) {
-    p <- p + ggplot2::geom_text(ggplot2::aes(label = .obs_id), vjust = -0.7, size = 3)
+    p <- p + ggplot2::geom_text(
+      ggplot2::aes(label = .obs_id),
+      vjust = -0.7, size = 3
+    )
   }
 
   # Add title with stress if available
@@ -291,7 +367,14 @@ plot_mds <- function(mds_obj, color_by = NULL, label_points = TRUE,
 #' @param x A tidy_mds object
 #' @param ... Additional arguments (ignored)
 #'
-#' @return Invisibly returns the input object x
+#' @return The input object \code{x}, returned invisibly.
+#'
+#' @examples
+#' \donttest{
+#' mds <- tidy_mds(USArrests, method = "classical")
+#' print(mds)
+#' }
+#'
 #' @export
 print.tidy_mds <- function(x, ...) {
   cat("Tidy MDS Analysis\n")

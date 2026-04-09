@@ -9,13 +9,22 @@ tl_dashboard(model, new_data = NULL, ...)
 \arguments{
 \item{model}{A tidylearn model object}
 
-\item{new_data}{Optional data frame for evaluation (if NULL, uses training data)}
+\item{new_data}{Optional data frame for evaluation
+(if NULL, uses training data)}
 
 \item{...}{Additional arguments}
 }
 \value{
-A Shiny app object
+A \code{\link[shiny]{shinyApp}} object.
 }
 \description{
 Create interactive visualization dashboard for a model
+}
+\examples{
+\donttest{
+if (requireNamespace("shiny")) {
+  model <- tl_model(mtcars, mpg ~ wt + hp, method = "linear")
+  app <- tl_dashboard(model)
+}
+}
 }

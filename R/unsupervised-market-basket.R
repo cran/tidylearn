@@ -7,7 +7,9 @@
 #' @param confidence Minimum confidence (default: 0.5)
 #' @param minlen Minimum rule length (default: 2)
 #' @param maxlen Maximum rule length (default: 10)
-#' @param target Type of association mined: "rules" (default), "frequent itemsets", "maximally frequent itemsets"
+#' @param target Type of association mined: "rules"
+#'   (default), "frequent itemsets",
+#'   "maximally frequent itemsets"
 #'
 #' @return A list of class "tidy_rules" containing:
 #' \itemize{
@@ -72,7 +74,19 @@ tidy_apriori <- function(transactions, support = 0.01, confidence = 0.5,
 #'
 #' @param rules A rules object from arules
 #'
-#' @return A tibble with one row per rule
+#' @return A tibble with columns \code{rule_id}, \code{lhs}, \code{rhs}, and
+#'   quality measures (e.g., \code{support}, \code{confidence}, \code{lift}).
+#'
+#' @examples
+#' \donttest{
+#' if (requireNamespace("arules", quietly = TRUE)) {
+#'   data("Groceries", package = "arules")
+#'   rules_obj <- arules::apriori(Groceries,
+#'     parameter = list(supp = 0.001, conf = 0.5))
+#'   rules_tbl <- tidy_rules(rules_obj)
+#' }
+#' }
+#'
 #' @export
 tidy_rules <- function(rules) {
 
@@ -111,7 +125,18 @@ tidy_rules <- function(rules) {
 #' @param n Number of rules to display (default: 10)
 #' @param decreasing Sort in decreasing order? (default: TRUE)
 #'
-#' @return A tibble of top rules
+#' @return A tibble of the top \code{n} rules sorted by the specified quality
+#'   measure.
+#'
+#' @examples
+#' \donttest{
+#' if (requireNamespace("arules", quietly = TRUE)) {
+#'   data("Groceries", package = "arules")
+#'   res <- tidy_apriori(Groceries, support = 0.001, confidence = 0.5)
+#'   inspect_rules(res, by = "lift", n = 5)
+#' }
+#' }
+#'
 #' @export
 inspect_rules <- function(rules_obj, by = "lift", n = 10, decreasing = TRUE) {
 
@@ -130,7 +155,7 @@ inspect_rules <- function(rules_obj, by = "lift", n = 10, decreasing = TRUE) {
   if (by %in% names(rules_tbl)) {
     rules_tbl <- rules_tbl %>%
       dplyr::arrange(dplyr::desc(!!rlang::sym(by))) %>%
-      dplyr::slice(1:min(n, nrow(rules_tbl)))
+      dplyr::slice(seq_len(min(n, nrow(rules_tbl))))
 
     if (!decreasing) {
       rules_tbl <- rules_tbl %>%
@@ -138,7 +163,8 @@ inspect_rules <- function(rules_obj, by = "lift", n = 10, decreasing = TRUE) {
     }
   } else {
     warning("Sorting column not found, returning first n rules")
-    rules_tbl <- rules_tbl %>% dplyr::slice(1:min(n, nrow(rules_tbl)))
+    rules_tbl <- rules_tbl %>%
+      dplyr::slice(seq_len(min(n, nrow(rules_tbl))))
   }
 
   rules_tbl
@@ -153,7 +179,18 @@ inspect_rules <- function(rules_obj, by = "lift", n = 10, decreasing = TRUE) {
 #' @param item Character; item to filter by
 #' @param where Character; "lhs", "rhs", or "both" (default: "both")
 #'
-#' @return A tibble of filtered rules
+#' @return A tibble of rules containing the specified \code{item} in the
+#'   requested position.
+#'
+#' @examples
+#' \donttest{
+#' if (requireNamespace("arules", quietly = TRUE)) {
+#'   data("Groceries", package = "arules")
+#'   res <- tidy_apriori(Groceries, support = 0.001, confidence = 0.5)
+#'   filter_rules_by_item(res, "whole milk", where = "rhs")
+#' }
+#' }
+#'
 #' @export
 filter_rules_by_item <- function(rules_obj, item, where = "both") {
 
@@ -173,7 +210,10 @@ filter_rules_by_item <- function(rules_obj, item, where = "both") {
       dplyr::filter(grepl(item, rhs, fixed = TRUE))
   } else {
     filtered <- rules_tbl %>%
-      dplyr::filter(grepl(item, lhs, fixed = TRUE) | grepl(item, rhs, fixed = TRUE))
+      dplyr::filter(
+        grepl(item, lhs, fixed = TRUE) |
+          grepl(item, rhs, fixed = TRUE)
+      )
   }
 
   filtered
@@ -189,7 +229,18 @@ filter_rules_by_item <- function(rules_obj, item, where = "both") {
 #' @param min_lift Minimum lift threshold (default: 1.5)
 #' @param top_n Number of top associations to return (default: 10)
 #'
-#' @return A tibble of related items with association metrics
+#' @return A tibble of rules involving the specified \code{item}, filtered by
+#'   \code{min_lift} and sorted by lift in descending order.
+#'
+#' @examples
+#' \donttest{
+#' if (requireNamespace("arules", quietly = TRUE)) {
+#'   data("Groceries", package = "arules")
+#'   res <- tidy_apriori(Groceries, support = 0.001, confidence = 0.5)
+#'   find_related_items(res, "whole milk", min_lift = 1.5)
+#' }
+#' }
+#'
 #' @export
 find_related_items <- function(rules_obj, item, min_lift = 1.5, top_n = 10) {
 
@@ -202,10 +253,13 @@ find_related_items <- function(rules_obj, item, min_lift = 1.5, top_n = 10) {
 
   # Filter rules containing the item
   related <- rules_tbl %>%
-    dplyr::filter(grepl(item, lhs, fixed = TRUE) | grepl(item, rhs, fixed = TRUE)) %>%
+    dplyr::filter(
+      grepl(item, lhs, fixed = TRUE) |
+        grepl(item, rhs, fixed = TRUE)
+    ) %>%
     dplyr::filter(lift >= min_lift) %>%
     dplyr::arrange(dplyr::desc(lift)) %>%
-    dplyr::slice(1:min(top_n, dplyr::n()))
+    dplyr::slice(seq_len(min(top_n, dplyr::n())))
 
   related
 }
@@ -217,7 +271,19 @@ find_related_items <- function(rules_obj, item, min_lift = 1.5, top_n = 10) {
 #'
 #' @param rules_obj A tidy_apriori object or rules tibble
 #'
-#' @return A list with summary statistics
+#' @return A list with \code{n_rules} and summary statistics (\code{min},
+#'   \code{max}, \code{mean}, \code{median}) for \code{support},
+#'   \code{confidence}, and \code{lift}.
+#'
+#' @examples
+#' \donttest{
+#' if (requireNamespace("arules", quietly = TRUE)) {
+#'   data("Groceries", package = "arules")
+#'   res <- tidy_apriori(Groceries, support = 0.001, confidence = 0.5)
+#'   summarize_rules(res)
+#' }
+#' }
+#'
 #' @export
 summarize_rules <- function(rules_obj) {
 
@@ -265,11 +331,24 @@ summarize_rules <- function(rules_obj) {
 #' Create visualizations of association rules
 #'
 #' @param rules_obj A tidy_apriori object, rules object, or rules tibble
-#' @param method Visualization method: "scatter" (default), "graph", "grouped", "paracoord"
+#' @param method Visualization method: "scatter"
+#'   (default), "graph", "grouped", "paracoord"
 #' @param top_n Number of top rules to visualize (default: 50)
 #' @param ... Additional arguments passed to plot() for rules visualization
 #'
-#' @return Visualization (side effect) or ggplot object
+#' @return A \code{\link[ggplot2]{ggplot}} object when \code{method = "scatter"}.
+#'   For other methods, the plot is produced as a side effect via
+#'   \pkg{arulesViz}.
+#'
+#' @examples
+#' \donttest{
+#' if (requireNamespace("arules", quietly = TRUE)) {
+#'   data("Groceries", package = "arules")
+#'   res <- tidy_apriori(Groceries, support = 0.001, confidence = 0.5)
+#'   visualize_rules(res, method = "scatter")
+#' }
+#' }
+#'
 #' @export
 visualize_rules <- function(rules_obj, method = "scatter", top_n = 50, ...) {
 
@@ -279,7 +358,10 @@ visualize_rules <- function(rules_obj, method = "scatter", top_n = 50, ...) {
   } else if (inherits(rules_obj, "rules")) {
     rules <- rules_obj
   } else if (is.data.frame(rules_obj)) {
-    stop("Cannot visualize tibble directly; provide tidy_apriori or rules object")
+    stop(
+      "Cannot visualize tibble directly; ",
+      "provide tidy_apriori or rules object"
+    )
   } else {
     stop("rules_obj must be a tidy_apriori or rules object")
   }
@@ -294,7 +376,13 @@ visualize_rules <- function(rules_obj, method = "scatter", top_n = 50, ...) {
     # Scatter plot with ggplot2
     rules_tbl <- tidy_rules(rules)
 
-    p <- ggplot2::ggplot(rules_tbl, ggplot2::aes(x = support, y = confidence, color = lift, size = lift)) +
+    p <- ggplot2::ggplot(
+      rules_tbl,
+      ggplot2::aes(
+        x = support, y = confidence,
+        color = lift, size = lift
+      )
+    ) +
       ggplot2::geom_point(alpha = 0.6) +
       ggplot2::scale_color_gradient(low = "lightblue", high = "red") +
       ggplot2::labs(
@@ -305,13 +393,17 @@ visualize_rules <- function(rules_obj, method = "scatter", top_n = 50, ...) {
       ) +
       ggplot2::theme_minimal()
 
-    return(p)
+    p
 
   } else {
     # Use arulesViz for other methods
     # Check if arulesViz is available
     if (!requireNamespace("arulesViz", quietly = TRUE)) {
-      stop("Package 'arulesViz' is required for this visualization method.", call. = FALSE)
+      stop(
+        "Package 'arulesViz' is required for ",
+        "this visualization method.",
+        call. = FALSE
+      )
     }
     plot(rules, method = method, ...)
   }
@@ -327,9 +419,23 @@ visualize_rules <- function(rules_obj, method = "scatter", top_n = 50, ...) {
 #' @param top_n Number of recommendations to return (default: 5)
 #' @param min_confidence Minimum confidence threshold (default: 0.5)
 #'
-#' @return A tibble with recommended items and metrics
+#' @return A tibble with columns \code{rhs} (recommended item),
+#'   \code{confidence}, \code{lift}, and \code{support}, sorted by lift in
+#'   descending order.
+#'
+#' @examples
+#' \donttest{
+#' if (requireNamespace("arules", quietly = TRUE)) {
+#'   data("Groceries", package = "arules")
+#'   res <- tidy_apriori(Groceries, support = 0.001, confidence = 0.5)
+#'   recommend_products(res, basket = c("whole milk", "butter"))
+#' }
+#' }
+#'
 #' @export
-recommend_products <- function(rules_obj, basket, top_n = 5, min_confidence = 0.5) {
+recommend_products <- function(rules_obj, basket,
+                               top_n = 5,
+                               min_confidence = 0.5) {
 
   # Get rules tibble
   if (inherits(rules_obj, "tidy_apriori")) {
@@ -349,7 +455,7 @@ recommend_products <- function(rules_obj, basket, top_n = 5, min_confidence = 0.
     })) %>%
     dplyr::arrange(dplyr::desc(lift)) %>%
     dplyr::select(rhs, confidence, lift, support) %>%
-    dplyr::slice(1:min(top_n, dplyr::n()))
+    dplyr::slice(seq_len(min(top_n, dplyr::n())))
 
   recommendations
 }
@@ -360,7 +466,17 @@ recommend_products <- function(rules_obj, basket, top_n = 5, min_confidence = 0.
 #' @param x A tidy_apriori object
 #' @param ... Additional arguments (ignored)
 #'
-#' @return Invisibly returns the input object x
+#' @return The input object \code{x}, returned invisibly.
+#'
+#' @examples
+#' \donttest{
+#' if (requireNamespace("arules", quietly = TRUE)) {
+#'   data("Groceries", package = "arules")
+#'   res <- tidy_apriori(Groceries, support = 0.001, confidence = 0.5)
+#'   print(res)
+#' }
+#' }
+#'
 #' @export
 print.tidy_apriori <- function(x, ...) {
   cat("Tidy Apriori Results\n")
@@ -368,7 +484,9 @@ print.tidy_apriori <- function(x, ...) {
   cat("Parameters:\n")
   cat("  Minimum support:   ", x$parameters$supp, "\n")
   cat("  Minimum confidence:", x$parameters$conf, "\n")
-  cat("  Rule length:       ", x$parameters$minlen, "-", x$parameters$maxlen, "\n\n")
+  cat("  Rule length:       ",
+      x$parameters$minlen, "-",
+      x$parameters$maxlen, "\n\n")
 
   cat("Results:\n")
   cat("  Number of rules:", x$n_rules, "\n\n")
@@ -377,12 +495,21 @@ print.tidy_apriori <- function(x, ...) {
     summary <- summarize_rules(x)
 
     cat("Quality Measure Summary:\n")
-    cat("  Support:    ", sprintf("%.4f - %.4f (mean: %.4f)",
-                                  summary$support$min, summary$support$max, summary$support$mean), "\n")
-    cat("  Confidence: ", sprintf("%.4f - %.4f (mean: %.4f)",
-                                  summary$confidence$min, summary$confidence$max, summary$confidence$mean), "\n")
-    cat("  Lift:       ", sprintf("%.2f - %.2f (mean: %.2f)",
-                                  summary$lift$min, summary$lift$max, summary$lift$mean), "\n\n")
+    cat("  Support:    ",
+        sprintf("%.4f - %.4f (mean: %.4f)",
+                summary$support$min,
+                summary$support$max,
+                summary$support$mean), "\n")
+    cat("  Confidence: ",
+        sprintf("%.4f - %.4f (mean: %.4f)",
+                summary$confidence$min,
+                summary$confidence$max,
+                summary$confidence$mean), "\n")
+    cat("  Lift:       ",
+        sprintf("%.2f - %.2f (mean: %.2f)",
+                summary$lift$min,
+                summary$lift$max,
+                summary$lift$mean), "\n\n")
 
     cat("Top 5 rules by lift:\n")
     print(inspect_rules(x, by = "lift", n = 5))

@@ -2,20 +2,27 @@
 % Please edit documentation in R/supervised-regularization.R
 \name{tl_plot_regularization_path}
 \alias{tl_plot_regularization_path}
-\title{Plot regularization path for a regularized regression model}
+\title{Plot regularization path for a regularized model}
 \usage{
 tl_plot_regularization_path(model, label_n = 5, ...)
 }
 \arguments{
 \item{model}{A tidylearn regularized model object}
 
-\item{label_n}{Number of top features to label (default: 5)}
+\item{label_n}{Number of top features to label
+(default: 5)}
 
 \item{...}{Additional arguments}
 }
 \value{
-A ggplot object
+A \code{\link[ggplot2]{ggplot}} object.
 }
 \description{
-Plot regularization path for a regularized regression model
+Plot regularization path for a regularized model
+}
+\examples{
+\donttest{
+model <- tl_model(mtcars, mpg ~ ., method = "lasso")
+tl_plot_regularization_path(model)
+}
 }

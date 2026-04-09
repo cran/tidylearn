@@ -2,8 +2,9 @@
 #' @name tidylearn-interactions
 #' @description Functions for testing, visualizing, and analyzing interactions
 #' @importFrom stats lm anova
-#' @importFrom dplyr %>% filter select mutate
-#' @importFrom ggplot2 ggplot aes geom_line geom_point facet_wrap labs theme_minimal
+#' @importFrom dplyr filter select mutate
+#' @importFrom ggplot2 ggplot aes geom_line geom_point
+#'   facet_wrap labs theme_minimal
 NULL
 
 #' Test for significant interactions between variables
@@ -11,32 +12,38 @@ NULL
 #' @param data A data frame containing the data
 #' @param formula A formula specifying the base model without interactions
 #' @param var1 First variable to test for interactions
-#' @param var2 Second variable to test for interactions (if NULL, tests var1 with all others)
+#' @param var2 Second variable to test for interactions
+#'   (if NULL, tests var1 with all others)
 #' @param all_pairs Logical; whether to test all variable pairs
 #' @param categorical_only Logical; whether to only test categorical variables
 #' @param numeric_only Logical; whether to only test numeric variables
 #' @param mixed_only Logical; whether to only test numeric-categorical pairs
 #' @param alpha Significance level for interaction tests
-#' @return A data frame with interaction test results
+#' @return A data frame with one row per tested interaction pair, containing
+#'   columns \code{var1}, \code{var2}, \code{p_value}, \code{significant}
+#'   (logical), \code{delta_r2} (change in R-squared), and
+#'   \code{f_statistic}, sorted by \code{p_value} ascending.
+#' @examples
+#' \donttest{
+#' results <- tl_test_interactions(mtcars, mpg ~ wt + hp + cyl,
+#'   var1 = "wt", var2 = "hp")
+#' }
 #' @export
 tl_test_interactions <- function(data, formula, var1 = NULL, var2 = NULL,
                                  all_pairs = FALSE, categorical_only = FALSE,
                                  numeric_only = FALSE, mixed_only = FALSE,
                                  alpha = 0.05) {
-  # Extract response variable
-  response_var <- all.vars(formula)[1]
-
   # Extract predictor variables
   predictors <- all.vars(formula)[-1]
 
   # Categorize variables
   var_types <- sapply(data[predictors], function(x) {
     if (is.factor(x) || is.character(x)) {
-      return("categorical")
+      "categorical"
     } else if (is.numeric(x)) {
-      return("numeric")
+      "numeric"
     } else {
-      return("other")
+      "other"
     }
   })
 
@@ -56,7 +63,9 @@ tl_test_interactions <- function(data, formula, var1 = NULL, var2 = NULL,
 
   # Filter pairs based on variable types
   if (categorical_only) {
-    pairs <- pairs[sapply(pairs, function(p) all(var_types[p] == "categorical"))]
+    pairs <- pairs[sapply(
+      pairs, function(p) all(var_types[p] == "categorical")
+    )]
   } else if (numeric_only) {
     pairs <- pairs[sapply(pairs, function(p) all(var_types[p] == "numeric"))]
   } else if (mixed_only) {
@@ -87,14 +96,14 @@ tl_test_interactions <- function(data, formula, var1 = NULL, var2 = NULL,
     delta_r2 <- r2_int - r2_base
 
     # Create result row
-    return(data.frame(
+    data.frame(
       var1 = pair[1],
       var2 = pair[2],
       p_value = p_value,
       significant = p_value < alpha,
       delta_r2 = delta_r2,
       f_statistic = models_comparison$F[2]
-    ))
+    )
   })
 
   # Combine results
@@ -103,7 +112,7 @@ tl_test_interactions <- function(data, formula, var1 = NULL, var2 = NULL,
   # Sort by significance
   all_results <- all_results[order(all_results$p_value), ]
 
-  return(all_results)
+  all_results
 }
 
 #' Plot interaction effects
@@ -115,10 +124,13 @@ tl_test_interactions <- function(data, formula, var1 = NULL, var2 = NULL,
 #' @param fixed_values Named list of values for other variables in the model
 #' @param confidence Logical; whether to show confidence intervals
 #' @param ... Additional arguments to pass to predict()
-#' @return A ggplot object
+#' @return A \code{\link[ggplot2]{ggplot}} object.
 #' @export
-tl_plot_interaction <- function(model, var1, var2, n_points = 100, fixed_values = NULL,
-                                confidence = TRUE, ...) {
+tl_plot_interaction <- function(model, var1, var2,
+                                n_points = 100,
+                                fixed_values = NULL,
+                                confidence = TRUE,
+                                ...) {
   # Extract data
   data <- model$data
 
@@ -130,8 +142,12 @@ tl_plot_interaction <- function(model, var1, var2, n_points = 100, fixed_values 
   }
 
   # Determine variable types
-  var1_type <- if (is.factor(data[[var1]]) || is.character(data[[var1]])) "categorical" else "numeric"
-  var2_type <- if (is.factor(data[[var2]]) || is.character(data[[var2]])) "categorical" else "numeric"
+  var1_type <- if (
+    is.factor(data[[var1]]) || is.character(data[[var1]])
+  ) "categorical" else "numeric"
+  var2_type <- if (
+    is.factor(data[[var2]]) || is.character(data[[var2]])
+  ) "categorical" else "numeric"
 
   # Create grid of values
   if (var1_type == "categorical") {
@@ -195,15 +211,19 @@ tl_plot_interaction <- function(model, var1, var2, n_points = 100, fixed_values 
   # Make predictions
   predictions <- predict(model, grid, ...)
 
-  # Add predictions to grid
-  if (is.data.frame(predictions)) {
-    # Multiple columns (e.g., confidence intervals)
+  # Add predictions to grid -- tidylearn predict returns tibble with .pred
+  if (is.data.frame(predictions) && ".pred" %in% names(predictions)) {
+    grid$prediction <- predictions$.pred
+    y_col <- "prediction"
+    lower_col <- NULL
+    upper_col <- NULL
+  } else if (is.data.frame(predictions)) {
+    # Non-tidylearn output (e.g., confidence intervals with fit/lwr/upr)
     grid <- cbind(grid, predictions)
-    y_col <- "fit"
-    lower_col <- "lwr"
-    upper_col <- "upr"
+    y_col <- if ("fit" %in% names(predictions)) "fit" else names(predictions)[1]
+    lower_col <- if ("lwr" %in% names(predictions)) "lwr" else NULL
+    upper_col <- if ("upr" %in% names(predictions)) "upr" else NULL
   } else {
-    # Single column
     grid$prediction <- predictions
     y_col <- "prediction"
     lower_col <- NULL
@@ -213,7 +233,10 @@ tl_plot_interaction <- function(model, var1, var2, n_points = 100, fixed_values 
   # Create plot
   if (var1_type == "numeric" && var2_type == "categorical") {
     # Line plot with x = var1, color = var2
-    p <- ggplot2::ggplot(grid, ggplot2::aes(x = .data[[var1]], y = .data[[y_col]], color = .data[[var2]])) +
+    p <- ggplot2::ggplot(grid, ggplot2::aes(
+      x = .data[[var1]], y = .data[[y_col]],
+      color = .data[[var2]]
+    )) +
       ggplot2::geom_line() +
       ggplot2::labs(
         title = paste("Interaction between", var1, "and", var2),
@@ -225,14 +248,21 @@ tl_plot_interaction <- function(model, var1, var2, n_points = 100, fixed_values 
     # Add confidence intervals if available
     if (confidence && !is.null(lower_col) && !is.null(upper_col)) {
       p <- p + ggplot2::geom_ribbon(
-        ggplot2::aes(ymin = .data[[lower_col]], ymax = .data[[upper_col]], fill = .data[[var2]]),
+        ggplot2::aes(
+          ymin = .data[[lower_col]],
+          ymax = .data[[upper_col]],
+          fill = .data[[var2]]
+        ),
         alpha = 0.2,
         linetype = 0
       )
     }
   } else if (var1_type == "categorical" && var2_type == "numeric") {
     # Line plot with x = var2, color = var1
-    p <- ggplot2::ggplot(grid, ggplot2::aes(x = .data[[var2]], y = .data[[y_col]], color = .data[[var1]])) +
+    p <- ggplot2::ggplot(grid, ggplot2::aes(
+      x = .data[[var2]], y = .data[[y_col]],
+      color = .data[[var1]]
+    )) +
       ggplot2::geom_line() +
       ggplot2::labs(
         title = paste("Interaction between", var1, "and", var2),
@@ -244,14 +274,21 @@ tl_plot_interaction <- function(model, var1, var2, n_points = 100, fixed_values 
     # Add confidence intervals if available
     if (confidence && !is.null(lower_col) && !is.null(upper_col)) {
       p <- p + ggplot2::geom_ribbon(
-        ggplot2::aes(ymin = .data[[lower_col]], ymax = .data[[upper_col]], fill = .data[[var1]]),
+        ggplot2::aes(
+          ymin = .data[[lower_col]],
+          ymax = .data[[upper_col]],
+          fill = .data[[var1]]
+        ),
         alpha = 0.2,
         linetype = 0
       )
     }
   } else if (var1_type == "numeric" && var2_type == "numeric") {
     # Contour plot or heat map
-    p <- ggplot2::ggplot(grid, ggplot2::aes(x = .data[[var1]], y = .data[[var2]], z = .data[[y_col]])) +
+    p <- ggplot2::ggplot(grid, ggplot2::aes(
+      x = .data[[var1]], y = .data[[var2]],
+      z = .data[[y_col]]
+    )) +
       ggplot2::geom_contour_filled() +
       ggplot2::labs(
         title = paste("Interaction between", var1, "and", var2),
@@ -261,7 +298,10 @@ tl_plot_interaction <- function(model, var1, var2, n_points = 100, fixed_values 
       )
   } else {
     # Categorical x Categorical: Faceted bar plot
-    p <- ggplot2::ggplot(grid, ggplot2::aes(x = .data[[var1]], y = .data[[y_col]], fill = .data[[var2]])) +
+    p <- ggplot2::ggplot(grid, ggplot2::aes(
+      x = .data[[var1]], y = .data[[y_col]],
+      fill = .data[[var2]]
+    )) +
       ggplot2::geom_col(position = "dodge") +
       ggplot2::labs(
         title = paste("Interaction between", var1, "and", var2),
@@ -274,7 +314,7 @@ tl_plot_interaction <- function(model, var1, var2, n_points = 100, fixed_values 
   # Apply minimal theme
   p <- p + ggplot2::theme_minimal()
 
-  return(p)
+  p
 }
 
 #' Find important interactions automatically
@@ -284,8 +324,17 @@ tl_plot_interaction <- function(model, var1, var2, n_points = 100, fixed_values 
 #' @param top_n Number of top interactions to return
 #' @param min_r2_change Minimum change in R-squared to consider
 #' @param max_p_value Maximum p-value for significance
-#' @param exclude_vars Character vector of variables to exclude from interaction testing
-#' @return A tidylearn model with important interactions
+#' @param exclude_vars Character vector of variables to exclude
+#'   from interaction testing
+#' @return A tidylearn model object (class \code{"tidylearn_model"}) fitted
+#'   with the top significant interaction terms added to the formula.
+#'   The interaction test results and selected interactions are stored as
+#'   attributes \code{"interaction_tests"} and
+#'   \code{"selected_interactions"}.
+#' @examples
+#' \donttest{
+#' model <- tl_auto_interactions(mtcars, mpg ~ wt + hp + cyl, top_n = 2)
+#' }
 #' @export
 tl_auto_interactions <- function(data, formula, top_n = 3, min_r2_change = 0.01,
                                  max_p_value = 0.05, exclude_vars = NULL) {
@@ -297,11 +346,11 @@ tl_auto_interactions <- function(data, formula, top_n = 3, min_r2_change = 0.01,
     predictors <- setdiff(predictors, exclude_vars)
   }
 
-  # Generate all possible pairs
-  pairs <- combn(predictors, 2, simplify = FALSE)
-
   # Test all interactions
-  test_results <- tl_test_interactions(data, formula, all_pairs = TRUE, alpha = max_p_value)
+  test_results <- tl_test_interactions(
+    data, formula, all_pairs = TRUE,
+    alpha = max_p_value
+  )
 
   # Filter significant interactions
   significant <- test_results %>%
@@ -325,7 +374,10 @@ tl_auto_interactions <- function(data, formula, top_n = 3, min_r2_change = 0.01,
     paste0(row["var1"], ":", row["var2"])
   })
 
-  new_formula <- update(formula, paste0(". ~ . +", paste(interaction_terms, collapse = " + ")))
+  int_str <- paste(interaction_terms, collapse = " + ")
+  new_formula <- update(
+    formula, paste0(". ~ . +", int_str)
+  )
 
   # Fit model with interactions
   interaction_model <- tl_model(data, new_formula, method = "linear")
@@ -334,7 +386,7 @@ tl_auto_interactions <- function(data, formula, top_n = 3, min_r2_change = 0.01,
   attr(interaction_model, "interaction_tests") <- test_results
   attr(interaction_model, "selected_interactions") <- top_interactions
 
-  return(interaction_model)
+  interaction_model
 }
 
 #' Calculate partial effects based on a model with interactions
@@ -344,9 +396,15 @@ tl_auto_interactions <- function(data, formula, top_n = 3, min_r2_change = 0.01,
 #' @param by_var Variable to calculate effects by (interaction variable)
 #' @param at_values Named list of values at which to hold other variables
 #' @param intervals Logical; whether to include confidence intervals
-#' @return A data frame with marginal effects
+#' @return For numeric \code{var}: a list with \code{effects} (data frame of
+#'   predicted values across the variable range for each level of
+#'   \code{by_var}) and \code{slopes} (data frame with estimated slopes and
+#'   standard errors per level). For categorical \code{var}: a data frame of
+#'   predicted values at each factor level for each level of \code{by_var}.
 #' @export
-tl_interaction_effects <- function(model, var, by_var, at_values = NULL, intervals = TRUE) {
+tl_interaction_effects <- function(model, var, by_var,
+                                   at_values = NULL,
+                                   intervals = TRUE) {
   # Extract data
   data <- model$data
   formula <- model$spec$formula
@@ -378,7 +436,10 @@ tl_interaction_effects <- function(model, var, by_var, at_values = NULL, interva
     }
   } else {
     # For continuous by_var, use quantiles
-    by_values <- stats::quantile(data[[by_var]], probs = seq(0, 1, 0.25), na.rm = TRUE)
+    by_values <- stats::quantile(
+      data[[by_var]], probs = seq(0, 1, 0.25),
+      na.rm = TRUE
+    )
     names(by_values) <- paste0("Q", seq(0, 100, 25))
   }
 
@@ -422,15 +483,17 @@ tl_interaction_effects <- function(model, var, by_var, at_values = NULL, interva
       }
     }
 
-    # Make predictions
+    # Make predictions -- use raw model for se.fit (tidylearn predict
+    # doesn't support it), and extract .pred for the plain case
     if (intervals) {
-      preds <- predict(model, grid, se.fit = TRUE)
-      grid$fit <- preds$fit
-      grid$se <- preds$se.fit
+      raw_preds <- stats::predict(model$fit, newdata = grid, se.fit = TRUE)
+      grid$fit <- as.vector(raw_preds$fit)
+      grid$se <- as.vector(raw_preds$se.fit)
       grid$lower <- grid$fit - 1.96 * grid$se
       grid$upper <- grid$fit + 1.96 * grid$se
     } else {
-      grid$fit <- predict(model, grid)
+      preds <- predict(model, grid)
+      grid$fit <- if (is.data.frame(preds)) preds$.pred else preds
     }
 
     # Add by_value label
@@ -457,36 +520,45 @@ tl_interaction_effects <- function(model, var, by_var, at_values = NULL, interva
 
       # If only one value, can't compute slope
       if (nrow(sub_grid) <= 1) {
-        return(data.frame(
+        data.frame(
           by_value = bv,
-          by_label = if (is.null(names(by_values))) as.character(bv) else names(by_values)[match(bv, by_values)],
+          by_label = if (is.null(names(by_values))) {
+            as.character(bv)
+          } else {
+            names(by_values)[match(bv, by_values)]
+          },
           slope = NA,
           slope_se = NA
-        ))
+        )
       }
 
       # Fit linear model to get slope
-      slope_model <- lm(fit ~ .data[[var]], data = sub_grid)
+      slope_formula <- stats::as.formula(paste("fit ~", var))
+      slope_model <- lm(slope_formula, data = sub_grid)
       slope_coef <- coef(summary(slope_model))
 
-      return(data.frame(
+      data.frame(
         by_value = bv,
-        by_label = if (is.null(names(by_values))) as.character(bv) else names(by_values)[match(bv, by_values)],
+        by_label = if (is.null(names(by_values))) {
+          as.character(bv)
+        } else {
+          names(by_values)[match(bv, by_values)]
+        },
         slope = slope_coef[2, 1],
         slope_se = slope_coef[2, 2]
-      ))
+      )
     })
 
     # Combine all slopes
     final_slopes <- do.call(rbind, slopes)
 
     # Return both grid and slopes
-    return(list(
+    list(
       effects = final_grid,
       slopes = final_slopes
-    ))
+    )
   } else {
     # For categorical variables, just return the effects
-    return(final_grid)
+    final_grid
   }
 }

@@ -11,7 +11,8 @@ knitr::opts_chunk$set(
 # install.packages("tidylearn")
 # 
 # # Or install development version from GitHub
-# # devtools::install_github("ces0491/tidylearn")
+# # Install the development version from GitHub:
+# # devtools::install_github("ces0491/tidylearn") # nolint
 
 ## ----setup--------------------------------------------------------------------
 library(tidylearn)
@@ -105,12 +106,15 @@ model_forest <- tl_model(iris, Species ~ ., method = "forest")
 class(model_forest$fit)  # This is the randomForest object
 
 # Use package-specific functions if needed
-# randomForest::varImpPlot(model_forest$fit)
+# randomForest::varImpPlot(model_forest$fit) # nolint
 
 ## -----------------------------------------------------------------------------
 # Quick example combining everything
 data_split <- tl_split(iris, prop = 0.7, stratify = "Species", seed = 42)
-data_prep <- tl_prepare_data(data_split$train, Species ~ ., scale_method = "standardize")
+data_prep <- tl_prepare_data(
+  data_split$train, Species ~ .,
+  scale_method = "standardize"
+)
 model_final <- tl_model(data_prep$data, Species ~ ., method = "forest")
 test_preds <- predict(model_final, new_data = data_split$test)
 

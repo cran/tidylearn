@@ -11,11 +11,19 @@ tidy_pca_screeplot(pca_obj, type = "proportion", add_line = TRUE)
 
 \item{type}{Character; "variance" or "proportion" (default)}
 
-\item{add_line}{Logical; add horizontal line at eigenvalue = 1? (for Kaiser criterion)}
+\item{add_line}{Logical; add horizontal line at
+eigenvalue = 1? (for Kaiser criterion)}
 }
 \value{
-A ggplot object
+A \code{\link[ggplot2]{ggplot}} object.
 }
 \description{
 Visualize variance explained by each principal component
+}
+\examples{
+\donttest{
+pca <- tidy_pca(USArrests)
+tidy_pca_screeplot(pca)
+}
+
 }

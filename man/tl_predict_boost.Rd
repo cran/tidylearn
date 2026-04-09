@@ -11,9 +11,11 @@ tl_predict_boost(model, new_data, type = "response", n.trees = NULL, ...)
 
 \item{new_data}{A data frame containing the new data}
 
-\item{type}{Type of prediction: "response" (default), "prob" (for classification)}
+\item{type}{Type of prediction: "response"
+(default), "prob" (for classification)}
 
-\item{n.trees}{Number of trees to use for prediction (if NULL, uses optimal number)}
+\item{n.trees}{Number of trees to use for prediction
+(if NULL, uses optimal number)}
 
 \item{...}{Additional arguments}
 }
