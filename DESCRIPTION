@@ -1,6 +1,6 @@
 Package: tidylearn
 Title: A Unified Tidy Interface to R's Machine Learning Ecosystem
-Version: 0.3.0
+Version: 0.3.1
 Authors@R: 
     person("Cesaire", "Tobias", email = "cesaire@sheetsolved.com", role = c("aut", "cre"))
 Description: Provides a unified tidyverse-compatible interface to R's machine
@@ -29,13 +29,11 @@ Imports: dplyr (>= 1.0.0), ggplot2 (>= 3.3.0), tibble (>= 3.0.0), tidyr
         stats, e1071, gbm, glmnet, nnet, randomForest, rpart, rsample,
         ROCR, yardstick, cluster (>= 2.1.0), dbscan (>= 1.1.0), MASS,
         smacof (>= 2.1.0)
-Suggests: arules, arulesViz, bigrquery, car, caret, DBI, DT, GGally,
-        ggforce, gridExtra, gt, jsonlite, keras, knitr, lmtest, mclust,
-        moments, nanoparquet, NeuralNetTools, onnx, parsnip,
-        paws.storage, readr, readxl, recipes, reticulate, RMariaDB,
-        rmarkdown, RPostgres, rpart.plot, RSQLite, scales, shiny,
-        shinydashboard, tensorflow, testthat (>= 3.0.0), workflows,
-        xgboost
+Suggests: arules, arulesViz, bigrquery, car, DBI, DT, GGally, ggforce,
+        gridExtra, gt, jsonlite, keras, knitr, lmtest, moments,
+        nanoparquet, NeuralNetTools, paws.storage, readr, readxl,
+        RMariaDB, rmarkdown, RPostgres, rpart.plot, RSQLite, scales,
+        shiny, shinydashboard, tensorflow, testthat (>= 3.0.0), xgboost
 Config/testthat/edition: 3
 URL: https://github.com/ces0491/tidylearn
 BugReports: https://github.com/ces0491/tidylearn/issues
@@ -53,8 +51,8 @@ Collate: 'utils.R' 'read.R' 'read-backends.R' 'core.R'
         'model-selection.R' 'tuning.R' 'interactions.R' 'diagnostics.R'
         'metrics.R' 'visualization.R' 'tables.R' 'workflows.R'
 NeedsCompilation: no
-Packaged: 2026-04-09 08:56:09 UTC; CesaireTobias
+Packaged: 2026-05-19 08:41:52 UTC; CesaireTobias
 Author: Cesaire Tobias [aut, cre]
 Maintainer: Cesaire Tobias <cesaire@sheetsolved.com>
 Repository: CRAN
-Date/Publication: 2026-04-09 09:30:02 UTC
+Date/Publication: 2026-05-19 09:20:09 UTC

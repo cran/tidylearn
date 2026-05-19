@@ -88,56 +88,71 @@ tidy_gower <- function(data, weights = NULL) {
     names(weights) <- colnames(data)
   }
 
+  # Pre-computation pass
+  #
+  # 1. Extract each column to a plain vector in a list.
+  #    data[i, k] inside a loop dispatches to [.data.frame on every call:
+  #    S3 method lookup + argument matching + potential intermediate allocation.
+  #    col_vecs[[k]][i] is a hash-table lookup then a C-level pointer offset —
+  #    benchmarks show 10-100x faster for scalar access.
+  #
+  # 2. Store each column's type as a string so we avoid repeated is.numeric() /
+  #    is.ordered() / is.factor() S3 predicate calls inside the hot triple loop.
+  #
+  # 3. Ranges and rank vectors stay precomputed
+  col_vecs   <- as.list(data)           # plain-vector views, no copy
+  col_ranges <- vector("numeric",   p)
+  col_ranks  <- vector("list",      p)
+  col_type   <- vector("character", p)  # numeric, ordered, or categorical
+
+  for (k in seq_len(p)) {
+    v <- col_vecs[[k]]
+    if (is.ordered(v)) {
+      r              <- as.numeric(v)
+      col_ranks[[k]] <- r
+      col_ranges[k]  <- max(r, na.rm = TRUE) - min(r, na.rm = TRUE)
+      col_type[k]    <- "ordered"
+    } else if (is.numeric(v)) {
+      col_ranges[k]  <- max(v, na.rm = TRUE) - min(v, na.rm = TRUE)
+      col_type[k]    <- "numeric"
+    } else {
+      col_type[k]    <- "categorical"
+    }
+  }
+
   # Initialize distance matrix
   dist_matrix <- matrix(0, nrow = n, ncol = n)
 
-  # Compute pairwise distances
-  for (i in 1:(n - 1)) {
+  # Compute pairwise distances. seq_len() yields an empty sequence when
+  # n < 2, so single-row input returns an empty dist instead of erroring.
+  for (i in seq_len(n - 1)) {
     for (j in (i + 1):n) {
 
       total_dist <- 0
       valid_vars <- 0
 
       # Process each variable
-      for (k in 1:p) {
+      for (k in seq_len(p)) {
 
-        # Skip if either value is NA
-        if (is.na(data[i, k]) || is.na(data[j, k])) {
-          next
-        }
+        # Plain vector indexing — avoids [.data.frame overhead on every access
+        xi <- col_vecs[[k]][i]
+        xj <- col_vecs[[k]][j]
+
+        if (is.na(xi) || is.na(xj)) next
 
         valid_vars <- valid_vars + weights[k]
 
-        # Compute dissimilarity based on variable type
-        if (is.numeric(data[[k]])) {
-          # Numeric: range-normalized Manhattan distance
-          var_range <- max(data[[k]], na.rm = TRUE) -
-            min(data[[k]], na.rm = TRUE)
+        # Column type already resolved — no S3 predicate calls in the hot path
+        if (col_type[k] == "numeric") {
+          d_k <- if (col_ranges[k] > 0) abs(xi - xj) / col_ranges[k] else 0
 
-          if (var_range > 0) {
-            d_k <- abs(data[i, k] - data[j, k]) / var_range
-          } else {
-            d_k <- 0  # No variation
-          }
-
-        } else if (is.ordered(data[[k]])) {
-          # Ordinal: treat as numeric ranks
-          ranks <- as.numeric(data[[k]])
-          var_range <- max(ranks, na.rm = TRUE) - min(ranks, na.rm = TRUE)
-
-          if (var_range > 0) {
-            d_k <- abs(ranks[i] - ranks[j]) / var_range
-          } else {
-            d_k <- 0
-          }
-
-        } else if (is.factor(data[[k]]) || is.character(data[[k]])) {
-          # Categorical: 0 if same, 1 if different
-          d_k <- ifelse(data[i, k] == data[j, k], 0, 1)
+        } else if (col_type[k] == "ordered") {
+          ri <- col_ranks[[k]][i]
+          rj <- col_ranks[[k]][j]
+          d_k <- if (col_ranges[k] > 0) abs(ri - rj) / col_ranges[k] else 0
 
         } else {
-          # Default: treat as categorical
-          d_k <- ifelse(data[i, k] == data[j, k], 0, 1)
+          d_k <- if (xi == xj) 0 else 1
         }
 
         total_dist <- total_dist + weights[k] * d_k
@@ -215,7 +230,9 @@ standardize_data <- function(data, center = TRUE, scale = TRUE) {
 #'
 #' @examples
 #' \donttest{
-#' dists <- compare_distances(iris[, 1:4], methods = c("euclidean", "manhattan"))
+#' dists <- compare_distances(
+#'   iris[, 1:4], methods = c("euclidean", "manhattan")
+#' )
 #' }
 #'
 #' @export
@@ -225,7 +242,9 @@ compare_distances <- function(
 
   data_numeric <- data %>% dplyr::select(where(is.numeric))
 
-  dist_list <- purrr::map(methods, ~tidy_dist(data_numeric, method = .x))
+  dist_list <- purrr::map(methods, function(method) {
+    tidy_dist(data = data_numeric, method = method)
+  })
   names(dist_list) <- methods
 
   dist_list

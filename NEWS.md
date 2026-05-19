@@ -1,3 +1,57 @@
+# tidylearn 0.3.1
+
+## Performance
+
+* `tidy_gower()` — eliminated two layers of redundant work in the pairwise
+  distance loop:
+  * Column ranges (`max - min`) and ordinal rank vectors were previously
+    recomputed on every `(i, j)` pair. They are now computed once in a
+    pre-pass, reducing work from O(n² × p) to O(n² + p).
+  * Replaced scalar data-frame indexing `data[i, k]` — which dispatches to
+    the R-level `[.data.frame` method on every call — with pre-extracted
+    plain-vector access `col_vecs[[k]][i]`, which resolves at the C level.
+    Benchmarks show 10–100× faster scalar access; the gain compounds across
+    the full `n*(n-1)/2 * p` iterations.
+  * Column types (`is.numeric`, `is.ordered`) are now resolved once into a
+    `col_type` character vector, removing repeated S3 predicate calls from
+    the inner loop.
+
+## Bug Fixes
+
+* Fixed `tl_reduce_dimensions()` returning the internal `.obs_id` row
+  identifier as a column of its `$data` result. Passing that data to a
+  supervised model via a `response ~ .` formula fed `.obs_id` in as a
+  high-cardinality predictor, which made tree-based fits effectively
+  non-terminating. The identifier is now dropped from the returned data,
+  consistent with how the pipeline and transfer-learning paths already
+  handle it.
+* Fixed `print()` and `summary()` erroring on the model objects returned
+  by `tl_step_selection()` and `tl_tune_xgboost()`. Both constructed their
+  object without the `spec$paradigm` field or the `tidylearn_supervised`
+  class, so the print method hit a zero-length `if` condition and
+  `summary()` took the unsupervised branch. Both objects are now built
+  consistently with `tl_model()`.
+* Fixed `tidy_gower()` (and `tidy_dist(..., method = "gower")`) erroring on
+  single-row input. The pairwise loop used `1:(n - 1)`, which produces the
+  invalid sequence `1:0` when `n` is 1; it now uses `seq_len(n - 1)`, so a
+  single-row data frame returns an empty `dist` object, consistent with
+  `stats::dist()`.
+
+## Tests
+
+* Added 11 tests for `tidy_gower()` / `tidy_dist(..., method = "gower")`
+  covering: return type and metadata, symmetry and self-distance, identical
+  rows, hand-verified numeric / categorical / ordered / mixed-type distances,
+  NA skipping, custom weights, constant-column denominator behaviour, and
+  single-row input.
+
+## Internal
+
+* Removed seven unused packages from `Suggests` (caret, mclust, onnx,
+  parsnip, recipes, reticulate, workflows) — none were referenced in
+  package code, tests, or vignettes.
+
+
 # tidylearn 0.3.0
 
 ## New Features
