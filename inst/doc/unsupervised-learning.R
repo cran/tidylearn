@@ -105,14 +105,14 @@ ggplot(cluster_viz, aes(x = PC1, y = PC2, color = Cluster, shape = Species)) +
 centers <- model_kmeans$fit$centers
 print(centers)
 
-## ----eval=FALSE---------------------------------------------------------------
-# # Perform PAM clustering
-# model_pam <- tl_model(iris[, 1:4], method = "pam", k = 3)
-# print(model_pam)
-# 
-# # Extract clusters
-# clusters_pam <- model_pam$fit$clusters
-# table(Cluster = clusters_pam$cluster, Species = iris$Species)
+## -----------------------------------------------------------------------------
+# Perform PAM clustering
+model_pam <- tl_model(iris[, 1:4], method = "pam", k = 3)
+print(model_pam)
+
+# Extract clusters
+clusters_pam <- model_pam$fit$clusters
+table(Cluster = clusters_pam$cluster, Species = iris$Species)
 
 ## -----------------------------------------------------------------------------
 # Perform hierarchical clustering
@@ -120,7 +120,12 @@ model_hclust <- tl_model(iris[, 1:4], method = "hclust")
 print(model_hclust)
 
 ## -----------------------------------------------------------------------------
-# Plot dendrogram
+# plot() dispatches on the model type -- a dendrogram for hclust,
+# a variance plot for PCA, a cluster scatter plot for k-means and friends
+plot(model_hclust)
+
+## -----------------------------------------------------------------------------
+# Or work with the underlying hclust object directly
 plot(model_hclust$fit$model,
      labels = FALSE,
      main = "Hierarchical Clustering of Iris")
@@ -144,28 +149,28 @@ ggplot(hc_viz, aes(x = PC1, y = PC2, color = Cluster)) +
   labs(title = "Hierarchical Clustering Results") +
   theme_minimal()
 
-## ----eval=FALSE---------------------------------------------------------------
-# # Perform DBSCAN
-# model_dbscan <- tl_model(iris[, 1:4], method = "dbscan", eps = 0.5, minPts = 5)
-# print(model_dbscan)
-# 
-# # Extract clusters (0 = noise/outliers)
-# clusters_dbscan <- model_dbscan$fit$clusters
-# table(clusters_dbscan$cluster)
-# 
-# # Compare with species
-# table(Cluster = clusters_dbscan$cluster, Species = iris$Species)
+## -----------------------------------------------------------------------------
+# Perform DBSCAN
+model_dbscan <- tl_model(iris[, 1:4], method = "dbscan", eps = 0.5, minPts = 5)
+print(model_dbscan)
 
-## ----eval=FALSE---------------------------------------------------------------
-# # Create larger dataset
-# large_data <- iris[rep(seq_len(nrow(iris)), 10), 1:4]
-# 
-# # Perform CLARA
-# model_clara <- tl_model(large_data, method = "clara", k = 3, samples = 5)
-# print(model_clara)
-# 
-# # Extract clusters
-# clusters_clara <- model_clara$fit$clusters
+# Extract clusters (0 = noise/outliers)
+clusters_dbscan <- model_dbscan$fit$clusters
+table(clusters_dbscan$cluster)
+
+# Compare with species
+table(Cluster = clusters_dbscan$cluster, Species = iris$Species)
+
+## -----------------------------------------------------------------------------
+# Create larger dataset
+large_data <- iris[rep(seq_len(nrow(iris)), 10), 1:4]
+
+# Perform CLARA
+model_clara <- tl_model(large_data, method = "clara", k = 3, samples = 5)
+print(model_clara)
+
+# Extract clusters
+clusters_clara <- model_clara$fit$clusters
 
 ## -----------------------------------------------------------------------------
 # Try different values of k

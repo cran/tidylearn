@@ -25,9 +25,20 @@ model_logistic <- tl_model(split$train, Species ~ ., method = "logistic")
 print(model_logistic)
 
 ## -----------------------------------------------------------------------------
-# Predictions
-preds_logistic <- predict(model_logistic, new_data = split$test)
+# Predicted labels
+preds_logistic <- predict(model_logistic, new_data = split$test, type = "class")
 head(preds_logistic)
+
+## -----------------------------------------------------------------------------
+# Class probabilities
+head(predict(model_logistic, new_data = split$test, type = "prob"))
+
+## -----------------------------------------------------------------------------
+tl_evaluate(
+  model_logistic,
+  new_data = split$test,
+  metrics = c("accuracy", "precision", "recall", "f1", "auc")
+)
 
 ## -----------------------------------------------------------------------------
 # Train decision tree
@@ -55,13 +66,13 @@ head(preds_forest)
 # Accuracy on test set
 mean(preds_forest$.pred == split_multi$test$Species)
 
-## ----eval=FALSE---------------------------------------------------------------
-# # Train SVM
-# model_svm <- tl_model(split_multi$train, Species ~ ., method = "svm")
-# print(model_svm)
-# 
-# # Predictions
-# preds_svm <- predict(model_svm, new_data = split_multi$test)
+## -----------------------------------------------------------------------------
+# Train SVM
+model_svm <- tl_model(split_multi$train, Species ~ ., method = "svm")
+print(model_svm)
+
+# Predictions
+preds_svm <- predict(model_svm, new_data = split_multi$test)
 
 ## -----------------------------------------------------------------------------
 # Split mtcars data
@@ -110,32 +121,32 @@ preds_rf <- predict(model_rf_reg, new_data = split_reg$test)
 rmse_rf <- sqrt(mean((preds_rf$.pred - split_reg$test$mpg)^2))
 cat("Random Forest RMSE:", round(rmse_rf, 2), "\n")
 
-## ----eval=FALSE---------------------------------------------------------------
-# # Ridge regression (L2 regularization)
-# model_ridge <- tl_model(split_reg$train, mpg ~ ., method = "ridge")
-# print(model_ridge)
-# 
-# # Predictions
-# preds_ridge <- predict(model_ridge, new_data = split_reg$test)
+## -----------------------------------------------------------------------------
+# Ridge regression (L2 regularization)
+model_ridge <- tl_model(split_reg$train, mpg ~ ., method = "ridge")
+print(model_ridge)
 
-## ----eval=FALSE---------------------------------------------------------------
-# # LASSO (L1 regularization) - performs feature selection
-# model_lasso <- tl_model(split_reg$train, mpg ~ ., method = "lasso")
-# print(model_lasso)
-# 
-# # Predictions
-# preds_lasso <- predict(model_lasso, new_data = split_reg$test)
+# Predictions
+preds_ridge <- predict(model_ridge, new_data = split_reg$test)
 
-## ----eval=FALSE---------------------------------------------------------------
-# # Elastic Net - combines L1 and L2 regularization
-# model_enet <- tl_model(
-#   split_reg$train, mpg ~ .,
-#   method = "elastic_net", alpha = 0.5
-# )
-# print(model_enet)
-# 
-# # Predictions
-# preds_enet <- predict(model_enet, new_data = split_reg$test)
+## -----------------------------------------------------------------------------
+# LASSO (L1 regularization) - performs feature selection
+model_lasso <- tl_model(split_reg$train, mpg ~ ., method = "lasso")
+print(model_lasso)
+
+# Predictions
+preds_lasso <- predict(model_lasso, new_data = split_reg$test)
+
+## -----------------------------------------------------------------------------
+# Elastic Net - combines L1 and L2 regularization
+model_enet <- tl_model(
+  split_reg$train, mpg ~ .,
+  method = "elastic_net", alpha = 0.5
+)
+print(model_enet)
+
+# Predictions
+preds_enet <- predict(model_enet, new_data = split_reg$test)
 
 ## -----------------------------------------------------------------------------
 # Compare multiple models
@@ -230,14 +241,23 @@ model_imputed <- tl_model(processed_missing$data, mpg ~ ., method = "linear")
 ## -----------------------------------------------------------------------------
 # Complete workflow example
 final_split <- tl_split(iris, prop = 0.7, stratify = "Species", seed = 42)
+
 final_prep <- tl_prepare_data(
   final_split$train, Species ~ .,
   scale_method = "standardize"
 )
 final_model <- tl_model(final_prep$data, Species ~ ., method = "forest")
-final_preds <- predict(final_model, new_data = final_split$test)
 
-# Evaluate
+## -----------------------------------------------------------------------------
+scaling <- final_prep$preprocessing_steps$scaling$scaling_params
+
+final_test <- final_split$test
+for (col in names(scaling)) {
+  final_test[[col]] <-
+    (final_test[[col]] - scaling[[col]]$mean) / scaling[[col]]$sd
+}
+
+final_preds <- predict(final_model, new_data = final_test)
 accuracy <- mean(final_preds$.pred == final_split$test$Species)
 cat("Test Accuracy:", round(accuracy * 100, 1), "%\n")
 

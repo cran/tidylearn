@@ -8,6 +8,11 @@ knitr::opts_chunk$set(
   warning = FALSE
 )
 
+# Each backend demo is guarded on its reader package, which lives in
+# Suggests -- the vignette has to build without them
+has_sqlite <- requireNamespace("DBI", quietly = TRUE) &&
+  requireNamespace("RSQLite", quietly = TRUE)
+
 ## ----setup--------------------------------------------------------------------
 library(tidylearn)
 library(dplyr)
@@ -47,14 +52,14 @@ nrow(csv_data)
 ## ----cleanup-csv, include = FALSE---------------------------------------------
 unlink(c(tmp_csv, tmp_tsv))
 
-## ----excel-demo---------------------------------------------------------------
+## ----excel-demo, eval = requireNamespace("readxl", quietly = TRUE)------------
 library(readxl)
 
 path <- readxl_example("datasets.xlsx")
 excel_data <- tl_read_excel(path, sheet = "mtcars")
 head(excel_data, 3)
 
-## ----parquet-demo-------------------------------------------------------------
+## ----parquet-demo, eval = requireNamespace("nanoparquet", quietly = TRUE)-----
 library(nanoparquet)
 
 tmp_pq <- tempfile(fileext = ".parquet")
@@ -63,10 +68,10 @@ write_parquet(iris, tmp_pq)
 pq_data <- tl_read_parquet(tmp_pq)
 nrow(pq_data)
 
-## ----cleanup-pq, include = FALSE----------------------------------------------
+## ----cleanup-pq, include = FALSE, eval = requireNamespace("nanoparquet", quietly = TRUE)----
 unlink(tmp_pq)
 
-## ----json-demo----------------------------------------------------------------
+## ----json-demo, eval = requireNamespace("jsonlite", quietly = TRUE)-----------
 library(jsonlite)
 
 tmp_json <- tempfile(fileext = ".json")
@@ -75,7 +80,7 @@ write_json(mtcars[1:5, ], tmp_json)
 json_data <- tl_read_json(tmp_json)
 json_data
 
-## ----cleanup-json, include = FALSE--------------------------------------------
+## ----cleanup-json, include = FALSE, eval = requireNamespace("jsonlite", quietly = TRUE)----
 unlink(tmp_json)
 
 ## ----rds-demo-----------------------------------------------------------------
@@ -97,7 +102,7 @@ nrow(rdata_data)
 ## ----cleanup-rds, include = FALSE---------------------------------------------
 unlink(c(tmp_rds, tmp_rdata))
 
-## ----sqlite-demo--------------------------------------------------------------
+## ----sqlite-demo, eval = has_sqlite-------------------------------------------
 library(DBI)
 library(RSQLite)
 
@@ -114,10 +119,10 @@ db_data <- tl_read_sqlite(
 )
 nrow(db_data)
 
-## ----cleanup-sqlite, include = FALSE------------------------------------------
+## ----cleanup-sqlite, include = FALSE, eval = has_sqlite-----------------------
 unlink(tmp_db)
 
-## ----db-demo------------------------------------------------------------------
+## ----db-demo, eval = has_sqlite-----------------------------------------------
 conn <- dbConnect(SQLite(), ":memory:")
 dbWriteTable(conn, "mtcars_tbl", mtcars)
 
@@ -204,10 +209,8 @@ dir <- tempfile(pattern = "tl_zip_src_")
 dir.create(dir)
 write.csv(iris, file.path(dir, "iris.csv"), row.names = FALSE)
 zip_path <- tempfile(fileext = ".zip")
-old_wd <- getwd()
-setwd(dir)
-utils::zip(zip_path, "iris.csv")
-setwd(old_wd)
+# -j stores the file without its directory path, so no setwd() is needed
+utils::zip(zip_path, file.path(dir, "iris.csv"), flags = "-j9X")
 
 zip_data <- tl_read_zip(zip_path, .quiet = TRUE)
 nrow(zip_data)

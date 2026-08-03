@@ -44,21 +44,23 @@ library(ggplot2)
 #                     use_reduction = FALSE,
 #                     use_clustering = FALSE)
 # quick$leaderboard
-# #> baseline_tree, baseline_logistic
+# #> baseline_tree only -- iris is multiclass, so logistic is skipped.
+# #> On a two-class response this would be baseline_tree, baseline_logistic.
 # 
 # # Development iteration -- baselines + forest, some CV
 # medium <- tl_auto_ml(iris, Species ~ .,
 #                      time_budget = 60,
 #                      cv_folds = 3)
 # medium$leaderboard
-# #> 5--7 models depending on data size
+# #> 4--7 models depending on data size and number of classes
 # 
 # # Thorough search -- all phases, full CV
 # thorough <- tl_auto_ml(iris, Species ~ .,
 #                        time_budget = 300,
 #                        cv_folds = 5)
 # thorough$leaderboard
-# #> 9--11 models with cross-validated scores
+# #> 8--11 models with cross-validated scores (iris is multiclass,
+# #> so the logistic variants are skipped)
 
 ## ----eval=FALSE---------------------------------------------------------------
 # # Factor/character response -> classification
@@ -109,10 +111,12 @@ library(ggplot2)
 # pca_forest <- result$models$pca_forest
 
 ## ----eval=FALSE---------------------------------------------------------------
-# # View performance comparison
+# # View performance comparison. Columns are model, score and evaluation
+# # ("cv" or "train" -- see "How AutoML Works" above).
 # leaderboard <- result$leaderboard
 # 
-# # Sort by score (higher is better for accuracy, lower for RMSE)
+# # Already sorted best-first, but to re-sort explicitly:
+# # higher is better for accuracy, lower for RMSE
 # leaderboard <- leaderboard %>%
 #   arrange(desc(score))
 # 
@@ -271,11 +275,6 @@ library(ggplot2)
 # 
 # # 3. Use a budget under 30s to skip forest/SVM/XGBoost entirely
 # quick_result <- tl_auto_ml(data, formula, time_budget = 10)
-
-## ----eval=FALSE---------------------------------------------------------------
-# result <- tl_auto_ml(data, formula,
-#                      metric = "accuracy",  # or "rmse" for regression
-#                      time_budget = 60)
 
 ## ----eval=FALSE---------------------------------------------------------------
 # # Increase time budget to unlock all phases

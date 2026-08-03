@@ -19,14 +19,27 @@ library(tidylearn)
 library(dplyr)
 
 ## -----------------------------------------------------------------------------
-# Classification with logistic regression
-model_logistic <- tl_model(iris, Species ~ ., method = "logistic")
+# versicolor and virginica overlap, so this is a real classification
+# problem -- setosa is linearly separable from the other two, which makes
+# logistic regression fail to converge
+iris_binary <- iris %>%
+  filter(Species %in% c("versicolor", "virginica")) %>%
+  mutate(Species = droplevels(Species))
+
+model_logistic <- tl_model(iris_binary, Species ~ ., method = "logistic")
 print(model_logistic)
 
 ## -----------------------------------------------------------------------------
-# Make predictions
-predictions <- predict(model_logistic)
+# Predicted class labels
+predictions <- predict(model_logistic, type = "class")
 head(predictions)
+
+## -----------------------------------------------------------------------------
+# Class probabilities
+head(predict(model_logistic, type = "prob"))
+
+## -----------------------------------------------------------------------------
+tl_evaluate(model_logistic, metrics = c("accuracy", "f1"))
 
 ## -----------------------------------------------------------------------------
 # Regression with linear model
@@ -84,8 +97,8 @@ model_processed <- tl_model(processed$data, Species ~ ., method = "forest")
 # Simple random split
 split <- tl_split(iris, prop = 0.7, seed = 123)
 
-# Train model
-model_train <- tl_model(split$train, Species ~ ., method = "logistic")
+# Train model (three species, so a multiclass-capable method)
+model_train <- tl_model(split$train, Species ~ ., method = "forest")
 
 # Test predictions
 predictions_test <- predict(model_train, new_data = split$test)
@@ -111,12 +124,13 @@ class(model_forest$fit)  # This is the randomForest object
 ## -----------------------------------------------------------------------------
 # Quick example combining everything
 data_split <- tl_split(iris, prop = 0.7, stratify = "Species", seed = 42)
-data_prep <- tl_prepare_data(
-  data_split$train, Species ~ .,
-  scale_method = "standardize"
-)
-model_final <- tl_model(data_prep$data, Species ~ ., method = "forest")
+
+# Random forests are scale-invariant, so no scaling is needed here. When a
+# method does need scaled inputs, the same transformation has to be applied
+# to the test set -- see the Supervised Learning vignette.
+model_final <- tl_model(data_split$train, Species ~ ., method = "forest")
 test_preds <- predict(model_final, new_data = data_split$test)
 
-print(model_final)
+accuracy <- mean(test_preds$.pred == data_split$test$Species)
+cat("Test accuracy:", round(accuracy * 100, 1), "%\n")
 

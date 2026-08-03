@@ -1,12 +1,25 @@
 ## ----include = FALSE----------------------------------------------------------
+# gt is in Suggests and is the subject of this vignette, so skip the
+# whole thing rather than fail the build when it is absent
+has_gt <- requireNamespace("gt", quietly = TRUE)
+
 knitr::opts_chunk$set(
   collapse = TRUE,
   comment = "#>",
   fig.width = 7,
   fig.height = 5,
   message = FALSE,
-  warning = FALSE
+  warning = FALSE,
+  eval = has_gt
 )
+
+## ----echo = FALSE, results = "asis", eval = TRUE------------------------------
+if (!has_gt) {
+  cat(
+    "> **Note:** the gt package is not installed, so the examples below",
+    "are shown without output.\n"
+  )
+}
 
 ## ----setup--------------------------------------------------------------------
 library(tidylearn)
@@ -69,14 +82,14 @@ km <- tl_model(iris[, 1:4], method = "kmeans", k = 3)
 tl_table_clusters(km)
 
 ## ----table-comparison---------------------------------------------------------
-m1 <- tl_model(split$train, Species ~ ., method = "logistic")
+m1 <- tl_model(split$train, Species ~ ., method = "svm")
 m2 <- tl_model(split$train, Species ~ ., method = "forest")
 m3 <- tl_model(split$train, Species ~ ., method = "tree")
 
 tl_table_comparison(
   m1, m2, m3,
   new_data = split$test,
-  names = c("Logistic", "Random Forest", "Decision Tree")
+  names = c("SVM", "Random Forest", "Decision Tree")
 )
 
 ## ----plotly, eval = FALSE-----------------------------------------------------
