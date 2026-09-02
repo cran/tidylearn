@@ -5,6 +5,194 @@
 #' @importFrom dplyr filter select mutate
 NULL
 
+#' Fill in and validate a pipeline evaluation specification
+#'
+#' @param evaluation A named list of evaluation settings, or NULL.
+#' @param is_classification Whether the response is categorical.
+#' @return The list, with every recognised setting present.
+#' @keywords internal
+#' @noRd
+merge_evaluation_spec <- function(evaluation, is_classification) {
+  defaults <- if (is_classification) {
+    list(
+      metrics = c("accuracy", "precision", "recall", "f1", "auc"),
+      validation = "cv",
+      cv_folds = 5,
+      train_prop = 0.7,
+      best_metric = "f1"
+    )
+  } else {
+    list(
+      metrics = c("rmse", "mae", "rsq", "mape"),
+      validation = "cv",
+      cv_folds = 5,
+      train_prop = 0.7,
+      best_metric = "rmse"
+    )
+  }
+
+  if (is.null(evaluation)) {
+    return(defaults)
+  }
+
+  if (!is.list(evaluation) ||
+        is.null(names(evaluation)) ||
+        any(names(evaluation) == "")) {
+    stop(
+      "'evaluation' must be a named list: ",
+      paste(names(defaults), collapse = ", "), ".",
+      call. = FALSE
+    )
+  }
+
+  unknown <- setdiff(names(evaluation), names(defaults))
+  if (length(unknown) > 0) {
+    stop(
+      "Unknown evaluation setting(s): ",
+      paste(unknown, collapse = ", "),
+      ". Available settings: ", paste(names(defaults), collapse = ", "),
+      ".",
+      call. = FALSE
+    )
+  }
+
+  evaluation <- utils::modifyList(defaults, evaluation)
+
+  # modifyList() drops an element set to NULL, so a caller who writes
+  # validation = NULL leaves nothing here and `%in%` returns logical(0),
+  # which `if` refuses with "argument is of length zero"
+  if (!is.character(evaluation$validation) ||
+        length(evaluation$validation) != 1L ||
+        !evaluation$validation %in% c("cv", "split")) {
+    stop(
+      "evaluation$validation must be \"cv\" or \"split\"; got ",
+      tl_describe_value(evaluation$validation), ".",
+      call. = FALSE
+    )
+  }
+
+  # An empty metric set renders the message below as a bare full stop,
+  # and leaves nothing for best_metric to name
+  if (length(evaluation$metrics) == 0) {
+    stop(
+      "evaluation$metrics is empty. Name at least one of: ",
+      paste(defaults$metrics, collapse = ", "), ".",
+      call. = FALSE
+    )
+  }
+
+  # An unrecognised metric is not computed, so every score comes back NA
+  # and the run warns about the symptom -- "all values NA" -- rather than
+  # the cause. tl_tune_grid() names a missing metric; match it.
+  known <- tl_known_metrics(is_classification)
+  unknown_metric <- setdiff(evaluation$metrics, known)
+  if (length(unknown_metric) > 0) {
+    stop(
+      "Unknown ", if (is_classification) "classification" else "regression",
+      " metric(s): ", paste0("\"", unknown_metric, "\"", collapse = ", "),
+      ". Available: ", paste(known, collapse = ", "), ".",
+      call. = FALSE
+    )
+  }
+
+  if (!is.character(evaluation$best_metric) ||
+        length(evaluation$best_metric) != 1L ||
+        !evaluation$best_metric %in% evaluation$metrics) {
+    stop(
+      "evaluation$best_metric (", tl_describe_value(evaluation$best_metric),
+      ") must be one of evaluation$metrics: ",
+      paste(evaluation$metrics, collapse = ", "), ".",
+      call. = FALSE
+    )
+  }
+
+  # Unchecked, these surfaced as rsample errors naming `v`, which is not
+  # an argument of anything the caller wrote
+  folds <- evaluation$cv_folds
+  if (!is.numeric(folds) || length(folds) != 1L || is.na(folds) ||
+        folds != round(folds) || folds < 2) {
+    stop(
+      "evaluation$cv_folds must be a single whole number of at least 2; ",
+      "got ", paste(format(folds), collapse = ", "), ".",
+      call. = FALSE
+    )
+  }
+
+  # Left unchecked these reached rsample and base R as "result would be
+  # too long a vector" (0), a ROCR complaint about class counts (1), and
+  # "cannot take a sample larger than the population" (> 1)
+  prop <- evaluation$train_prop
+  if (!is.numeric(prop) || length(prop) != 1L || is.na(prop) ||
+        prop <= 0 || prop >= 1) {
+    stop(
+      "evaluation$train_prop must be a single number strictly between 0 ",
+      "and 1; got ", paste(format(prop), collapse = ", "),
+      ". It is the share of rows used for training. Whether that leaves ",
+      "both sides of the split non-empty also depends on the row count, ",
+      "which tl_run_pipeline() checks.",
+      call. = FALSE
+    )
+  }
+
+  evaluation
+}
+
+#' Fill in and validate a pipeline preprocessing specification
+#'
+#' @param preprocessing A named list of preprocessing switches, or NULL.
+#' @return The list, with every recognised step present.
+#' @keywords internal
+#' @noRd
+merge_preprocessing_spec <- function(preprocessing) {
+  defaults <- list(
+    impute_missing = TRUE,
+    standardize = TRUE,
+    dummy_encode = TRUE
+  )
+
+  if (is.null(preprocessing)) {
+    return(defaults)
+  }
+
+  if (!is.list(preprocessing) ||
+        is.null(names(preprocessing)) ||
+        any(names(preprocessing) == "")) {
+    stop(
+      "'preprocessing' must be a named list of steps: ",
+      paste(names(defaults), collapse = ", "), ".",
+      call. = FALSE
+    )
+  }
+
+  # An unrecognised name would otherwise be accepted and silently do
+  # nothing, which reads as a step that ran
+  unknown <- setdiff(names(preprocessing), names(defaults))
+  if (length(unknown) > 0) {
+    stop(
+      "Unknown preprocessing step(s): ",
+      paste(unknown, collapse = ", "),
+      ". Available steps: ", paste(names(defaults), collapse = ", "),
+      ".",
+      call. = FALSE
+    )
+  }
+
+  not_flag <- names(preprocessing)[
+    !vapply(preprocessing, function(x) {
+      is.logical(x) && length(x) == 1L && !is.na(x)
+    }, logical(1))
+  ]
+  if (length(not_flag) > 0) {
+    stop(
+      "Preprocessing step(s) must be TRUE or FALSE: ",
+      paste(not_flag, collapse = ", "), ".",
+      call. = FALSE
+    )
+  }
+
+  utils::modifyList(defaults, preprocessing)
+}
+
 #' Create a modeling pipeline
 #'
 #' @param data A data frame containing the data
@@ -28,28 +216,45 @@ tl_pipeline <- function(data, formula,
                         preprocessing = NULL,
                         models = NULL,
                         evaluation = NULL, ...) {
-  # Create default preprocessing if not provided
-  if (is.null(preprocessing)) {
-    preprocessing <- list(
-      impute_missing = TRUE,
-      standardize = TRUE,
-      dummy_encode = TRUE
+  formula <- tl_as_formula(formula)
+
+  # Fill in whichever preprocessing steps the caller left unnamed. A
+  # partial list used to reach `if (preprocessing$standardize)` as NULL
+  # and fail with "argument is of length zero" inside tl_run_pipeline(),
+  # long after the mistake was made.
+  preprocessing <- merge_preprocessing_spec(preprocessing)
+
+  # A response that is not a column of `data` used to reach the default
+  # models and the evaluation spec as NULL, which reads as regression.
+  # The pipeline then failed inside rpart with "object 'Speces' not
+  # found", naming a typo but not where it was made.
+  response_var <- all.vars(formula)[1]
+  if (!response_var %in% names(data)) {
+    stop(
+      "The formula's response, '", response_var,
+      "', is not a column of `data`. Available: ",
+      paste(names(data), collapse = ", "), ".",
+      call. = FALSE
     )
   }
+  y <- data[[response_var]]
+  is_classification <- is.factor(y) || is.character(y)
 
   # Create default models if not provided
   if (is.null(models)) {
-    # Determine if classification or regression
-    response_var <- all.vars(formula)[1]
-    y <- data[[response_var]]
-    is_classification <- is.factor(y) || is.character(y)
-
     if (is_classification) {
+      # Logistic is binary-only and errors on a three-level response, so
+      # offering it as a default candidate would fail the whole pipeline
+      # rather than the one model. Same guard as tl_auto_ml().
       models <- list(
-        logistic = list(method = "logistic"),
         tree = list(method = "tree"),
         forest = list(method = "forest", ntree = 500)
       )
+      # Count classes that occur, not levels that are declared -- a
+      # subset of a larger frame keeps the levels it no longer uses.
+      if (nlevels(tl_normalise_response(y)) == 2) {
+        models <- c(list(logistic = list(method = "logistic")), models)
+      }
     } else {
       models <- list(
         linear = list(method = "linear"),
@@ -59,29 +264,45 @@ tl_pipeline <- function(data, formula,
     }
   }
 
-  # Create default evaluation if not provided
-  if (is.null(evaluation)) {
-    # Determine if classification or regression
-    response_var <- all.vars(formula)[1]
-    y <- data[[response_var]]
-    is_classification <- is.factor(y) || is.character(y)
-
-    if (is_classification) {
-      evaluation <- list(
-        metrics = c("accuracy", "precision", "recall", "f1", "auc"),
-        validation = "cv",
-        cv_folds = 5,
-        best_metric = "f1"
-      )
-    } else {
-      evaluation <- list(
-        metrics = c("rmse", "mae", "rsq", "mape"),
-        validation = "cv",
-        cv_folds = 5,
-        best_metric = "rmse"
-      )
-    }
+  # Fill in whichever evaluation settings the caller left unnamed, for
+  # the same reason as the preprocessing spec above.
+  #
+  # The task has to be settled the way tl_model_supervised() settles it,
+  # logistic override included: logistic on a 0/1 integer response is a
+  # classification fit whatever the column is stored as, and each fold
+  # model reports it as one. Deciding from the column alone called that
+  # pipeline regression and refused the accuracy and auc it goes on to
+  # compute.
+  #
+  # Every other supervised method reads the task off the column as it
+  # stands, so a numeric response that puts logistic next to any of them
+  # gives one run two tasks. A leaderboard carries one set of metrics,
+  # whichever way it is chosen the other candidates score NA, and they
+  # then drop out of the comparison without a word -- so the mixture is
+  # refused here rather than half-scored later.
+  spec_methods <- tl_spec_methods(models)
+  named <- !is.na(spec_methods)
+  forces_factor <- named & spec_methods == "logistic"
+  others <- named & !forces_factor
+  if (!is_classification && any(forces_factor) && any(others)) {
+    stop(
+      "'", response_var, "' is numeric, and `models` puts logistic ",
+      "regression alongside ",
+      paste(unique(spec_methods[others]), collapse = ", "),
+      ". Logistic coerces the response to a factor and is scored as ",
+      "classification, while the rest take the column as it stands and ",
+      "are scored as regression. One leaderboard cannot hold both, so ",
+      "whichever metrics were chosen the other models would score NA. ",
+      "Run these as two pipelines, or make '", response_var,
+      "' a factor and drop the regression methods.",
+      call. = FALSE
+    )
   }
+
+  evaluation <- merge_evaluation_spec(
+    evaluation,
+    is_classification = is_classification || any(forces_factor)
+  )
 
   # Create pipeline object
   pipeline <- list(
@@ -96,6 +317,114 @@ tl_pipeline <- function(data, formula,
   class(pipeline) <- "tidylearn_pipeline"
 
   pipeline
+}
+
+#' Learn preprocessing statistics from a training set
+#'
+#' Split out from \code{tl_run_pipeline()} so that every resampling fold
+#' can learn its own statistics. Learning them once on the full dataset
+#' and then splitting lets each assessment row influence the centre,
+#' scale and median applied to the rows it is scored against, which
+#' inflates every reported metric.
+#'
+#' The response is deliberately excluded from imputation: replacing a
+#' missing outcome with the median fabricates both a training target and
+#' a piece of evaluation ground truth.
+#'
+#' @param data The training rows only
+#' @param formula The model formula
+#' @param preprocessing The pipeline's preprocessing specification
+#' @return A list with \code{medians}, \code{modes}, \code{center} and
+#'   \code{scale}, each a named list keyed by column
+#' @keywords internal
+#' @noRd
+tl_learn_preprocessing <- function(data, formula, preprocessing) {
+  stats_learned <- list(
+    medians = list(), modes = list(),
+    center = list(), scale = list()
+  )
+
+  response_var <- all.vars(formula)[1]
+
+  if (isTRUE(preprocessing$impute_missing)) {
+    for (col in setdiff(names(data), response_var)) {
+      if (is.numeric(data[[col]])) {
+        # Record the median even when this column is complete -- new data
+        # may still have gaps here
+        stats_learned$medians[[col]] <- median(data[[col]], na.rm = TRUE)
+      } else if (is.factor(data[[col]]) || is.character(data[[col]])) {
+        tab <- if (is.factor(data[[col]])) {
+          table(data[[col]])
+        } else {
+          table(data[[col]], useNA = "no")
+        }
+        stats_learned$modes[[col]] <- if (length(tab) > 0) {
+          names(tab)[which.max(tab)]
+        } else {
+          NA_character_
+        }
+      }
+    }
+  }
+
+  if (isTRUE(preprocessing$standardize)) {
+    numeric_cols <- vapply(data, is.numeric, logical(1))
+    numeric_cols[response_var] <- FALSE  # Don't standardize response
+
+    for (col in names(data)[numeric_cols]) {
+      col_mean <- mean(data[[col]], na.rm = TRUE)
+      col_sd <- stats::sd(data[[col]], na.rm = TRUE)
+
+      # A constant column would divide by zero; centre it only
+      if (is.na(col_sd) || col_sd == 0) {
+        col_sd <- 1
+      }
+
+      stats_learned$center[[col]] <- col_mean
+      stats_learned$scale[[col]] <- col_sd
+    }
+  }
+
+  stats_learned
+}
+
+#' Apply learned preprocessing statistics to a data frame
+#'
+#' @param data Rows to transform -- a training fold, an assessment fold,
+#'   or unseen data
+#' @param preprocessing The pipeline's preprocessing specification
+#' @param stats_learned The output of \code{tl_learn_preprocessing()}
+#' @return \code{data} with imputation and standardisation applied
+#' @keywords internal
+#' @noRd
+tl_apply_preprocessing <- function(data, preprocessing, stats_learned) {
+  if (isTRUE(preprocessing$impute_missing)) {
+    for (col in names(data)) {
+      na_idx <- is.na(data[[col]])
+      if (!any(na_idx)) next
+
+      if (is.numeric(data[[col]])) {
+        med <- stats_learned$medians[[col]]
+        if (is.null(med)) next
+        data[[col]][na_idx] <- med
+      } else if (is.factor(data[[col]]) || is.character(data[[col]])) {
+        mode_val <- stats_learned$modes[[col]]
+        if (is.null(mode_val) || is.na(mode_val)) next
+        data[[col]][na_idx] <- mode_val
+      }
+    }
+  }
+
+  if (isTRUE(preprocessing$standardize)) {
+    for (col in names(stats_learned$center)) {
+      if (!col %in% names(data)) next
+
+      data[[col]] <- (data[[col]] - stats_learned$center[[col]]) /
+        stats_learned$scale[[col]]
+    }
+  }
+
+  data
 }
 
 #' Run a tidylearn pipeline
@@ -133,6 +462,50 @@ tl_run_pipeline <- function(pipeline, verbose = TRUE) {
   models <- pipeline$models
   evaluation <- pipeline$evaluation
 
+  # An intercept-only formula leaves the design matrix with no columns to
+  # preprocess, which surfaced as "result would be too long a vector"
+  response_var <- all.vars(formula)[1]
+  predictors <- setdiff(all.vars(formula), response_var)
+  if (length(predictors) == 0) {
+    stop(
+      "The formula names no predictors. A pipeline preprocesses and scores ",
+      "predictors, so it needs at least one; got ", deparse(formula), ".",
+      call. = FALSE
+    )
+  }
+
+  # Cross-validation cannot make more folds than there are rows, and the
+  # rsample message for it names `v` rather than cv_folds
+  if (identical(evaluation$validation, "cv") &&
+        evaluation$cv_folds > nrow(data)) {
+    stop(
+      "evaluation$cv_folds is ", evaluation$cv_folds, " but the data has ",
+      nrow(data), " row", if (nrow(data) == 1) "" else "s",
+      ". Cross-validation needs at least one row per fold.",
+      call. = FALSE
+    )
+  }
+
+  # A train_prop strictly between 0 and 1 still rounds to an empty side
+  # on a small frame, and the two failures look nothing alike: an empty
+  # training set is "result would be too long a vector", while an empty
+  # test set scores nothing and the run finishes with a leaderboard of
+  # NAs and a warning about the NAs rather than the split.
+  if (identical(evaluation$validation, "split")) {
+    n_train <- round(evaluation$train_prop * nrow(data))
+    if (n_train < 1 || n_train >= nrow(data)) {
+      stop(
+        "evaluation$train_prop of ", evaluation$train_prop, " over ",
+        nrow(data), " row", if (nrow(data) == 1) "" else "s",
+        " puts ", n_train, " row", if (n_train == 1) "" else "s",
+        " in the training set and ", nrow(data) - n_train, " in the test ",
+        "set. Both sides have to be non-empty, so this needs a train_prop ",
+        "nearer 0.5 or more rows.",
+        call. = FALSE
+      )
+    }
+  }
+
   # Without names the training loop below silently does nothing, leaving
   # an empty leaderboard and an unhelpful downstream error
   if (length(models) == 0 || is.null(names(models)) ||
@@ -144,100 +517,89 @@ tl_run_pipeline <- function(pipeline, verbose = TRUE) {
     )
   }
 
+  # The loop below indexes models[[model_name]], which resolves to the
+  # first match. A repeated name therefore fitted one spec twice and
+  # dropped the other without saying so.
+  repeated <- unique(names(models)[duplicated(names(models))])
+  if (length(repeated) > 0) {
+    stop(
+      "`models` has repeated name(s): ",
+      paste0("'", repeated, "'", collapse = ", "),
+      ". Each model needs its own name -- results are keyed by it, so a ",
+      "repeat would discard every spec but the first.",
+      call. = FALSE
+    )
+  }
+
+  # A malformed spec otherwise surfaced as a base R internal further in:
+  # "missing value where TRUE/FALSE needed" for a spec with no method,
+  # "$ operator is invalid for atomic vectors" for a spec that is not a
+  # list, neither of them naming the model responsible.
+  for (model_name in names(models)) {
+    spec <- models[[model_name]]
+    if (!is.list(spec)) {
+      stop(
+        "Model '", model_name, "' must be a list of settings, e.g. ",
+        "list(method = \"tree\"); got ", paste(class(spec), collapse = "/"),
+        ".",
+        call. = FALSE
+      )
+    }
+    if (is.null(spec$method)) {
+      stop(
+        "Model '", model_name, "' has no 'method'. Every entry in `models` ",
+        "needs one, e.g. list(method = \"tree\").",
+        call. = FALSE
+      )
+    }
+    if (!is.character(spec$method) || length(spec$method) != 1L) {
+      stop(
+        "Model '", model_name, "': 'method' must be a single method name; ",
+        "got ", paste(class(spec$method), collapse = "/"), " of length ",
+        length(spec$method), ".",
+        call. = FALSE
+      )
+    }
+    if (!spec$method %in% tl_supervised_methods()) {
+      stop(
+        "Model '", model_name, "': \"", spec$method, "\" is not a supervised ",
+        "method. A pipeline fits a response, so it takes one of: ",
+        paste(tl_supervised_methods(), collapse = ", "), ".",
+        call. = FALSE
+      )
+    }
+  }
+
   # Apply preprocessing
   if (verbose) {
     message("Applying preprocessing steps...")
   }
 
-  processed_data <- data
-
-  # Preprocessing statistics learned from the training data. These are
-  # recorded on the scale each step sees, so tl_predict_pipeline() can
-  # replay the same transformation on raw new data.
-  preprocessing_stats <- list(
-    medians = list(),
-    modes = list(),
-    center = list(),
-    scale = list()
-  )
-
-  if (preprocessing$impute_missing) {
-    if (verbose) {
+  if (verbose) {
+    if (preprocessing$impute_missing) {
       message("  - Imputing missing values")
     }
-
-    # Simple imputation for numeric and categorical variables
-    for (col in names(processed_data)) {
-      if (is.numeric(processed_data[[col]])) {
-        # Record the median even when this column is complete -- new data
-        # may still have gaps here
-        med <- median(processed_data[[col]], na.rm = TRUE)
-        preprocessing_stats$medians[[col]] <- med
-
-        na_idx <- is.na(processed_data[[col]])
-        if (any(na_idx)) {
-          processed_data[[col]][na_idx] <- med
-        }
-      } else if (is.factor(processed_data[[col]]) ||
-                   is.character(processed_data[[col]])) {
-        # Calculate mode
-        if (is.factor(processed_data[[col]])) {
-          tab <- table(processed_data[[col]])
-        } else {
-          tab <- table(processed_data[[col]], useNA = "no")
-        }
-        mode_val <- if (length(tab) > 0) {
-          names(tab)[which.max(tab)]
-        } else {
-          NA_character_
-        }
-        preprocessing_stats$modes[[col]] <- mode_val
-
-        na_idx <- is.na(processed_data[[col]])
-        if (any(na_idx) && !is.na(mode_val)) {
-          processed_data[[col]][na_idx] <- mode_val
-        }
-      }
-    }
-  }
-
-  if (preprocessing$standardize) {
-    if (verbose) {
+    if (preprocessing$standardize) {
       message("  - Standardizing numeric features")
     }
-
-    # Identify numeric columns (excluding response)
-    response_var <- all.vars(formula)[1]
-    numeric_cols <- sapply(processed_data, is.numeric)
-    numeric_cols[response_var] <- FALSE  # Don't standardize response
-
-    # Standardize each numeric column, recording the centre and scale
-    for (col in names(processed_data)[numeric_cols]) {
-      col_mean <- mean(processed_data[[col]], na.rm = TRUE)
-      col_sd <- stats::sd(processed_data[[col]], na.rm = TRUE)
-
-      # A constant column would divide by zero; centre it only
-      if (is.na(col_sd) || col_sd == 0) {
-        col_sd <- 1
-      }
-
-      preprocessing_stats$center[[col]] <- col_mean
-      preprocessing_stats$scale[[col]] <- col_sd
-
-      processed_data[[col]] <- (processed_data[[col]] - col_mean) / col_sd
-    }
-  }
-
-  if (preprocessing$dummy_encode) {
-    if (verbose) {
+    if (preprocessing$dummy_encode) {
+      # Left to model.matrix during model fitting
       message("  - Creating dummy variables for categorical features")
     }
-
-    # Let model.matrix handle this during model fitting
-    # We don't modify the processed_data here
   }
 
-  # Set up validation strategy
+  # Statistics for the final model, which is legitimately fitted on
+  # everything. tl_predict_pipeline() replays these on raw new data.
+  #
+  # Resampling below deliberately does NOT use them: each fold relearns
+  # from its own analysis rows, so no assessment row contributes to the
+  # transformation it is later scored under.
+  preprocessing_stats <- tl_learn_preprocessing(data, formula, preprocessing)
+  processed_data <- tl_apply_preprocessing(
+    data, preprocessing, preprocessing_stats
+  )
+
+  # Set up validation strategy. Splits are drawn from the RAW data.
   if (evaluation$validation == "cv") {
     cv_folds <- evaluation$cv_folds
 
@@ -246,23 +608,30 @@ tl_run_pipeline <- function(pipeline, verbose = TRUE) {
     }
 
     # Create cross-validation splits
-    cv_splits <- rsample::vfold_cv(processed_data, v = cv_folds)
+    cv_splits <- rsample::vfold_cv(data, v = cv_folds)
   } else if (evaluation$validation == "split") {
     train_prop <- evaluation$train_prop
-    if (is.null(train_prop)) train_prop <- 0.8
 
     if (verbose) {
       message("Setting up train/test split (", train_prop * 100, "% / ",
               (1 - train_prop) * 100, "%)")
     }
 
-    # Create a single train/test split
+    # Create a single train/test split, then learn the transformation
+    # from the training rows alone and replay it on the test rows
     train_idx <- sample(
-      nrow(processed_data),
-      round(train_prop * nrow(processed_data))
+      nrow(data),
+      round(train_prop * nrow(data))
     )
-    train_data <- processed_data[train_idx, ]
-    test_data <- processed_data[-train_idx, ]
+    split_stats <- tl_learn_preprocessing(
+      data[train_idx, ], formula, preprocessing
+    )
+    train_data <- tl_apply_preprocessing(
+      data[train_idx, ], preprocessing, split_stats
+    )
+    test_data <- tl_apply_preprocessing(
+      data[-train_idx, ], preprocessing, split_stats
+    )
   }
 
   # Train and evaluate models
@@ -289,9 +658,21 @@ tl_run_pipeline <- function(pipeline, verbose = TRUE) {
           message("  - Fold ", i, "/", cv_folds)
         }
 
-        # Get training and testing data for this fold
-        train_fold <- rsample::analysis(cv_splits$splits[[i]])
-        test_fold <- rsample::assessment(cv_splits$splits[[i]])
+        # Get training and testing data for this fold, then learn the
+        # transformation from the analysis rows only and replay it on
+        # the assessment rows
+        raw_train_fold <- rsample::analysis(cv_splits$splits[[i]])
+        raw_test_fold <- rsample::assessment(cv_splits$splits[[i]])
+
+        fold_stats <- tl_learn_preprocessing(
+          raw_train_fold, formula, preprocessing
+        )
+        train_fold <- tl_apply_preprocessing(
+          raw_train_fold, preprocessing, fold_stats
+        )
+        test_fold <- tl_apply_preprocessing(
+          raw_test_fold, preprocessing, fold_stats
+        )
 
         # Fit model on training fold
         model_args <- c(
@@ -510,6 +891,21 @@ tl_get_best_model <- function(pipeline) {
 #'   highlighted.
 #' @importFrom ggplot2 ggplot aes geom_col facet_wrap labs theme_minimal
 #' @export
+#' @examples
+#' \donttest{
+#' pipe <- tl_pipeline(iris, Species ~ .,
+#'   models = list(
+#'     tree = list(method = "tree"),
+#'     forest = list(method = "forest", ntree = 100)
+#'   ),
+#'   evaluation = list(validation = "cv", cv_folds = 3))
+#' pipe <- tl_run_pipeline(pipe, verbose = FALSE)
+#'
+#' tl_compare_pipeline_models(pipe)
+#'
+#' # Restrict the comparison to one metric
+#' tl_compare_pipeline_models(pipe, metrics = "accuracy")
+#' }
 tl_compare_pipeline_models <- function(pipeline, metrics = NULL) {
   # Check if pipeline has results
   if (is.null(pipeline$results)) {
@@ -628,6 +1024,25 @@ tl_compare_pipeline_models <- function(pipeline, metrics = NULL) {
 #'   predictions from the selected (or best) pipeline model, after
 #'   applying the same preprocessing steps used during training.
 #' @export
+#' @examples
+#' \donttest{
+#' train <- iris[c(1:40, 51:90, 101:140), ]
+#' test <- iris[c(41:50, 91:100, 141:150), ]
+#'
+#' pipe <- tl_pipeline(train, Species ~ .,
+#'   models = list(
+#'     tree = list(method = "tree"),
+#'     forest = list(method = "forest", ntree = 100)
+#'   ),
+#'   evaluation = list(validation = "cv", cv_folds = 3))
+#' pipe <- tl_run_pipeline(pipe, verbose = FALSE)
+#'
+#' # The best model, with the preprocessing learned on the training rows
+#' tl_predict_pipeline(pipe, test)
+#'
+#' # Or a named candidate instead of the winner
+#' tl_predict_pipeline(pipe, test, model_name = "tree")
+#' }
 tl_predict_pipeline <- function(pipeline,
                                 new_data,
                                 type = "response",
@@ -671,38 +1086,10 @@ tl_predict_pipeline <- function(pipeline,
       )
     }
 
-    if (isTRUE(pipeline$preprocessing$impute_missing)) {
-      # Impute with the statistics learned from the raw training data
-      for (col in names(processed_new_data)) {
-        na_idx <- is.na(processed_new_data[[col]])
-        if (!any(na_idx)) next
-
-        if (is.numeric(processed_new_data[[col]])) {
-          med <- stats_learned$medians[[col]]
-          if (is.null(med)) {
-            med <- median(processed_new_data[[col]], na.rm = TRUE)
-          }
-          processed_new_data[[col]][na_idx] <- med
-        } else if (is.factor(processed_new_data[[col]]) ||
-                     is.character(processed_new_data[[col]])) {
-          mode_val <- stats_learned$modes[[col]]
-          if (is.null(mode_val) || is.na(mode_val)) next
-          processed_new_data[[col]][na_idx] <- mode_val
-        }
-      }
-    }
-
-    if (isTRUE(pipeline$preprocessing$standardize)) {
-      # Standardize exactly the columns that were standardized during
-      # training, using the training centre and scale
-      for (col in names(stats_learned$center)) {
-        if (!col %in% names(processed_new_data)) next
-
-        processed_new_data[[col]] <-
-          (processed_new_data[[col]] - stats_learned$center[[col]]) /
-          stats_learned$scale[[col]]
-      }
-    }
+    # Replay exactly the transformation the final model was fitted under
+    processed_new_data <- tl_apply_preprocessing(
+      processed_new_data, pipeline$preprocessing, stats_learned
+    )
   }
 
   # Make predictions

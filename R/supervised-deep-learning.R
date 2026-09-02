@@ -20,6 +20,8 @@ NULL
 #' @param epochs Number of training epochs (default: 30)
 #' @param batch_size Batch size for training (default: 32)
 #' @param validation_split Proportion of data for validation
+#' @param learning_rate Optimizer learning rate. NULL (default) leaves
+#'   keras's own adam default in place.
 #'   (default: 0.2)
 #' @param verbose Verbosity mode (0 = silent, 1 = progress bar,
 #'   2 = one line per epoch) (default: 0)
@@ -40,6 +42,7 @@ tl_fit_deep <- function(data, formula,
                         dropout = 0.2,
                         epochs = 30, batch_size = 32,
                         validation_split = 0.2,
+                        learning_rate = NULL,
                         verbose = 0, ...,
                         compute = "cpu") {
   # Check if keras is installed
@@ -107,8 +110,11 @@ tl_fit_deep <- function(data, formula,
     model %>% keras::layer_dropout(rate = dropout)
   }
 
-  # Add hidden layers
-  for (i in 2:length(hidden_layers)) {
+  # Add the remaining hidden layers. seq_len() rather than 2:length():
+  # with a single hidden layer, 2:1 counts backwards and adds a layer
+  # with units = hidden_layers[1] followed by units = NA. The default
+  # tuning grid includes single-layer candidates, so this was reachable.
+  for (i in seq_len(length(hidden_layers) - 1L) + 1L) {
     model %>% keras::layer_dense(
       units = hidden_layers[i],
       activation = activation
@@ -125,9 +131,17 @@ tl_fit_deep <- function(data, formula,
     activation = output_activation
   )
 
-  # Compile the model
+  # Compile the model. The optimizer carries the learning rate, and
+  # compile() is the only place it can be set -- passing an optimizer to
+  # fit() does nothing, because the model has already been compiled.
+  optimizer <- if (is.null(learning_rate)) {
+    "adam"
+  } else {
+    keras::optimizer_adam(learning_rate = learning_rate)
+  }
+
   model %>% keras::compile(
-    optimizer = "adam",
+    optimizer = optimizer,
     loss = loss,
     metrics = metrics
   )
@@ -443,9 +457,7 @@ tl_tune_deep <- function(data, formula,
         epochs = epochs,
         batch_size = batch_size,
         validation_split = validation_split,
-        optimizer = keras::optimizer_adam(
-          learning_rate = learning_rate
-        ),
+        learning_rate = learning_rate,
         verbose = 0,
         ...
       )
@@ -471,6 +483,19 @@ tl_tune_deep <- function(data, formula,
   }
 
   # Find best hyperparameters (minimizing validation loss)
+  # Every configuration can fail -- a bad argument forwarded through ...
+  # reaches keras::fit() and each fit is caught individually, leaving
+  # val_loss all NA. which.min() then returns integer(0) and the indexing
+  # below failed with "attempt to select less than one element in
+  # get1index", which says nothing about what went wrong.
+  if (all(is.na(hyperparams$val_loss))) {
+    stop(
+      "No deep learning configuration could be fitted. The messages above ",
+      "report why each one failed.",
+      call. = FALSE
+    )
+  }
+
   best_idx <- which.min(hyperparams$val_loss)
   best_hl_idx <- hyperparams$hidden_layers_idx[best_idx]
   best_hidden_layers <-
@@ -488,9 +513,7 @@ tl_tune_deep <- function(data, formula,
     epochs = epochs,
     batch_size = best_batch_size,
     validation_split = validation_split,
-    optimizer = keras::optimizer_adam(
-      learning_rate = best_learning_rate
-    ),
+    learning_rate = best_learning_rate,
     ...
   )
 

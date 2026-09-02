@@ -35,7 +35,16 @@ tl_fit_nn <- function(data, formula, is_classification = FALSE,
       data[[response_var]] <- factor(data[[response_var]])
     }
 
-    # Fit classification neural network
+    # Fit classification neural network.
+    #
+    # The error criterion is deliberately left to nnet. nnet.formula()
+    # already chooses it from the response: cross-entropy for a two-level
+    # factor, softmax for three or more. Naming entropy = TRUE here reached
+    # nnet.default() through `...` alongside the one nnet.formula() supplies
+    # itself, and a two-class fit died with "formal argument 'entropy'
+    # matched by multiple actual arguments". Multiclass survived only
+    # because nnet.default() sets entropy <- FALSE whenever softmax is on,
+    # so the argument it collided with was never there.
     nn_model <- nnet::nnet(
       formula = formula,
       data = data,
@@ -43,8 +52,6 @@ tl_fit_nn <- function(data, formula, is_classification = FALSE,
       decay = decay,
       maxit = maxit,
       trace = trace,
-      # For classification
-      entropy = TRUE,  # Use cross-entropy error function
       ...
     )
   } else {
@@ -60,6 +67,16 @@ tl_fit_nn <- function(data, formula, is_classification = FALSE,
       ...
     )
   }
+
+  # nnet() records its call verbatim, so the stored call reads
+  # `nnet(formula = formula, ...)` -- the symbol, not the formula. Anything
+  # that later evaluates `mod_in$call$formula` outside this function gets
+  # stats::formula, the function. NeuralNetTools::plotnet() does exactly
+  # that for any net with a single output unit, which is every regression
+  # fit and every two-class fit, and fails with "cannot coerce type
+  # 'closure' to vector of type 'character'". Substituting the formula into
+  # the recorded call makes it mean what it says.
+  nn_model$call$formula <- formula
 
   nn_model
 }
@@ -204,6 +221,19 @@ tl_plot_nn_architecture <- function(model, ...) {
 #'   (optimal weight decay), and \code{tuning_results} (a data frame of all
 #'   parameter combinations and their cross-validated errors).
 #' @export
+#' @examples
+#' \donttest{
+#' tuned <- tl_tune_nn(iris, Species ~ .,
+#'   is_classification = TRUE,
+#'   sizes = c(2, 5), decays = c(0, 0.01), folds = 3)
+#'
+#' tuned$best_size
+#' tuned$best_decay
+#' tuned$tuning_results
+#'
+#' # The grid this searched, drawn as a heatmap
+#' tl_plot_nn_tuning(tuned)
+#' }
 tl_tune_nn <- function(data, formula, is_classification = FALSE,
                        sizes = c(1, 2, 5, 10), decays = c(0, 0.001, 0.01, 0.1),
                        folds = 5, ...) {
@@ -316,13 +346,26 @@ tl_tune_nn <- function(data, formula, is_classification = FALSE,
   )
 }
 
-#' Plot neural network training history
+#' Plot a neural network tuning grid
 #'
-#' @param model A tidylearn neural network model object
+#' Draws the size-by-decay grid as a heatmap of cross-validated error.
+#'
+#' @param model The list returned by \code{\link{tl_tune_nn}}, not a fitted
+#'   model — the grid it draws lives in that list's
+#'   \code{$tuning_results}. Anything without that element is refused.
 #' @param ... Additional arguments
 #' @return A \code{\link[ggplot2]{ggplot}} object.
 #' @importFrom ggplot2 ggplot aes geom_line labs theme_minimal
 #' @export
+#' @examples
+#' \donttest{
+#' tuned <- tl_tune_nn(iris, Species ~ .,
+#'   is_classification = TRUE,
+#'   sizes = c(2, 5), decays = c(0, 0.01), folds = 3)
+#'
+#' # The tuning result itself, not tuned$model
+#' tl_plot_nn_tuning(tuned)
+#' }
 tl_plot_nn_tuning <- function(model, ...) {
   if (!is.list(model) || !"tuning_results" %in% names(model)) {
     stop("This function requires the output from tl_tune_nn()", call. = FALSE)

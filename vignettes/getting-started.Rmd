@@ -18,32 +18,27 @@ knitr::opts_chunk$set(
 
 ## Introduction
 
-`tidylearn` provides a **unified tidyverse-compatible interface** to R's machine
-learning ecosystem. It wraps proven packages like glmnet, randomForest, xgboost,
-e1071, cluster, and dbscan - you get the reliability of established
-implementations with the convenience of a consistent, tidy API.
+Every machine learning package in R has its own API and its own output
+format. tidylearn puts one signature over 20 of them: `tl_model()` picks the
+underlying package from the `method` you name, and whatever comes back is a
+tibble or a ggplot2 object.
 
-**What tidylearn does:**
+The algorithms are untouched. glmnet, randomForest, xgboost, e1071, cluster
+and dbscan do the fitting, and `model$fit` hands you the object they
+returned — `model$fit$model` for an unsupervised method, whose `$fit` is
+the list of tidied components — so nothing here closes off the package
+underneath.
 
-- Provides one consistent interface (`tl_model()`) to 20+ ML algorithms
-- Returns tidy tibbles instead of varied output formats
-- Offers unified ggplot2-based visualization across all methods
-- Enables pipe-friendly workflows
-
-**What tidylearn is NOT:**
-
-- A reimplementation of ML algorithms (uses established packages under the hood)
-- A replacement for the underlying packages (you can access the raw model via
-  `model$fit`)
+This vignette covers the shape of a workflow end to end. The articles listed
+at the bottom go deeper on each step.
 
 ## Installation
 
 ```{r, eval = FALSE}
-# Install from CRAN
+# From CRAN
 install.packages("tidylearn")
 
-# Or install development version from GitHub
-# Install the development version from GitHub:
+# Development version
 # devtools::install_github("ces0491/tidylearn") # nolint
 ```
 
@@ -154,7 +149,8 @@ table(clusters$cluster, iris$Species)
 
 ## Data Preprocessing
 
-tidylearn provides comprehensive preprocessing functions:
+`tl_prepare_data()` handles imputation, scaling and encoding in one call, and
+records what it did so the same transformation can be replayed on new data:
 
 ```{r}
 # Prepare data with multiple preprocessing steps
@@ -235,7 +231,7 @@ tidylearn provides a unified interface to these established R packages:
 
 ### Accessing the Underlying Model
 
-You always have access to the raw model from the underlying package via `$fit`:
+The raw model from the underlying package is reachable through `$fit`:
 
 ```{r}
 # Example: Access the raw randomForest object
@@ -246,30 +242,19 @@ class(model_forest$fit)  # This is the randomForest object
 # randomForest::varImpPlot(model_forest$fit) # nolint
 ```
 
-## Next Steps
+An unsupervised method returns tidied components as well, so its `$fit` is
+the list holding them and the wrapped object sits at `$fit$model`:
 
-Now that you understand the basics, explore:
+```{r}
+model_pca <- tl_model(iris, ~ ., method = "pca")
+names(model_pca$fit)
+class(model_pca$fit$model)  # This is the prcomp object
+```
 
-1. **Supervised Learning** - Dive deeper into classification and regression
-2. **Unsupervised Learning** - Explore clustering and dimensionality reduction
-3. **Integration Workflows** - Combine supervised and unsupervised learning
-4. **AutoML** - Automated machine learning with `tl_auto_ml()`
+## The Whole Workflow
 
-## Summary
-
-tidylearn is a **wrapper package** that provides:
-
-- **Unified Interface**: One function (`tl_model()`) that dispatches to proven
-  packages like glmnet, randomForest, xgboost, e1071, and others
-- **Transparency**: Access raw model objects via `model$fit` for package-specific
-  functionality
-- **Tidy Output**: All results are tibbles for easy manipulation with dplyr and
-  ggplot2
-- **Consistent Visualization**: Unified ggplot2-based plots regardless of model
-  type
-
-The underlying algorithms are unchanged - tidylearn simply makes them easier to
-use together.
+Split, fit, predict, score — the four steps this vignette covered, in the
+order they run:
 
 ```{r}
 # Quick example combining everything
@@ -284,3 +269,22 @@ test_preds <- predict(model_final, new_data = data_split$test)
 accuracy <- mean(test_preds$.pred == data_split$test$Species)
 cat("Test accuracy:", round(accuracy * 100, 1), "%\n")
 ```
+
+## Next Steps
+
+- `vignette("data-ingestion")` — reading from files, databases and cloud
+  sources
+- `vignette("supervised-learning")` — classification and regression in depth,
+  and how to replay preprocessing on a test set
+- `vignette("unsupervised-learning")` — clustering, ordination, and choosing
+  the number of clusters
+- `vignette("market-basket")` — association rules
+- `vignette("tuning-and-pipelines")` — hyperparameter search, and bundling a
+  workflow you can save
+- `vignette("automl")` — searching across methods under a time budget
+- `vignette("diagnostics")` — assumptions, influence and model comparison
+- `vignette("reporting")` — plots and formatted `gt` tables
+- `vignette("integration-workflows")` — combining supervised and unsupervised
+  steps
+- `vignette("compute-backends")` — when a fit is too slow or too large for
+  this machine: GPU routing, cost estimates, and the cloud safety model

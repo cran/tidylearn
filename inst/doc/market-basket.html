@@ -1,0 +1,1019 @@
+<!DOCTYPE html>
+
+<html>
+
+<head>
+
+<meta charset="utf-8" />
+<meta name="generator" content="pandoc" />
+<meta http-equiv="X-UA-Compatible" content="IE=EDGE" />
+
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+
+
+
+<title>Market Basket Analysis</title>
+
+<script>// Pandoc 2.9 adds attributes on both header and div. We remove the former (to
+// be compatible with the behavior of Pandoc < 2.8).
+document.addEventListener('DOMContentLoaded', function(e) {
+  var hs = document.querySelectorAll("div.section[class*='level'] > :first-child");
+  var i, h, a;
+  for (i = 0; i < hs.length; i++) {
+    h = hs[i];
+    if (!/^h[1-6]$/i.test(h.tagName)) continue;  // it should be a header h1-h6
+    a = h.attributes;
+    while (a.length > 0) h.removeAttribute(a[0].name);
+  }
+});
+</script>
+
+<style type="text/css">
+code{white-space: pre-wrap;}
+span.smallcaps{font-variant: small-caps;}
+span.underline{text-decoration: underline;}
+div.column{display: inline-block; vertical-align: top; width: 50%;}
+div.hanging-indent{margin-left: 1.5em; text-indent: -1.5em;}
+ul.task-list{list-style: none;}
+</style>
+
+
+
+<style type="text/css">
+code {
+white-space: pre;
+}
+.sourceCode {
+overflow: visible;
+}
+</style>
+<style type="text/css" data-origin="pandoc">
+html { -webkit-text-size-adjust: 100%; }
+pre > code.sourceCode { white-space: pre; position: relative; }
+pre > code.sourceCode > span { display: inline-block; line-height: 1.25; }
+pre > code.sourceCode > span:empty { height: 1.2em; }
+.sourceCode { overflow: visible; }
+code.sourceCode > span { color: inherit; text-decoration: inherit; }
+div.sourceCode { margin: 1em 0; }
+pre.sourceCode { margin: 0; }
+@media screen {
+div.sourceCode { overflow: auto; }
+}
+@media print {
+pre > code.sourceCode { white-space: pre-wrap; }
+pre > code.sourceCode > span { text-indent: -5em; padding-left: 5em; }
+}
+pre.numberSource code
+{ counter-reset: source-line 0; }
+pre.numberSource code > span
+{ position: relative; left: -4em; counter-increment: source-line; }
+pre.numberSource code > span > a:first-child::before
+{ content: counter(source-line);
+position: relative; left: -1em; text-align: right; vertical-align: baseline;
+border: none; display: inline-block;
+-webkit-touch-callout: none; -webkit-user-select: none;
+-khtml-user-select: none; -moz-user-select: none;
+-ms-user-select: none; user-select: none;
+padding: 0 4px; width: 4em;
+color: #aaaaaa;
+}
+pre.numberSource { margin-left: 3em; border-left: 1px solid #aaaaaa; padding-left: 4px; }
+div.sourceCode
+{ }
+@media screen {
+pre > code.sourceCode > span > a:first-child::before { text-decoration: underline; }
+}
+code span.al { color: #ff0000; font-weight: bold; } 
+code span.an { color: #60a0b0; font-weight: bold; font-style: italic; } 
+code span.at { color: #7d9029; } 
+code span.bn { color: #40a070; } 
+code span.bu { color: #008000; } 
+code span.cf { color: #007020; font-weight: bold; } 
+code span.ch { color: #4070a0; } 
+code span.cn { color: #880000; } 
+code span.co { color: #60a0b0; font-style: italic; } 
+code span.cv { color: #60a0b0; font-weight: bold; font-style: italic; } 
+code span.do { color: #ba2121; font-style: italic; } 
+code span.dt { color: #902000; } 
+code span.dv { color: #40a070; } 
+code span.er { color: #ff0000; font-weight: bold; } 
+code span.ex { } 
+code span.fl { color: #40a070; } 
+code span.fu { color: #06287e; } 
+code span.im { color: #008000; font-weight: bold; } 
+code span.in { color: #60a0b0; font-weight: bold; font-style: italic; } 
+code span.kw { color: #007020; font-weight: bold; } 
+code span.op { color: #666666; } 
+code span.ot { color: #007020; } 
+code span.pp { color: #bc7a00; } 
+code span.sc { color: #4070a0; } 
+code span.ss { color: #bb6688; } 
+code span.st { color: #4070a0; } 
+code span.va { color: #19177c; } 
+code span.vs { color: #4070a0; } 
+code span.wa { color: #60a0b0; font-weight: bold; font-style: italic; } 
+</style>
+<script>
+// apply pandoc div.sourceCode style to pre.sourceCode instead
+(function() {
+  var sheets = document.styleSheets;
+  for (var i = 0; i < sheets.length; i++) {
+    if (sheets[i].ownerNode.dataset["origin"] !== "pandoc") continue;
+    try { var rules = sheets[i].cssRules; } catch (e) { continue; }
+    var j = 0;
+    while (j < rules.length) {
+      var rule = rules[j];
+      // check if there is a div.sourceCode rule
+      if (rule.type !== rule.STYLE_RULE || rule.selectorText !== "div.sourceCode") {
+        j++;
+        continue;
+      }
+      var style = rule.style.cssText;
+      // check if color or background-color is set
+      if (rule.style.color === '' && rule.style.backgroundColor === '') {
+        j++;
+        continue;
+      }
+      // replace div.sourceCode by a pre.sourceCode rule
+      sheets[i].deleteRule(j);
+      sheets[i].insertRule('pre.sourceCode{' + style + '}', j);
+    }
+  }
+})();
+</script>
+
+
+
+
+<style type="text/css">body {
+background-color: #fff;
+margin: 1em auto;
+max-width: 700px;
+overflow: visible;
+padding-left: 2em;
+padding-right: 2em;
+font-family: "Open Sans", "Helvetica Neue", Helvetica, Arial, sans-serif;
+font-size: 14px;
+line-height: 1.35;
+}
+#TOC {
+clear: both;
+margin: 0 0 10px 10px;
+padding: 4px;
+width: 400px;
+border: 1px solid #CCCCCC;
+border-radius: 5px;
+background-color: #f6f6f6;
+font-size: 13px;
+line-height: 1.3;
+}
+#TOC .toctitle {
+font-weight: bold;
+font-size: 15px;
+margin-left: 5px;
+}
+#TOC ul {
+padding-left: 40px;
+margin-left: -1.5em;
+margin-top: 5px;
+margin-bottom: 5px;
+}
+#TOC ul ul {
+margin-left: -2em;
+}
+#TOC li {
+line-height: 16px;
+}
+table {
+margin: 1em auto;
+border-width: 1px;
+border-color: #DDDDDD;
+border-style: outset;
+border-collapse: collapse;
+}
+table th {
+border-width: 2px;
+padding: 5px;
+border-style: inset;
+}
+table td {
+border-width: 1px;
+border-style: inset;
+line-height: 18px;
+padding: 5px 5px;
+}
+table, table th, table td {
+border-left-style: none;
+border-right-style: none;
+}
+table thead, table tr.even {
+background-color: #f7f7f7;
+}
+p {
+margin: 0.5em 0;
+}
+blockquote {
+background-color: #f6f6f6;
+padding: 0.25em 0.75em;
+}
+hr {
+border-style: solid;
+border: none;
+border-top: 1px solid #777;
+margin: 28px 0;
+}
+dl {
+margin-left: 0;
+}
+dl dd {
+margin-bottom: 13px;
+margin-left: 13px;
+}
+dl dt {
+font-weight: bold;
+}
+ul {
+margin-top: 0;
+}
+ul li {
+list-style: circle outside;
+}
+ul ul {
+margin-bottom: 0;
+}
+pre, code {
+background-color: #f7f7f7;
+border-radius: 3px;
+color: #333;
+white-space: pre-wrap; 
+}
+pre {
+border-radius: 3px;
+margin: 5px 0px 10px 0px;
+padding: 10px;
+}
+pre:not([class]) {
+background-color: #f7f7f7;
+}
+code {
+font-family: Consolas, Monaco, 'Courier New', monospace;
+font-size: 85%;
+}
+p > code, li > code {
+padding: 2px 0px;
+}
+div.figure {
+text-align: center;
+}
+img {
+background-color: #FFFFFF;
+padding: 2px;
+border: 1px solid #DDDDDD;
+border-radius: 3px;
+border: 1px solid #CCCCCC;
+margin: 0 5px;
+}
+h1 {
+margin-top: 0;
+font-size: 35px;
+line-height: 40px;
+}
+h2 {
+border-bottom: 4px solid #f7f7f7;
+padding-top: 10px;
+padding-bottom: 2px;
+font-size: 145%;
+}
+h3 {
+border-bottom: 2px solid #f7f7f7;
+padding-top: 10px;
+font-size: 120%;
+}
+h4 {
+border-bottom: 1px solid #f7f7f7;
+margin-left: 8px;
+font-size: 105%;
+}
+h5, h6 {
+border-bottom: 1px solid #ccc;
+font-size: 105%;
+}
+a {
+color: #0033dd;
+text-decoration: none;
+}
+a:hover {
+color: #6666ff; }
+a:visited {
+color: #800080; }
+a:visited:hover {
+color: #BB00BB; }
+a[href^="http:"] {
+text-decoration: underline; }
+a[href^="https:"] {
+text-decoration: underline; }
+
+code > span.kw { color: #555; font-weight: bold; } 
+code > span.dt { color: #902000; } 
+code > span.dv { color: #40a070; } 
+code > span.bn { color: #d14; } 
+code > span.fl { color: #d14; } 
+code > span.ch { color: #d14; } 
+code > span.st { color: #d14; } 
+code > span.co { color: #888888; font-style: italic; } 
+code > span.ot { color: #007020; } 
+code > span.al { color: #ff0000; font-weight: bold; } 
+code > span.fu { color: #900; font-weight: bold; } 
+code > span.er { color: #a61717; background-color: #e3d2d2; } 
+</style>
+
+
+
+
+</head>
+
+<body>
+
+
+
+
+<h1 class="title toc-ignore">Market Basket Analysis</h1>
+
+
+
+<div class="sourceCode" id="cb1"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb1-1"><a href="#cb1-1" tabindex="-1"></a><span class="fu">library</span>(tidylearn)</span>
+<span id="cb1-2"><a href="#cb1-2" tabindex="-1"></a><span class="fu">library</span>(dplyr)</span></code></pre></div>
+<div id="overview" class="section level2">
+<h2>Overview</h2>
+<p>Association rule mining finds statements of the form <em>when a
+basket contains A, it tends to also contain B</em>. It is unsupervised:
+there is no response variable, and every item is a candidate on both
+sides.</p>
+<p><code>tidy_apriori()</code> wraps the Apriori algorithm from <a href="https://cran.r-project.org/package=arules">arules</a> and returns
+the rules as a tibble instead of an S4 object you have to
+<code>inspect()</code> to read. The rest of the family filters, ranks
+and applies those rules.</p>
+<p>We use <code>Groceries</code>, a month of point-of-sale data from a
+grocery outlet: 9,835 transactions over 169 item categories.</p>
+<div class="sourceCode" id="cb2"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb2-1"><a href="#cb2-1" tabindex="-1"></a><span class="fu">data</span>(<span class="st">&quot;Groceries&quot;</span>, <span class="at">package =</span> <span class="st">&quot;arules&quot;</span>)</span>
+<span id="cb2-2"><a href="#cb2-2" tabindex="-1"></a>Groceries</span>
+<span id="cb2-3"><a href="#cb2-3" tabindex="-1"></a><span class="co">#&gt; transactions in sparse format with</span></span>
+<span id="cb2-4"><a href="#cb2-4" tabindex="-1"></a><span class="co">#&gt;  9835 transactions (rows) and</span></span>
+<span id="cb2-5"><a href="#cb2-5" tabindex="-1"></a><span class="co">#&gt;  169 items (columns)</span></span></code></pre></div>
+</div>
+<div id="mining-rules" class="section level2">
+<h2>Mining Rules</h2>
+<p>Three numbers describe every rule, and two of them are thresholds you
+set up front:</p>
+<ul>
+<li><strong>Support</strong> — the fraction of all transactions
+containing the whole rule. A support floor is what makes the search
+tractable, and what stops you acting on a pattern that occurred four
+times.</li>
+<li><strong>Confidence</strong> — of the baskets containing the
+left-hand side, the fraction that also contain the right-hand side. This
+is the conditional probability.</li>
+<li><strong>Lift</strong> — confidence divided by the right-hand side’s
+own frequency. Lift of 1 means the two are independent; above 1 means
+the left-hand side makes the right-hand side more likely than
+chance.</li>
+</ul>
+<div class="sourceCode" id="cb3"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb3-1"><a href="#cb3-1" tabindex="-1"></a>rules <span class="ot">&lt;-</span> <span class="fu">tidy_apriori</span>(</span>
+<span id="cb3-2"><a href="#cb3-2" tabindex="-1"></a>  Groceries,</span>
+<span id="cb3-3"><a href="#cb3-3" tabindex="-1"></a>  <span class="at">support =</span> <span class="fl">0.001</span>,      <span class="co"># at least ~10 of the 9,835 transactions</span></span>
+<span id="cb3-4"><a href="#cb3-4" tabindex="-1"></a>  <span class="at">confidence =</span> <span class="fl">0.5</span>,     <span class="co"># right-hand side follows at least half the time</span></span>
+<span id="cb3-5"><a href="#cb3-5" tabindex="-1"></a>  <span class="at">minlen =</span> <span class="dv">2</span>            <span class="co"># rules with something on both sides</span></span>
+<span id="cb3-6"><a href="#cb3-6" tabindex="-1"></a>)</span>
+<span id="cb3-7"><a href="#cb3-7" tabindex="-1"></a><span class="co">#&gt; Apriori</span></span>
+<span id="cb3-8"><a href="#cb3-8" tabindex="-1"></a><span class="co">#&gt; </span></span>
+<span id="cb3-9"><a href="#cb3-9" tabindex="-1"></a><span class="co">#&gt; Parameter specification:</span></span>
+<span id="cb3-10"><a href="#cb3-10" tabindex="-1"></a><span class="co">#&gt;  confidence minval smax arem  aval originalSupport maxtime support minlen</span></span>
+<span id="cb3-11"><a href="#cb3-11" tabindex="-1"></a><span class="co">#&gt;         0.5    0.1    1 none FALSE            TRUE       5   0.001      2</span></span>
+<span id="cb3-12"><a href="#cb3-12" tabindex="-1"></a><span class="co">#&gt;  maxlen target  ext</span></span>
+<span id="cb3-13"><a href="#cb3-13" tabindex="-1"></a><span class="co">#&gt;      10  rules TRUE</span></span>
+<span id="cb3-14"><a href="#cb3-14" tabindex="-1"></a><span class="co">#&gt; </span></span>
+<span id="cb3-15"><a href="#cb3-15" tabindex="-1"></a><span class="co">#&gt; Algorithmic control:</span></span>
+<span id="cb3-16"><a href="#cb3-16" tabindex="-1"></a><span class="co">#&gt;  filter tree heap memopt load sort verbose</span></span>
+<span id="cb3-17"><a href="#cb3-17" tabindex="-1"></a><span class="co">#&gt;     0.1 TRUE TRUE  FALSE TRUE    2    TRUE</span></span>
+<span id="cb3-18"><a href="#cb3-18" tabindex="-1"></a><span class="co">#&gt; </span></span>
+<span id="cb3-19"><a href="#cb3-19" tabindex="-1"></a><span class="co">#&gt; Absolute minimum support count: 9 </span></span>
+<span id="cb3-20"><a href="#cb3-20" tabindex="-1"></a><span class="co">#&gt; </span></span>
+<span id="cb3-21"><a href="#cb3-21" tabindex="-1"></a><span class="co">#&gt; set item appearances ...[0 item(s)] done [0.00s].</span></span>
+<span id="cb3-22"><a href="#cb3-22" tabindex="-1"></a><span class="co">#&gt; set transactions ...[169 item(s), 9835 transaction(s)] done [0.00s].</span></span>
+<span id="cb3-23"><a href="#cb3-23" tabindex="-1"></a><span class="co">#&gt; sorting and recoding items ... [157 item(s)] done [0.00s].</span></span>
+<span id="cb3-24"><a href="#cb3-24" tabindex="-1"></a><span class="co">#&gt; creating transaction tree ... done [0.00s].</span></span>
+<span id="cb3-25"><a href="#cb3-25" tabindex="-1"></a><span class="co">#&gt; checking subsets of size 1 2 3 4 5 6 done [0.01s].</span></span>
+<span id="cb3-26"><a href="#cb3-26" tabindex="-1"></a><span class="co">#&gt; writing ... [5668 rule(s)] done [0.00s].</span></span>
+<span id="cb3-27"><a href="#cb3-27" tabindex="-1"></a><span class="co">#&gt; creating S4 object  ... done [0.00s].</span></span></code></pre></div>
+<div class="sourceCode" id="cb4"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb4-1"><a href="#cb4-1" tabindex="-1"></a><span class="fu">print</span>(rules)</span>
+<span id="cb4-2"><a href="#cb4-2" tabindex="-1"></a><span class="co">#&gt; Tidy Apriori Results</span></span>
+<span id="cb4-3"><a href="#cb4-3" tabindex="-1"></a><span class="co">#&gt; ====================</span></span>
+<span id="cb4-4"><a href="#cb4-4" tabindex="-1"></a><span class="co">#&gt; </span></span>
+<span id="cb4-5"><a href="#cb4-5" tabindex="-1"></a><span class="co">#&gt; Parameters:</span></span>
+<span id="cb4-6"><a href="#cb4-6" tabindex="-1"></a><span class="co">#&gt;   Minimum support:    0.001 </span></span>
+<span id="cb4-7"><a href="#cb4-7" tabindex="-1"></a><span class="co">#&gt;   Minimum confidence: 0.5 </span></span>
+<span id="cb4-8"><a href="#cb4-8" tabindex="-1"></a><span class="co">#&gt;   Rule length:        2 - 10 </span></span>
+<span id="cb4-9"><a href="#cb4-9" tabindex="-1"></a><span class="co">#&gt; </span></span>
+<span id="cb4-10"><a href="#cb4-10" tabindex="-1"></a><span class="co">#&gt; Results:</span></span>
+<span id="cb4-11"><a href="#cb4-11" tabindex="-1"></a><span class="co">#&gt;   Number of rules: 5668 </span></span>
+<span id="cb4-12"><a href="#cb4-12" tabindex="-1"></a><span class="co">#&gt; </span></span>
+<span id="cb4-13"><a href="#cb4-13" tabindex="-1"></a><span class="co">#&gt; Quality Measure Summary:</span></span>
+<span id="cb4-14"><a href="#cb4-14" tabindex="-1"></a><span class="co">#&gt;   Support:     0.0010 - 0.0223 (mean: 0.0017) </span></span>
+<span id="cb4-15"><a href="#cb4-15" tabindex="-1"></a><span class="co">#&gt;   Confidence:  0.5000 - 1.0000 (mean: 0.6250) </span></span>
+<span id="cb4-16"><a href="#cb4-16" tabindex="-1"></a><span class="co">#&gt;   Lift:        1.96 - 19.00 (mean: 3.26) </span></span>
+<span id="cb4-17"><a href="#cb4-17" tabindex="-1"></a><span class="co">#&gt; </span></span>
+<span id="cb4-18"><a href="#cb4-18" tabindex="-1"></a><span class="co">#&gt; Top 5 rules by lift:</span></span>
+<span id="cb4-19"><a href="#cb4-19" tabindex="-1"></a><span class="co">#&gt; # A tibble: 5 × 8</span></span>
+<span id="cb4-20"><a href="#cb4-20" tabindex="-1"></a><span class="co">#&gt;   rule_id lhs                      rhs   support confidence coverage  lift count</span></span>
+<span id="cb4-21"><a href="#cb4-21" tabindex="-1"></a><span class="co">#&gt;     &lt;int&gt; &lt;chr&gt;                    &lt;chr&gt;   &lt;dbl&gt;      &lt;dbl&gt;    &lt;dbl&gt; &lt;dbl&gt; &lt;int&gt;</span></span>
+<span id="cb4-22"><a href="#cb4-22" tabindex="-1"></a><span class="co">#&gt; 1      53 {Instant food products,… {ham… 0.00122      0.632  0.00193  19.0    12</span></span>
+<span id="cb4-23"><a href="#cb4-23" tabindex="-1"></a><span class="co">#&gt; 2      37 {soda,popcorn}           {sal… 0.00122      0.632  0.00193  16.7    12</span></span>
+<span id="cb4-24"><a href="#cb4-24" tabindex="-1"></a><span class="co">#&gt; 3     444 {flour,baking powder}    {sug… 0.00102      0.556  0.00183  16.4    10</span></span>
+<span id="cb4-25"><a href="#cb4-25" tabindex="-1"></a><span class="co">#&gt; 4     327 {ham,processed cheese}   {whi… 0.00193      0.633  0.00305  15.0    19</span></span>
+<span id="cb4-26"><a href="#cb4-26" tabindex="-1"></a><span class="co">#&gt; 5      55 {whole milk,Instant foo… {ham… 0.00153      0.5    0.00305  15.0    15</span></span>
+<span id="cb4-27"><a href="#cb4-27" tabindex="-1"></a><span class="co">#&gt; </span></span>
+<span id="cb4-28"><a href="#cb4-28" tabindex="-1"></a><span class="co">#&gt; Use inspect_rules() to view more rules</span></span>
+<span id="cb4-29"><a href="#cb4-29" tabindex="-1"></a><span class="co">#&gt; Use visualize_rules() to create visualizations</span></span></code></pre></div>
+<p>The tibble is the part you work with:</p>
+<div class="sourceCode" id="cb5"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb5-1"><a href="#cb5-1" tabindex="-1"></a>rules<span class="sc">$</span>rules_tbl</span>
+<span id="cb5-2"><a href="#cb5-2" tabindex="-1"></a><span class="co">#&gt; # A tibble: 5,668 × 8</span></span>
+<span id="cb5-3"><a href="#cb5-3" tabindex="-1"></a><span class="co">#&gt;    rule_id lhs                 rhs       support confidence coverage  lift count</span></span>
+<span id="cb5-4"><a href="#cb5-4" tabindex="-1"></a><span class="co">#&gt;      &lt;int&gt; &lt;chr&gt;               &lt;chr&gt;       &lt;dbl&gt;      &lt;dbl&gt;    &lt;dbl&gt; &lt;dbl&gt; &lt;int&gt;</span></span>
+<span id="cb5-5"><a href="#cb5-5" tabindex="-1"></a><span class="co">#&gt;  1       1 {honey}             {whole m… 0.00112      0.733  0.00153  2.87    11</span></span>
+<span id="cb5-6"><a href="#cb5-6" tabindex="-1"></a><span class="co">#&gt;  2       2 {tidbits}           {rolls/b… 0.00122      0.522  0.00234  2.84    12</span></span>
+<span id="cb5-7"><a href="#cb5-7" tabindex="-1"></a><span class="co">#&gt;  3       3 {cocoa drinks}      {whole m… 0.00132      0.591  0.00224  2.31    13</span></span>
+<span id="cb5-8"><a href="#cb5-8" tabindex="-1"></a><span class="co">#&gt;  4       4 {pudding powder}    {whole m… 0.00132      0.565  0.00234  2.21    13</span></span>
+<span id="cb5-9"><a href="#cb5-9" tabindex="-1"></a><span class="co">#&gt;  5       5 {cooking chocolate} {whole m… 0.00132      0.52   0.00254  2.04    13</span></span>
+<span id="cb5-10"><a href="#cb5-10" tabindex="-1"></a><span class="co">#&gt;  6       6 {cereals}           {whole m… 0.00366      0.643  0.00569  2.52    36</span></span>
+<span id="cb5-11"><a href="#cb5-11" tabindex="-1"></a><span class="co">#&gt;  7       7 {jam}               {whole m… 0.00295      0.547  0.00539  2.14    29</span></span>
+<span id="cb5-12"><a href="#cb5-12" tabindex="-1"></a><span class="co">#&gt;  8       8 {specialty cheese}  {other v… 0.00427      0.5    0.00854  2.58    42</span></span>
+<span id="cb5-13"><a href="#cb5-13" tabindex="-1"></a><span class="co">#&gt;  9       9 {rice}              {other v… 0.00397      0.52   0.00763  2.69    39</span></span>
+<span id="cb5-14"><a href="#cb5-14" tabindex="-1"></a><span class="co">#&gt; 10      10 {rice}              {whole m… 0.00468      0.613  0.00763  2.40    46</span></span>
+<span id="cb5-15"><a href="#cb5-15" tabindex="-1"></a><span class="co">#&gt; # ℹ 5,658 more rows</span></span></code></pre></div>
+<div class="sourceCode" id="cb6"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb6-1"><a href="#cb6-1" tabindex="-1"></a><span class="fu">names</span>(rules)</span>
+<span id="cb6-2"><a href="#cb6-2" tabindex="-1"></a><span class="co">#&gt; [1] &quot;rules_tbl&quot;  &quot;rules&quot;      &quot;parameters&quot; &quot;n_rules&quot;</span></span></code></pre></div>
+<p><code>$rules</code> holds the underlying arules object for anything
+the tidy layer does not cover, in the same way <code>$fit</code> does
+for <code>tl_model()</code>.</p>
+<div id="choosing-the-thresholds" class="section level3">
+<h3>Choosing the thresholds</h3>
+<p>Support and confidence trade recall against volume, and the trade is
+steep.</p>
+<div class="sourceCode" id="cb7"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb7-1"><a href="#cb7-1" tabindex="-1"></a>grid <span class="ot">&lt;-</span> <span class="fu">expand.grid</span>(</span>
+<span id="cb7-2"><a href="#cb7-2" tabindex="-1"></a>  <span class="at">support =</span> <span class="fu">c</span>(<span class="fl">0.001</span>, <span class="fl">0.005</span>, <span class="fl">0.01</span>),</span>
+<span id="cb7-3"><a href="#cb7-3" tabindex="-1"></a>  <span class="at">confidence =</span> <span class="fu">c</span>(<span class="fl">0.3</span>, <span class="fl">0.5</span>, <span class="fl">0.7</span>)</span>
+<span id="cb7-4"><a href="#cb7-4" tabindex="-1"></a>)</span>
+<span id="cb7-5"><a href="#cb7-5" tabindex="-1"></a></span>
+<span id="cb7-6"><a href="#cb7-6" tabindex="-1"></a>grid<span class="sc">$</span>n_rules <span class="ot">&lt;-</span> <span class="fu">mapply</span>(<span class="cf">function</span>(s, c) {</span>
+<span id="cb7-7"><a href="#cb7-7" tabindex="-1"></a>  <span class="fu">tidy_apriori</span>(Groceries, <span class="at">support =</span> s, <span class="at">confidence =</span> c)<span class="sc">$</span>n_rules</span>
+<span id="cb7-8"><a href="#cb7-8" tabindex="-1"></a>}, grid<span class="sc">$</span>support, grid<span class="sc">$</span>confidence)</span>
+<span id="cb7-9"><a href="#cb7-9" tabindex="-1"></a><span class="co">#&gt; Apriori</span></span>
+<span id="cb7-10"><a href="#cb7-10" tabindex="-1"></a><span class="co">#&gt; </span></span>
+<span id="cb7-11"><a href="#cb7-11" tabindex="-1"></a><span class="co">#&gt; Parameter specification:</span></span>
+<span id="cb7-12"><a href="#cb7-12" tabindex="-1"></a><span class="co">#&gt;  confidence minval smax arem  aval originalSupport maxtime support minlen</span></span>
+<span id="cb7-13"><a href="#cb7-13" tabindex="-1"></a><span class="co">#&gt;         0.3    0.1    1 none FALSE            TRUE       5   0.001      2</span></span>
+<span id="cb7-14"><a href="#cb7-14" tabindex="-1"></a><span class="co">#&gt;  maxlen target  ext</span></span>
+<span id="cb7-15"><a href="#cb7-15" tabindex="-1"></a><span class="co">#&gt;      10  rules TRUE</span></span>
+<span id="cb7-16"><a href="#cb7-16" tabindex="-1"></a><span class="co">#&gt; </span></span>
+<span id="cb7-17"><a href="#cb7-17" tabindex="-1"></a><span class="co">#&gt; Algorithmic control:</span></span>
+<span id="cb7-18"><a href="#cb7-18" tabindex="-1"></a><span class="co">#&gt;  filter tree heap memopt load sort verbose</span></span>
+<span id="cb7-19"><a href="#cb7-19" tabindex="-1"></a><span class="co">#&gt;     0.1 TRUE TRUE  FALSE TRUE    2    TRUE</span></span>
+<span id="cb7-20"><a href="#cb7-20" tabindex="-1"></a><span class="co">#&gt; </span></span>
+<span id="cb7-21"><a href="#cb7-21" tabindex="-1"></a><span class="co">#&gt; Absolute minimum support count: 9 </span></span>
+<span id="cb7-22"><a href="#cb7-22" tabindex="-1"></a><span class="co">#&gt; </span></span>
+<span id="cb7-23"><a href="#cb7-23" tabindex="-1"></a><span class="co">#&gt; set item appearances ...[0 item(s)] done [0.00s].</span></span>
+<span id="cb7-24"><a href="#cb7-24" tabindex="-1"></a><span class="co">#&gt; set transactions ...[169 item(s), 9835 transaction(s)] done [0.00s].</span></span>
+<span id="cb7-25"><a href="#cb7-25" tabindex="-1"></a><span class="co">#&gt; sorting and recoding items ... [157 item(s)] done [0.00s].</span></span>
+<span id="cb7-26"><a href="#cb7-26" tabindex="-1"></a><span class="co">#&gt; creating transaction tree ... done [0.00s].</span></span>
+<span id="cb7-27"><a href="#cb7-27" tabindex="-1"></a><span class="co">#&gt; checking subsets of size 1 2 3 4 5 6 done [0.01s].</span></span>
+<span id="cb7-28"><a href="#cb7-28" tabindex="-1"></a><span class="co">#&gt; writing ... [13770 rule(s)] done [0.00s].</span></span>
+<span id="cb7-29"><a href="#cb7-29" tabindex="-1"></a><span class="co">#&gt; creating S4 object  ... done [0.00s].</span></span>
+<span id="cb7-30"><a href="#cb7-30" tabindex="-1"></a><span class="co">#&gt; Apriori</span></span>
+<span id="cb7-31"><a href="#cb7-31" tabindex="-1"></a><span class="co">#&gt; </span></span>
+<span id="cb7-32"><a href="#cb7-32" tabindex="-1"></a><span class="co">#&gt; Parameter specification:</span></span>
+<span id="cb7-33"><a href="#cb7-33" tabindex="-1"></a><span class="co">#&gt;  confidence minval smax arem  aval originalSupport maxtime support minlen</span></span>
+<span id="cb7-34"><a href="#cb7-34" tabindex="-1"></a><span class="co">#&gt;         0.3    0.1    1 none FALSE            TRUE       5   0.005      2</span></span>
+<span id="cb7-35"><a href="#cb7-35" tabindex="-1"></a><span class="co">#&gt;  maxlen target  ext</span></span>
+<span id="cb7-36"><a href="#cb7-36" tabindex="-1"></a><span class="co">#&gt;      10  rules TRUE</span></span>
+<span id="cb7-37"><a href="#cb7-37" tabindex="-1"></a><span class="co">#&gt; </span></span>
+<span id="cb7-38"><a href="#cb7-38" tabindex="-1"></a><span class="co">#&gt; Algorithmic control:</span></span>
+<span id="cb7-39"><a href="#cb7-39" tabindex="-1"></a><span class="co">#&gt;  filter tree heap memopt load sort verbose</span></span>
+<span id="cb7-40"><a href="#cb7-40" tabindex="-1"></a><span class="co">#&gt;     0.1 TRUE TRUE  FALSE TRUE    2    TRUE</span></span>
+<span id="cb7-41"><a href="#cb7-41" tabindex="-1"></a><span class="co">#&gt; </span></span>
+<span id="cb7-42"><a href="#cb7-42" tabindex="-1"></a><span class="co">#&gt; Absolute minimum support count: 49 </span></span>
+<span id="cb7-43"><a href="#cb7-43" tabindex="-1"></a><span class="co">#&gt; </span></span>
+<span id="cb7-44"><a href="#cb7-44" tabindex="-1"></a><span class="co">#&gt; set item appearances ...[0 item(s)] done [0.00s].</span></span>
+<span id="cb7-45"><a href="#cb7-45" tabindex="-1"></a><span class="co">#&gt; set transactions ...[169 item(s), 9835 transaction(s)] done [0.00s].</span></span>
+<span id="cb7-46"><a href="#cb7-46" tabindex="-1"></a><span class="co">#&gt; sorting and recoding items ... [120 item(s)] done [0.00s].</span></span>
+<span id="cb7-47"><a href="#cb7-47" tabindex="-1"></a><span class="co">#&gt; creating transaction tree ... done [0.00s].</span></span>
+<span id="cb7-48"><a href="#cb7-48" tabindex="-1"></a><span class="co">#&gt; checking subsets of size 1 2 3 4 done [0.00s].</span></span>
+<span id="cb7-49"><a href="#cb7-49" tabindex="-1"></a><span class="co">#&gt; writing ... [482 rule(s)] done [0.00s].</span></span>
+<span id="cb7-50"><a href="#cb7-50" tabindex="-1"></a><span class="co">#&gt; creating S4 object  ... done [0.00s].</span></span>
+<span id="cb7-51"><a href="#cb7-51" tabindex="-1"></a><span class="co">#&gt; Apriori</span></span>
+<span id="cb7-52"><a href="#cb7-52" tabindex="-1"></a><span class="co">#&gt; </span></span>
+<span id="cb7-53"><a href="#cb7-53" tabindex="-1"></a><span class="co">#&gt; Parameter specification:</span></span>
+<span id="cb7-54"><a href="#cb7-54" tabindex="-1"></a><span class="co">#&gt;  confidence minval smax arem  aval originalSupport maxtime support minlen</span></span>
+<span id="cb7-55"><a href="#cb7-55" tabindex="-1"></a><span class="co">#&gt;         0.3    0.1    1 none FALSE            TRUE       5    0.01      2</span></span>
+<span id="cb7-56"><a href="#cb7-56" tabindex="-1"></a><span class="co">#&gt;  maxlen target  ext</span></span>
+<span id="cb7-57"><a href="#cb7-57" tabindex="-1"></a><span class="co">#&gt;      10  rules TRUE</span></span>
+<span id="cb7-58"><a href="#cb7-58" tabindex="-1"></a><span class="co">#&gt; </span></span>
+<span id="cb7-59"><a href="#cb7-59" tabindex="-1"></a><span class="co">#&gt; Algorithmic control:</span></span>
+<span id="cb7-60"><a href="#cb7-60" tabindex="-1"></a><span class="co">#&gt;  filter tree heap memopt load sort verbose</span></span>
+<span id="cb7-61"><a href="#cb7-61" tabindex="-1"></a><span class="co">#&gt;     0.1 TRUE TRUE  FALSE TRUE    2    TRUE</span></span>
+<span id="cb7-62"><a href="#cb7-62" tabindex="-1"></a><span class="co">#&gt; </span></span>
+<span id="cb7-63"><a href="#cb7-63" tabindex="-1"></a><span class="co">#&gt; Absolute minimum support count: 98 </span></span>
+<span id="cb7-64"><a href="#cb7-64" tabindex="-1"></a><span class="co">#&gt; </span></span>
+<span id="cb7-65"><a href="#cb7-65" tabindex="-1"></a><span class="co">#&gt; set item appearances ...[0 item(s)] done [0.00s].</span></span>
+<span id="cb7-66"><a href="#cb7-66" tabindex="-1"></a><span class="co">#&gt; set transactions ...[169 item(s), 9835 transaction(s)] done [0.00s].</span></span>
+<span id="cb7-67"><a href="#cb7-67" tabindex="-1"></a><span class="co">#&gt; sorting and recoding items ... [88 item(s)] done [0.00s].</span></span>
+<span id="cb7-68"><a href="#cb7-68" tabindex="-1"></a><span class="co">#&gt; creating transaction tree ... done [0.00s].</span></span>
+<span id="cb7-69"><a href="#cb7-69" tabindex="-1"></a><span class="co">#&gt; checking subsets of size 1 2 3 4 done [0.00s].</span></span>
+<span id="cb7-70"><a href="#cb7-70" tabindex="-1"></a><span class="co">#&gt; writing ... [125 rule(s)] done [0.00s].</span></span>
+<span id="cb7-71"><a href="#cb7-71" tabindex="-1"></a><span class="co">#&gt; creating S4 object  ... done [0.00s].</span></span>
+<span id="cb7-72"><a href="#cb7-72" tabindex="-1"></a><span class="co">#&gt; Apriori</span></span>
+<span id="cb7-73"><a href="#cb7-73" tabindex="-1"></a><span class="co">#&gt; </span></span>
+<span id="cb7-74"><a href="#cb7-74" tabindex="-1"></a><span class="co">#&gt; Parameter specification:</span></span>
+<span id="cb7-75"><a href="#cb7-75" tabindex="-1"></a><span class="co">#&gt;  confidence minval smax arem  aval originalSupport maxtime support minlen</span></span>
+<span id="cb7-76"><a href="#cb7-76" tabindex="-1"></a><span class="co">#&gt;         0.5    0.1    1 none FALSE            TRUE       5   0.001      2</span></span>
+<span id="cb7-77"><a href="#cb7-77" tabindex="-1"></a><span class="co">#&gt;  maxlen target  ext</span></span>
+<span id="cb7-78"><a href="#cb7-78" tabindex="-1"></a><span class="co">#&gt;      10  rules TRUE</span></span>
+<span id="cb7-79"><a href="#cb7-79" tabindex="-1"></a><span class="co">#&gt; </span></span>
+<span id="cb7-80"><a href="#cb7-80" tabindex="-1"></a><span class="co">#&gt; Algorithmic control:</span></span>
+<span id="cb7-81"><a href="#cb7-81" tabindex="-1"></a><span class="co">#&gt;  filter tree heap memopt load sort verbose</span></span>
+<span id="cb7-82"><a href="#cb7-82" tabindex="-1"></a><span class="co">#&gt;     0.1 TRUE TRUE  FALSE TRUE    2    TRUE</span></span>
+<span id="cb7-83"><a href="#cb7-83" tabindex="-1"></a><span class="co">#&gt; </span></span>
+<span id="cb7-84"><a href="#cb7-84" tabindex="-1"></a><span class="co">#&gt; Absolute minimum support count: 9 </span></span>
+<span id="cb7-85"><a href="#cb7-85" tabindex="-1"></a><span class="co">#&gt; </span></span>
+<span id="cb7-86"><a href="#cb7-86" tabindex="-1"></a><span class="co">#&gt; set item appearances ...[0 item(s)] done [0.00s].</span></span>
+<span id="cb7-87"><a href="#cb7-87" tabindex="-1"></a><span class="co">#&gt; set transactions ...[169 item(s), 9835 transaction(s)] done [0.00s].</span></span>
+<span id="cb7-88"><a href="#cb7-88" tabindex="-1"></a><span class="co">#&gt; sorting and recoding items ... [157 item(s)] done [0.00s].</span></span>
+<span id="cb7-89"><a href="#cb7-89" tabindex="-1"></a><span class="co">#&gt; creating transaction tree ... done [0.00s].</span></span>
+<span id="cb7-90"><a href="#cb7-90" tabindex="-1"></a><span class="co">#&gt; checking subsets of size 1 2 3 4 5 6 done [0.01s].</span></span>
+<span id="cb7-91"><a href="#cb7-91" tabindex="-1"></a><span class="co">#&gt; writing ... [5668 rule(s)] done [0.00s].</span></span>
+<span id="cb7-92"><a href="#cb7-92" tabindex="-1"></a><span class="co">#&gt; creating S4 object  ... done [0.00s].</span></span>
+<span id="cb7-93"><a href="#cb7-93" tabindex="-1"></a><span class="co">#&gt; Apriori</span></span>
+<span id="cb7-94"><a href="#cb7-94" tabindex="-1"></a><span class="co">#&gt; </span></span>
+<span id="cb7-95"><a href="#cb7-95" tabindex="-1"></a><span class="co">#&gt; Parameter specification:</span></span>
+<span id="cb7-96"><a href="#cb7-96" tabindex="-1"></a><span class="co">#&gt;  confidence minval smax arem  aval originalSupport maxtime support minlen</span></span>
+<span id="cb7-97"><a href="#cb7-97" tabindex="-1"></a><span class="co">#&gt;         0.5    0.1    1 none FALSE            TRUE       5   0.005      2</span></span>
+<span id="cb7-98"><a href="#cb7-98" tabindex="-1"></a><span class="co">#&gt;  maxlen target  ext</span></span>
+<span id="cb7-99"><a href="#cb7-99" tabindex="-1"></a><span class="co">#&gt;      10  rules TRUE</span></span>
+<span id="cb7-100"><a href="#cb7-100" tabindex="-1"></a><span class="co">#&gt; </span></span>
+<span id="cb7-101"><a href="#cb7-101" tabindex="-1"></a><span class="co">#&gt; Algorithmic control:</span></span>
+<span id="cb7-102"><a href="#cb7-102" tabindex="-1"></a><span class="co">#&gt;  filter tree heap memopt load sort verbose</span></span>
+<span id="cb7-103"><a href="#cb7-103" tabindex="-1"></a><span class="co">#&gt;     0.1 TRUE TRUE  FALSE TRUE    2    TRUE</span></span>
+<span id="cb7-104"><a href="#cb7-104" tabindex="-1"></a><span class="co">#&gt; </span></span>
+<span id="cb7-105"><a href="#cb7-105" tabindex="-1"></a><span class="co">#&gt; Absolute minimum support count: 49 </span></span>
+<span id="cb7-106"><a href="#cb7-106" tabindex="-1"></a><span class="co">#&gt; </span></span>
+<span id="cb7-107"><a href="#cb7-107" tabindex="-1"></a><span class="co">#&gt; set item appearances ...[0 item(s)] done [0.00s].</span></span>
+<span id="cb7-108"><a href="#cb7-108" tabindex="-1"></a><span class="co">#&gt; set transactions ...[169 item(s), 9835 transaction(s)] done [0.00s].</span></span>
+<span id="cb7-109"><a href="#cb7-109" tabindex="-1"></a><span class="co">#&gt; sorting and recoding items ... [120 item(s)] done [0.00s].</span></span>
+<span id="cb7-110"><a href="#cb7-110" tabindex="-1"></a><span class="co">#&gt; creating transaction tree ... done [0.00s].</span></span>
+<span id="cb7-111"><a href="#cb7-111" tabindex="-1"></a><span class="co">#&gt; checking subsets of size 1 2 3 4 done [0.00s].</span></span>
+<span id="cb7-112"><a href="#cb7-112" tabindex="-1"></a><span class="co">#&gt; writing ... [120 rule(s)] done [0.00s].</span></span>
+<span id="cb7-113"><a href="#cb7-113" tabindex="-1"></a><span class="co">#&gt; creating S4 object  ... done [0.00s].</span></span>
+<span id="cb7-114"><a href="#cb7-114" tabindex="-1"></a><span class="co">#&gt; Apriori</span></span>
+<span id="cb7-115"><a href="#cb7-115" tabindex="-1"></a><span class="co">#&gt; </span></span>
+<span id="cb7-116"><a href="#cb7-116" tabindex="-1"></a><span class="co">#&gt; Parameter specification:</span></span>
+<span id="cb7-117"><a href="#cb7-117" tabindex="-1"></a><span class="co">#&gt;  confidence minval smax arem  aval originalSupport maxtime support minlen</span></span>
+<span id="cb7-118"><a href="#cb7-118" tabindex="-1"></a><span class="co">#&gt;         0.5    0.1    1 none FALSE            TRUE       5    0.01      2</span></span>
+<span id="cb7-119"><a href="#cb7-119" tabindex="-1"></a><span class="co">#&gt;  maxlen target  ext</span></span>
+<span id="cb7-120"><a href="#cb7-120" tabindex="-1"></a><span class="co">#&gt;      10  rules TRUE</span></span>
+<span id="cb7-121"><a href="#cb7-121" tabindex="-1"></a><span class="co">#&gt; </span></span>
+<span id="cb7-122"><a href="#cb7-122" tabindex="-1"></a><span class="co">#&gt; Algorithmic control:</span></span>
+<span id="cb7-123"><a href="#cb7-123" tabindex="-1"></a><span class="co">#&gt;  filter tree heap memopt load sort verbose</span></span>
+<span id="cb7-124"><a href="#cb7-124" tabindex="-1"></a><span class="co">#&gt;     0.1 TRUE TRUE  FALSE TRUE    2    TRUE</span></span>
+<span id="cb7-125"><a href="#cb7-125" tabindex="-1"></a><span class="co">#&gt; </span></span>
+<span id="cb7-126"><a href="#cb7-126" tabindex="-1"></a><span class="co">#&gt; Absolute minimum support count: 98 </span></span>
+<span id="cb7-127"><a href="#cb7-127" tabindex="-1"></a><span class="co">#&gt; </span></span>
+<span id="cb7-128"><a href="#cb7-128" tabindex="-1"></a><span class="co">#&gt; set item appearances ...[0 item(s)] done [0.00s].</span></span>
+<span id="cb7-129"><a href="#cb7-129" tabindex="-1"></a><span class="co">#&gt; set transactions ...[169 item(s), 9835 transaction(s)] done [0.00s].</span></span>
+<span id="cb7-130"><a href="#cb7-130" tabindex="-1"></a><span class="co">#&gt; sorting and recoding items ... [88 item(s)] done [0.00s].</span></span>
+<span id="cb7-131"><a href="#cb7-131" tabindex="-1"></a><span class="co">#&gt; creating transaction tree ... done [0.00s].</span></span>
+<span id="cb7-132"><a href="#cb7-132" tabindex="-1"></a><span class="co">#&gt; checking subsets of size 1 2 3 4 done [0.00s].</span></span>
+<span id="cb7-133"><a href="#cb7-133" tabindex="-1"></a><span class="co">#&gt; writing ... [15 rule(s)] done [0.00s].</span></span>
+<span id="cb7-134"><a href="#cb7-134" tabindex="-1"></a><span class="co">#&gt; creating S4 object  ... done [0.00s].</span></span>
+<span id="cb7-135"><a href="#cb7-135" tabindex="-1"></a><span class="co">#&gt; Apriori</span></span>
+<span id="cb7-136"><a href="#cb7-136" tabindex="-1"></a><span class="co">#&gt; </span></span>
+<span id="cb7-137"><a href="#cb7-137" tabindex="-1"></a><span class="co">#&gt; Parameter specification:</span></span>
+<span id="cb7-138"><a href="#cb7-138" tabindex="-1"></a><span class="co">#&gt;  confidence minval smax arem  aval originalSupport maxtime support minlen</span></span>
+<span id="cb7-139"><a href="#cb7-139" tabindex="-1"></a><span class="co">#&gt;         0.7    0.1    1 none FALSE            TRUE       5   0.001      2</span></span>
+<span id="cb7-140"><a href="#cb7-140" tabindex="-1"></a><span class="co">#&gt;  maxlen target  ext</span></span>
+<span id="cb7-141"><a href="#cb7-141" tabindex="-1"></a><span class="co">#&gt;      10  rules TRUE</span></span>
+<span id="cb7-142"><a href="#cb7-142" tabindex="-1"></a><span class="co">#&gt; </span></span>
+<span id="cb7-143"><a href="#cb7-143" tabindex="-1"></a><span class="co">#&gt; Algorithmic control:</span></span>
+<span id="cb7-144"><a href="#cb7-144" tabindex="-1"></a><span class="co">#&gt;  filter tree heap memopt load sort verbose</span></span>
+<span id="cb7-145"><a href="#cb7-145" tabindex="-1"></a><span class="co">#&gt;     0.1 TRUE TRUE  FALSE TRUE    2    TRUE</span></span>
+<span id="cb7-146"><a href="#cb7-146" tabindex="-1"></a><span class="co">#&gt; </span></span>
+<span id="cb7-147"><a href="#cb7-147" tabindex="-1"></a><span class="co">#&gt; Absolute minimum support count: 9 </span></span>
+<span id="cb7-148"><a href="#cb7-148" tabindex="-1"></a><span class="co">#&gt; </span></span>
+<span id="cb7-149"><a href="#cb7-149" tabindex="-1"></a><span class="co">#&gt; set item appearances ...[0 item(s)] done [0.00s].</span></span>
+<span id="cb7-150"><a href="#cb7-150" tabindex="-1"></a><span class="co">#&gt; set transactions ...[169 item(s), 9835 transaction(s)] done [0.00s].</span></span>
+<span id="cb7-151"><a href="#cb7-151" tabindex="-1"></a><span class="co">#&gt; sorting and recoding items ... [157 item(s)] done [0.00s].</span></span>
+<span id="cb7-152"><a href="#cb7-152" tabindex="-1"></a><span class="co">#&gt; creating transaction tree ... done [0.00s].</span></span>
+<span id="cb7-153"><a href="#cb7-153" tabindex="-1"></a><span class="co">#&gt; checking subsets of size 1 2 3 4 5 6 done [0.01s].</span></span>
+<span id="cb7-154"><a href="#cb7-154" tabindex="-1"></a><span class="co">#&gt; writing ... [1279 rule(s)] done [0.00s].</span></span>
+<span id="cb7-155"><a href="#cb7-155" tabindex="-1"></a><span class="co">#&gt; creating S4 object  ... done [0.00s].</span></span>
+<span id="cb7-156"><a href="#cb7-156" tabindex="-1"></a><span class="co">#&gt; Apriori</span></span>
+<span id="cb7-157"><a href="#cb7-157" tabindex="-1"></a><span class="co">#&gt; </span></span>
+<span id="cb7-158"><a href="#cb7-158" tabindex="-1"></a><span class="co">#&gt; Parameter specification:</span></span>
+<span id="cb7-159"><a href="#cb7-159" tabindex="-1"></a><span class="co">#&gt;  confidence minval smax arem  aval originalSupport maxtime support minlen</span></span>
+<span id="cb7-160"><a href="#cb7-160" tabindex="-1"></a><span class="co">#&gt;         0.7    0.1    1 none FALSE            TRUE       5   0.005      2</span></span>
+<span id="cb7-161"><a href="#cb7-161" tabindex="-1"></a><span class="co">#&gt;  maxlen target  ext</span></span>
+<span id="cb7-162"><a href="#cb7-162" tabindex="-1"></a><span class="co">#&gt;      10  rules TRUE</span></span>
+<span id="cb7-163"><a href="#cb7-163" tabindex="-1"></a><span class="co">#&gt; </span></span>
+<span id="cb7-164"><a href="#cb7-164" tabindex="-1"></a><span class="co">#&gt; Algorithmic control:</span></span>
+<span id="cb7-165"><a href="#cb7-165" tabindex="-1"></a><span class="co">#&gt;  filter tree heap memopt load sort verbose</span></span>
+<span id="cb7-166"><a href="#cb7-166" tabindex="-1"></a><span class="co">#&gt;     0.1 TRUE TRUE  FALSE TRUE    2    TRUE</span></span>
+<span id="cb7-167"><a href="#cb7-167" tabindex="-1"></a><span class="co">#&gt; </span></span>
+<span id="cb7-168"><a href="#cb7-168" tabindex="-1"></a><span class="co">#&gt; Absolute minimum support count: 49 </span></span>
+<span id="cb7-169"><a href="#cb7-169" tabindex="-1"></a><span class="co">#&gt; </span></span>
+<span id="cb7-170"><a href="#cb7-170" tabindex="-1"></a><span class="co">#&gt; set item appearances ...[0 item(s)] done [0.00s].</span></span>
+<span id="cb7-171"><a href="#cb7-171" tabindex="-1"></a><span class="co">#&gt; set transactions ...[169 item(s), 9835 transaction(s)] done [0.00s].</span></span>
+<span id="cb7-172"><a href="#cb7-172" tabindex="-1"></a><span class="co">#&gt; sorting and recoding items ... [120 item(s)] done [0.00s].</span></span>
+<span id="cb7-173"><a href="#cb7-173" tabindex="-1"></a><span class="co">#&gt; creating transaction tree ... done [0.00s].</span></span>
+<span id="cb7-174"><a href="#cb7-174" tabindex="-1"></a><span class="co">#&gt; checking subsets of size 1 2 3 4 done [0.00s].</span></span>
+<span id="cb7-175"><a href="#cb7-175" tabindex="-1"></a><span class="co">#&gt; writing ... [1 rule(s)] done [0.00s].</span></span>
+<span id="cb7-176"><a href="#cb7-176" tabindex="-1"></a><span class="co">#&gt; creating S4 object  ... done [0.00s].</span></span>
+<span id="cb7-177"><a href="#cb7-177" tabindex="-1"></a><span class="co">#&gt; Apriori</span></span>
+<span id="cb7-178"><a href="#cb7-178" tabindex="-1"></a><span class="co">#&gt; </span></span>
+<span id="cb7-179"><a href="#cb7-179" tabindex="-1"></a><span class="co">#&gt; Parameter specification:</span></span>
+<span id="cb7-180"><a href="#cb7-180" tabindex="-1"></a><span class="co">#&gt;  confidence minval smax arem  aval originalSupport maxtime support minlen</span></span>
+<span id="cb7-181"><a href="#cb7-181" tabindex="-1"></a><span class="co">#&gt;         0.7    0.1    1 none FALSE            TRUE       5    0.01      2</span></span>
+<span id="cb7-182"><a href="#cb7-182" tabindex="-1"></a><span class="co">#&gt;  maxlen target  ext</span></span>
+<span id="cb7-183"><a href="#cb7-183" tabindex="-1"></a><span class="co">#&gt;      10  rules TRUE</span></span>
+<span id="cb7-184"><a href="#cb7-184" tabindex="-1"></a><span class="co">#&gt; </span></span>
+<span id="cb7-185"><a href="#cb7-185" tabindex="-1"></a><span class="co">#&gt; Algorithmic control:</span></span>
+<span id="cb7-186"><a href="#cb7-186" tabindex="-1"></a><span class="co">#&gt;  filter tree heap memopt load sort verbose</span></span>
+<span id="cb7-187"><a href="#cb7-187" tabindex="-1"></a><span class="co">#&gt;     0.1 TRUE TRUE  FALSE TRUE    2    TRUE</span></span>
+<span id="cb7-188"><a href="#cb7-188" tabindex="-1"></a><span class="co">#&gt; </span></span>
+<span id="cb7-189"><a href="#cb7-189" tabindex="-1"></a><span class="co">#&gt; Absolute minimum support count: 98 </span></span>
+<span id="cb7-190"><a href="#cb7-190" tabindex="-1"></a><span class="co">#&gt; </span></span>
+<span id="cb7-191"><a href="#cb7-191" tabindex="-1"></a><span class="co">#&gt; set item appearances ...[0 item(s)] done [0.00s].</span></span>
+<span id="cb7-192"><a href="#cb7-192" tabindex="-1"></a><span class="co">#&gt; set transactions ...[169 item(s), 9835 transaction(s)] done [0.00s].</span></span>
+<span id="cb7-193"><a href="#cb7-193" tabindex="-1"></a><span class="co">#&gt; sorting and recoding items ... [88 item(s)] done [0.00s].</span></span>
+<span id="cb7-194"><a href="#cb7-194" tabindex="-1"></a><span class="co">#&gt; creating transaction tree ... done [0.00s].</span></span>
+<span id="cb7-195"><a href="#cb7-195" tabindex="-1"></a><span class="co">#&gt; checking subsets of size 1 2 3 4 done [0.00s].</span></span>
+<span id="cb7-196"><a href="#cb7-196" tabindex="-1"></a><span class="co">#&gt; writing ... [0 rule(s)] done [0.00s].</span></span>
+<span id="cb7-197"><a href="#cb7-197" tabindex="-1"></a><span class="co">#&gt; creating S4 object  ... done [0.00s].</span></span>
+<span id="cb7-198"><a href="#cb7-198" tabindex="-1"></a></span>
+<span id="cb7-199"><a href="#cb7-199" tabindex="-1"></a>grid</span>
+<span id="cb7-200"><a href="#cb7-200" tabindex="-1"></a><span class="co">#&gt;   support confidence n_rules</span></span>
+<span id="cb7-201"><a href="#cb7-201" tabindex="-1"></a><span class="co">#&gt; 1   0.001        0.3   13770</span></span>
+<span id="cb7-202"><a href="#cb7-202" tabindex="-1"></a><span class="co">#&gt; 2   0.005        0.3     482</span></span>
+<span id="cb7-203"><a href="#cb7-203" tabindex="-1"></a><span class="co">#&gt; 3   0.010        0.3     125</span></span>
+<span id="cb7-204"><a href="#cb7-204" tabindex="-1"></a><span class="co">#&gt; 4   0.001        0.5    5668</span></span>
+<span id="cb7-205"><a href="#cb7-205" tabindex="-1"></a><span class="co">#&gt; 5   0.005        0.5     120</span></span>
+<span id="cb7-206"><a href="#cb7-206" tabindex="-1"></a><span class="co">#&gt; 6   0.010        0.5      15</span></span>
+<span id="cb7-207"><a href="#cb7-207" tabindex="-1"></a><span class="co">#&gt; 7   0.001        0.7    1279</span></span>
+<span id="cb7-208"><a href="#cb7-208" tabindex="-1"></a><span class="co">#&gt; 8   0.005        0.7       1</span></span>
+<span id="cb7-209"><a href="#cb7-209" tabindex="-1"></a><span class="co">#&gt; 9   0.010        0.7       0</span></span></code></pre></div>
+<p>Dropping the support floor by a factor of ten multiplies the rule
+count by more than a hundred. A high-confidence rule at very low support
+is usually a description of a handful of shoppers, not of the shop.</p>
+</div>
+</div>
+<div id="reading-the-rules" class="section level2">
+<h2>Reading the Rules</h2>
+<p><code>inspect_rules()</code> sorts and takes the head, which is what
+you want almost every time:</p>
+<div class="sourceCode" id="cb8"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb8-1"><a href="#cb8-1" tabindex="-1"></a><span class="fu">inspect_rules</span>(rules, <span class="at">by =</span> <span class="st">&quot;lift&quot;</span>, <span class="at">n =</span> <span class="dv">10</span>)</span>
+<span id="cb8-2"><a href="#cb8-2" tabindex="-1"></a><span class="co">#&gt; # A tibble: 10 × 8</span></span>
+<span id="cb8-3"><a href="#cb8-3" tabindex="-1"></a><span class="co">#&gt;    rule_id lhs                     rhs   support confidence coverage  lift count</span></span>
+<span id="cb8-4"><a href="#cb8-4" tabindex="-1"></a><span class="co">#&gt;      &lt;int&gt; &lt;chr&gt;                   &lt;chr&gt;   &lt;dbl&gt;      &lt;dbl&gt;    &lt;dbl&gt; &lt;dbl&gt; &lt;int&gt;</span></span>
+<span id="cb8-5"><a href="#cb8-5" tabindex="-1"></a><span class="co">#&gt;  1      53 {Instant food products… {ham… 0.00122      0.632  0.00193  19.0    12</span></span>
+<span id="cb8-6"><a href="#cb8-6" tabindex="-1"></a><span class="co">#&gt;  2      37 {soda,popcorn}          {sal… 0.00122      0.632  0.00193  16.7    12</span></span>
+<span id="cb8-7"><a href="#cb8-7" tabindex="-1"></a><span class="co">#&gt;  3     444 {flour,baking powder}   {sug… 0.00102      0.556  0.00183  16.4    10</span></span>
+<span id="cb8-8"><a href="#cb8-8" tabindex="-1"></a><span class="co">#&gt;  4     327 {ham,processed cheese}  {whi… 0.00193      0.633  0.00305  15.0    19</span></span>
+<span id="cb8-9"><a href="#cb8-9" tabindex="-1"></a><span class="co">#&gt;  5      55 {whole milk,Instant fo… {ham… 0.00153      0.5    0.00305  15.0    15</span></span>
+<span id="cb8-10"><a href="#cb8-10" tabindex="-1"></a><span class="co">#&gt;  6    4807 {other vegetables,curd… {cre… 0.00102      0.588  0.00173  14.8    10</span></span>
+<span id="cb8-11"><a href="#cb8-11" tabindex="-1"></a><span class="co">#&gt;  7     330 {processed cheese,dome… {whi… 0.00112      0.524  0.00214  12.4    11</span></span>
+<span id="cb8-12"><a href="#cb8-12" tabindex="-1"></a><span class="co">#&gt;  8    4858 {tropical fruit,other … {but… 0.00102      0.667  0.00153  12.0    10</span></span>
+<span id="cb8-13"><a href="#cb8-13" tabindex="-1"></a><span class="co">#&gt;  9    2261 {hamburger meat,yogurt… {but… 0.00102      0.625  0.00163  11.3    10</span></span>
+<span id="cb8-14"><a href="#cb8-14" tabindex="-1"></a><span class="co">#&gt; 10    5638 {tropical fruit,other … {but… 0.00102      0.625  0.00163  11.3    10</span></span></code></pre></div>
+<p><code>by</code> also accepts <code>&quot;support&quot;</code>,
+<code>&quot;confidence&quot;</code> and <code>&quot;count&quot;</code>. Set
+<code>decreasing = FALSE</code> to look at the other end.</p>
+<p><code>summarize_rules()</code> gives the distribution of each quality
+measure across the whole rule set:</p>
+<div class="sourceCode" id="cb9"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb9-1"><a href="#cb9-1" tabindex="-1"></a>summary_stats <span class="ot">&lt;-</span> <span class="fu">summarize_rules</span>(rules)</span>
+<span id="cb9-2"><a href="#cb9-2" tabindex="-1"></a>summary_stats<span class="sc">$</span>n_rules</span>
+<span id="cb9-3"><a href="#cb9-3" tabindex="-1"></a><span class="co">#&gt; [1] 5668</span></span></code></pre></div>
+<div class="sourceCode" id="cb10"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb10-1"><a href="#cb10-1" tabindex="-1"></a><span class="fu">data.frame</span>(</span>
+<span id="cb10-2"><a href="#cb10-2" tabindex="-1"></a>  <span class="at">measure =</span> <span class="fu">c</span>(<span class="st">&quot;support&quot;</span>, <span class="st">&quot;confidence&quot;</span>, <span class="st">&quot;lift&quot;</span>),</span>
+<span id="cb10-3"><a href="#cb10-3" tabindex="-1"></a>  <span class="at">min =</span> <span class="fu">c</span>(summary_stats<span class="sc">$</span>support<span class="sc">$</span>min, summary_stats<span class="sc">$</span>confidence<span class="sc">$</span>min,</span>
+<span id="cb10-4"><a href="#cb10-4" tabindex="-1"></a>          summary_stats<span class="sc">$</span>lift<span class="sc">$</span>min),</span>
+<span id="cb10-5"><a href="#cb10-5" tabindex="-1"></a>  <span class="at">median =</span> <span class="fu">c</span>(summary_stats<span class="sc">$</span>support<span class="sc">$</span>median, summary_stats<span class="sc">$</span>confidence<span class="sc">$</span>median,</span>
+<span id="cb10-6"><a href="#cb10-6" tabindex="-1"></a>             summary_stats<span class="sc">$</span>lift<span class="sc">$</span>median),</span>
+<span id="cb10-7"><a href="#cb10-7" tabindex="-1"></a>  <span class="at">max =</span> <span class="fu">c</span>(summary_stats<span class="sc">$</span>support<span class="sc">$</span>max, summary_stats<span class="sc">$</span>confidence<span class="sc">$</span>max,</span>
+<span id="cb10-8"><a href="#cb10-8" tabindex="-1"></a>          summary_stats<span class="sc">$</span>lift<span class="sc">$</span>max)</span>
+<span id="cb10-9"><a href="#cb10-9" tabindex="-1"></a>)</span>
+<span id="cb10-10"><a href="#cb10-10" tabindex="-1"></a><span class="co">#&gt;      measure         min     median         max</span></span>
+<span id="cb10-11"><a href="#cb10-11" tabindex="-1"></a><span class="co">#&gt; 1    support 0.001016777 0.00132181  0.02226741</span></span>
+<span id="cb10-12"><a href="#cb10-12" tabindex="-1"></a><span class="co">#&gt; 2 confidence 0.500000000 0.60000000  1.00000000</span></span>
+<span id="cb10-13"><a href="#cb10-13" tabindex="-1"></a><span class="co">#&gt; 3       lift 1.956824513 2.89899928 18.99565427</span></span></code></pre></div>
+<p>Because the result is a tibble, dplyr works directly:</p>
+<div class="sourceCode" id="cb11"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb11-1"><a href="#cb11-1" tabindex="-1"></a>rules<span class="sc">$</span>rules_tbl <span class="sc">%&gt;%</span></span>
+<span id="cb11-2"><a href="#cb11-2" tabindex="-1"></a>  <span class="fu">filter</span>(lift <span class="sc">&gt;</span> <span class="dv">5</span>, count <span class="sc">&gt;=</span> <span class="dv">15</span>) <span class="sc">%&gt;%</span></span>
+<span id="cb11-3"><a href="#cb11-3" tabindex="-1"></a>  <span class="fu">arrange</span>(<span class="fu">desc</span>(confidence)) <span class="sc">%&gt;%</span></span>
+<span id="cb11-4"><a href="#cb11-4" tabindex="-1"></a>  <span class="fu">select</span>(lhs, rhs, confidence, lift, count)</span>
+<span id="cb11-5"><a href="#cb11-5" tabindex="-1"></a><span class="co">#&gt; # A tibble: 70 × 5</span></span>
+<span id="cb11-6"><a href="#cb11-6" tabindex="-1"></a><span class="co">#&gt;    lhs                                              rhs   confidence  lift count</span></span>
+<span id="cb11-7"><a href="#cb11-7" tabindex="-1"></a><span class="co">#&gt;    &lt;chr&gt;                                            &lt;chr&gt;      &lt;dbl&gt; &lt;dbl&gt; &lt;int&gt;</span></span>
+<span id="cb11-8"><a href="#cb11-8" tabindex="-1"></a><span class="co">#&gt;  1 {liquor,red/blush wine}                          {bot…      0.905 11.2     19</span></span>
+<span id="cb11-9"><a href="#cb11-9" tabindex="-1"></a><span class="co">#&gt;  2 {tropical fruit,butter,curd}                     {yog…      0.789  5.66    15</span></span>
+<span id="cb11-10"><a href="#cb11-10" tabindex="-1"></a><span class="co">#&gt;  3 {tropical fruit,whole milk,rolls/buns,pastry}    {yog…      0.789  5.66    15</span></span>
+<span id="cb11-11"><a href="#cb11-11" tabindex="-1"></a><span class="co">#&gt;  4 {tropical fruit,whole milk,soft cheese}          {yog…      0.714  5.12    15</span></span>
+<span id="cb11-12"><a href="#cb11-12" tabindex="-1"></a><span class="co">#&gt;  5 {root vegetables,whipped/sour cream,cream chees… {yog…      0.714  5.12    15</span></span>
+<span id="cb11-13"><a href="#cb11-13" tabindex="-1"></a><span class="co">#&gt;  6 {tropical fruit,whipped/sour cream,margarine}    {yog…      0.714  5.12    15</span></span>
+<span id="cb11-14"><a href="#cb11-14" tabindex="-1"></a><span class="co">#&gt;  7 {sausage,root vegetables,whipped/sour cream}     {yog…      0.714  5.12    15</span></span>
+<span id="cb11-15"><a href="#cb11-15" tabindex="-1"></a><span class="co">#&gt;  8 {tropical fruit,whole milk,whipped/sour cream,r… {yog…      0.714  5.12    15</span></span>
+<span id="cb11-16"><a href="#cb11-16" tabindex="-1"></a><span class="co">#&gt;  9 {tropical fruit,root vegetables,whole milk,butt… {yog…      0.708  5.08    17</span></span>
+<span id="cb11-17"><a href="#cb11-17" tabindex="-1"></a><span class="co">#&gt; 10 {tropical fruit,whole milk,coffee}               {yog…      0.704  5.04    19</span></span>
+<span id="cb11-18"><a href="#cb11-18" tabindex="-1"></a><span class="co">#&gt; # ℹ 60 more rows</span></span></code></pre></div>
+</div>
+<div id="working-with-one-item" class="section level2">
+<h2>Working With One Item</h2>
+<p><code>filter_rules_by_item()</code> narrows to rules mentioning an
+item. <code>where</code> picks the side: <code>&quot;lhs&quot;</code> for what the
+item leads to, <code>&quot;rhs&quot;</code> for what leads to it,
+<code>&quot;both&quot;</code> for either.</p>
+<div class="sourceCode" id="cb12"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb12-1"><a href="#cb12-1" tabindex="-1"></a><span class="co"># What predicts a purchase of whole milk?</span></span>
+<span id="cb12-2"><a href="#cb12-2" tabindex="-1"></a><span class="fu">filter_rules_by_item</span>(rules, <span class="st">&quot;whole milk&quot;</span>, <span class="at">where =</span> <span class="st">&quot;rhs&quot;</span>) <span class="sc">%&gt;%</span></span>
+<span id="cb12-3"><a href="#cb12-3" tabindex="-1"></a>  <span class="fu">arrange</span>(<span class="fu">desc</span>(lift)) <span class="sc">%&gt;%</span></span>
+<span id="cb12-4"><a href="#cb12-4" tabindex="-1"></a>  <span class="fu">select</span>(lhs, confidence, lift, count) <span class="sc">%&gt;%</span></span>
+<span id="cb12-5"><a href="#cb12-5" tabindex="-1"></a>  <span class="fu">head</span>(<span class="dv">5</span>)</span>
+<span id="cb12-6"><a href="#cb12-6" tabindex="-1"></a><span class="co">#&gt; # A tibble: 5 × 4</span></span>
+<span id="cb12-7"><a href="#cb12-7" tabindex="-1"></a><span class="co">#&gt;   lhs                                        confidence  lift count</span></span>
+<span id="cb12-8"><a href="#cb12-8" tabindex="-1"></a><span class="co">#&gt;   &lt;chr&gt;                                           &lt;dbl&gt; &lt;dbl&gt; &lt;int&gt;</span></span>
+<span id="cb12-9"><a href="#cb12-9" tabindex="-1"></a><span class="co">#&gt; 1 {rice,sugar}                                        1  3.91    12</span></span>
+<span id="cb12-10"><a href="#cb12-10" tabindex="-1"></a><span class="co">#&gt; 2 {canned fish,hygiene articles}                      1  3.91    11</span></span>
+<span id="cb12-11"><a href="#cb12-11" tabindex="-1"></a><span class="co">#&gt; 3 {root vegetables,butter,rice}                       1  3.91    10</span></span>
+<span id="cb12-12"><a href="#cb12-12" tabindex="-1"></a><span class="co">#&gt; 4 {root vegetables,whipped/sour cream,flour}          1  3.91    17</span></span>
+<span id="cb12-13"><a href="#cb12-13" tabindex="-1"></a><span class="co">#&gt; 5 {butter,soft cheese,domestic eggs}                  1  3.91    10</span></span></code></pre></div>
+<div class="sourceCode" id="cb13"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb13-1"><a href="#cb13-1" tabindex="-1"></a><span class="co"># And what does a basket containing yoghurt lead to?</span></span>
+<span id="cb13-2"><a href="#cb13-2" tabindex="-1"></a><span class="fu">filter_rules_by_item</span>(rules, <span class="st">&quot;yogurt&quot;</span>, <span class="at">where =</span> <span class="st">&quot;lhs&quot;</span>) <span class="sc">%&gt;%</span></span>
+<span id="cb13-3"><a href="#cb13-3" tabindex="-1"></a>  <span class="fu">arrange</span>(<span class="fu">desc</span>(lift)) <span class="sc">%&gt;%</span></span>
+<span id="cb13-4"><a href="#cb13-4" tabindex="-1"></a>  <span class="fu">select</span>(lhs, rhs, confidence, lift) <span class="sc">%&gt;%</span></span>
+<span id="cb13-5"><a href="#cb13-5" tabindex="-1"></a>  <span class="fu">head</span>(<span class="dv">5</span>)</span>
+<span id="cb13-6"><a href="#cb13-6" tabindex="-1"></a><span class="co">#&gt; # A tibble: 5 × 4</span></span>
+<span id="cb13-7"><a href="#cb13-7" tabindex="-1"></a><span class="co">#&gt;   lhs                                                     rhs   confidence  lift</span></span>
+<span id="cb13-8"><a href="#cb13-8" tabindex="-1"></a><span class="co">#&gt;   &lt;chr&gt;                                                   &lt;chr&gt;      &lt;dbl&gt; &lt;dbl&gt;</span></span>
+<span id="cb13-9"><a href="#cb13-9" tabindex="-1"></a><span class="co">#&gt; 1 {other vegetables,curd,yogurt,whipped/sour cream}       {cre…      0.588  14.8</span></span>
+<span id="cb13-10"><a href="#cb13-10" tabindex="-1"></a><span class="co">#&gt; 2 {tropical fruit,other vegetables,yogurt,white bread}    {but…      0.667  12.0</span></span>
+<span id="cb13-11"><a href="#cb13-11" tabindex="-1"></a><span class="co">#&gt; 3 {hamburger meat,yogurt,whipped/sour cream}              {but…      0.625  11.3</span></span>
+<span id="cb13-12"><a href="#cb13-12" tabindex="-1"></a><span class="co">#&gt; 4 {tropical fruit,other vegetables,whole milk,yogurt,dom… {but…      0.625  11.3</span></span>
+<span id="cb13-13"><a href="#cb13-13" tabindex="-1"></a><span class="co">#&gt; 5 {other vegetables,yogurt,whipped/sour cream,cream chee… {cur…      0.588  11.0</span></span></code></pre></div>
+<p><code>find_related_items()</code> is the shortcut for the common
+question, with a lift floor built in so that co-occurrence by sheer
+popularity is excluded:</p>
+<div class="sourceCode" id="cb14"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb14-1"><a href="#cb14-1" tabindex="-1"></a><span class="fu">find_related_items</span>(rules, <span class="st">&quot;yogurt&quot;</span>, <span class="at">min_lift =</span> <span class="fl">1.5</span>, <span class="at">top_n =</span> <span class="dv">5</span>) <span class="sc">%&gt;%</span></span>
+<span id="cb14-2"><a href="#cb14-2" tabindex="-1"></a>  <span class="fu">select</span>(lhs, rhs, confidence, lift)</span>
+<span id="cb14-3"><a href="#cb14-3" tabindex="-1"></a><span class="co">#&gt; # A tibble: 5 × 4</span></span>
+<span id="cb14-4"><a href="#cb14-4" tabindex="-1"></a><span class="co">#&gt;   lhs                                                     rhs   confidence  lift</span></span>
+<span id="cb14-5"><a href="#cb14-5" tabindex="-1"></a><span class="co">#&gt;   &lt;chr&gt;                                                   &lt;chr&gt;      &lt;dbl&gt; &lt;dbl&gt;</span></span>
+<span id="cb14-6"><a href="#cb14-6" tabindex="-1"></a><span class="co">#&gt; 1 {other vegetables,curd,yogurt,whipped/sour cream}       {cre…      0.588  14.8</span></span>
+<span id="cb14-7"><a href="#cb14-7" tabindex="-1"></a><span class="co">#&gt; 2 {tropical fruit,other vegetables,yogurt,white bread}    {but…      0.667  12.0</span></span>
+<span id="cb14-8"><a href="#cb14-8" tabindex="-1"></a><span class="co">#&gt; 3 {hamburger meat,yogurt,whipped/sour cream}              {but…      0.625  11.3</span></span>
+<span id="cb14-9"><a href="#cb14-9" tabindex="-1"></a><span class="co">#&gt; 4 {tropical fruit,other vegetables,whole milk,yogurt,dom… {but…      0.625  11.3</span></span>
+<span id="cb14-10"><a href="#cb14-10" tabindex="-1"></a><span class="co">#&gt; 5 {other vegetables,yogurt,whipped/sour cream,cream chee… {cur…      0.588  11.0</span></span></code></pre></div>
+</div>
+<div id="recommending-from-a-basket" class="section level2">
+<h2>Recommending From a Basket</h2>
+<p><code>recommend_products()</code> takes the items currently in a
+basket and returns what the rules suggest adding.</p>
+<div class="sourceCode" id="cb15"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb15-1"><a href="#cb15-1" tabindex="-1"></a><span class="fu">recommend_products</span>(</span>
+<span id="cb15-2"><a href="#cb15-2" tabindex="-1"></a>  rules,</span>
+<span id="cb15-3"><a href="#cb15-3" tabindex="-1"></a>  <span class="at">basket =</span> <span class="fu">c</span>(<span class="st">&quot;flour&quot;</span>, <span class="st">&quot;baking powder&quot;</span>),</span>
+<span id="cb15-4"><a href="#cb15-4" tabindex="-1"></a>  <span class="at">top_n =</span> <span class="dv">5</span></span>
+<span id="cb15-5"><a href="#cb15-5" tabindex="-1"></a>)</span>
+<span id="cb15-6"><a href="#cb15-6" tabindex="-1"></a><span class="co">#&gt; # A tibble: 2 × 4</span></span>
+<span id="cb15-7"><a href="#cb15-7" tabindex="-1"></a><span class="co">#&gt;   rhs          confidence  lift support</span></span>
+<span id="cb15-8"><a href="#cb15-8" tabindex="-1"></a><span class="co">#&gt;   &lt;chr&gt;             &lt;dbl&gt; &lt;dbl&gt;   &lt;dbl&gt;</span></span>
+<span id="cb15-9"><a href="#cb15-9" tabindex="-1"></a><span class="co">#&gt; 1 {sugar}           0.556 16.4  0.00102</span></span>
+<span id="cb15-10"><a href="#cb15-10" tabindex="-1"></a><span class="co">#&gt; 2 {whole milk}      0.523  2.05 0.00925</span></span></code></pre></div>
+<p>A rule only fires when the basket covers its <strong>entire</strong>
+left-hand side, so a basket of one or two very common items often
+matches nothing above the confidence floor:</p>
+<div class="sourceCode" id="cb16"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb16-1"><a href="#cb16-1" tabindex="-1"></a><span class="fu">recommend_products</span>(rules, <span class="at">basket =</span> <span class="fu">c</span>(<span class="st">&quot;whole milk&quot;</span>, <span class="st">&quot;butter&quot;</span>))</span>
+<span id="cb16-2"><a href="#cb16-2" tabindex="-1"></a><span class="co">#&gt; # A tibble: 0 × 4</span></span>
+<span id="cb16-3"><a href="#cb16-3" tabindex="-1"></a><span class="co">#&gt; # ℹ 4 variables: rhs &lt;chr&gt;, confidence &lt;dbl&gt;, lift &lt;dbl&gt;, support &lt;dbl&gt;</span></span></code></pre></div>
+<p>That empty result is the honest answer rather than a failure.
+<code>whole milk</code> appears in about a quarter of all baskets, so
+very little follows it with 50% confidence.</p>
+<p><code>min_confidence</code> filters the rules you already mined, so
+raising the ceiling means re-mining, not re-filtering.
+<code>rules</code> above was mined at <code>confidence = 0.5</code>, and
+no amount of filtering will produce a rule that was never generated:</p>
+<div class="sourceCode" id="cb17"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb17-1"><a href="#cb17-1" tabindex="-1"></a>broad <span class="ot">&lt;-</span> <span class="fu">tidy_apriori</span>(</span>
+<span id="cb17-2"><a href="#cb17-2" tabindex="-1"></a>  Groceries,</span>
+<span id="cb17-3"><a href="#cb17-3" tabindex="-1"></a>  <span class="at">support =</span> <span class="fl">0.001</span>, <span class="at">confidence =</span> <span class="fl">0.15</span>, <span class="at">minlen =</span> <span class="dv">2</span></span>
+<span id="cb17-4"><a href="#cb17-4" tabindex="-1"></a>)</span>
+<span id="cb17-5"><a href="#cb17-5" tabindex="-1"></a><span class="co">#&gt; Apriori</span></span>
+<span id="cb17-6"><a href="#cb17-6" tabindex="-1"></a><span class="co">#&gt; </span></span>
+<span id="cb17-7"><a href="#cb17-7" tabindex="-1"></a><span class="co">#&gt; Parameter specification:</span></span>
+<span id="cb17-8"><a href="#cb17-8" tabindex="-1"></a><span class="co">#&gt;  confidence minval smax arem  aval originalSupport maxtime support minlen</span></span>
+<span id="cb17-9"><a href="#cb17-9" tabindex="-1"></a><span class="co">#&gt;        0.15    0.1    1 none FALSE            TRUE       5   0.001      2</span></span>
+<span id="cb17-10"><a href="#cb17-10" tabindex="-1"></a><span class="co">#&gt;  maxlen target  ext</span></span>
+<span id="cb17-11"><a href="#cb17-11" tabindex="-1"></a><span class="co">#&gt;      10  rules TRUE</span></span>
+<span id="cb17-12"><a href="#cb17-12" tabindex="-1"></a><span class="co">#&gt; </span></span>
+<span id="cb17-13"><a href="#cb17-13" tabindex="-1"></a><span class="co">#&gt; Algorithmic control:</span></span>
+<span id="cb17-14"><a href="#cb17-14" tabindex="-1"></a><span class="co">#&gt;  filter tree heap memopt load sort verbose</span></span>
+<span id="cb17-15"><a href="#cb17-15" tabindex="-1"></a><span class="co">#&gt;     0.1 TRUE TRUE  FALSE TRUE    2    TRUE</span></span>
+<span id="cb17-16"><a href="#cb17-16" tabindex="-1"></a><span class="co">#&gt; </span></span>
+<span id="cb17-17"><a href="#cb17-17" tabindex="-1"></a><span class="co">#&gt; Absolute minimum support count: 9 </span></span>
+<span id="cb17-18"><a href="#cb17-18" tabindex="-1"></a><span class="co">#&gt; </span></span>
+<span id="cb17-19"><a href="#cb17-19" tabindex="-1"></a><span class="co">#&gt; set item appearances ...[0 item(s)] done [0.00s].</span></span>
+<span id="cb17-20"><a href="#cb17-20" tabindex="-1"></a><span class="co">#&gt; set transactions ...[169 item(s), 9835 transaction(s)] done [0.00s].</span></span>
+<span id="cb17-21"><a href="#cb17-21" tabindex="-1"></a><span class="co">#&gt; sorting and recoding items ... [157 item(s)] done [0.00s].</span></span>
+<span id="cb17-22"><a href="#cb17-22" tabindex="-1"></a><span class="co">#&gt; creating transaction tree ... done [0.00s].</span></span>
+<span id="cb17-23"><a href="#cb17-23" tabindex="-1"></a><span class="co">#&gt; checking subsets of size 1 2 3 4 5 6 done [0.01s].</span></span>
+<span id="cb17-24"><a href="#cb17-24" tabindex="-1"></a><span class="co">#&gt; writing ... [26820 rule(s)] done [0.00s].</span></span>
+<span id="cb17-25"><a href="#cb17-25" tabindex="-1"></a><span class="co">#&gt; creating S4 object  ... done [0.00s].</span></span>
+<span id="cb17-26"><a href="#cb17-26" tabindex="-1"></a></span>
+<span id="cb17-27"><a href="#cb17-27" tabindex="-1"></a>broad<span class="sc">$</span>n_rules</span>
+<span id="cb17-28"><a href="#cb17-28" tabindex="-1"></a><span class="co">#&gt; [1] 26820</span></span></code></pre></div>
+<div class="sourceCode" id="cb18"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb18-1"><a href="#cb18-1" tabindex="-1"></a><span class="fu">recommend_products</span>(</span>
+<span id="cb18-2"><a href="#cb18-2" tabindex="-1"></a>  broad,</span>
+<span id="cb18-3"><a href="#cb18-3" tabindex="-1"></a>  <span class="at">basket =</span> <span class="fu">c</span>(<span class="st">&quot;whole milk&quot;</span>, <span class="st">&quot;butter&quot;</span>),</span>
+<span id="cb18-4"><a href="#cb18-4" tabindex="-1"></a>  <span class="at">min_confidence =</span> <span class="fl">0.15</span>,</span>
+<span id="cb18-5"><a href="#cb18-5" tabindex="-1"></a>  <span class="at">top_n =</span> <span class="dv">5</span></span>
+<span id="cb18-6"><a href="#cb18-6" tabindex="-1"></a>)</span>
+<span id="cb18-7"><a href="#cb18-7" tabindex="-1"></a><span class="co">#&gt; # A tibble: 5 × 4</span></span>
+<span id="cb18-8"><a href="#cb18-8" tabindex="-1"></a><span class="co">#&gt;   rhs                  confidence  lift support</span></span>
+<span id="cb18-9"><a href="#cb18-9" tabindex="-1"></a><span class="co">#&gt;   &lt;chr&gt;                     &lt;dbl&gt; &lt;dbl&gt;   &lt;dbl&gt;</span></span>
+<span id="cb18-10"><a href="#cb18-10" tabindex="-1"></a><span class="co">#&gt; 1 {domestic eggs}           0.218  3.43 0.00600</span></span>
+<span id="cb18-11"><a href="#cb18-11" tabindex="-1"></a><span class="co">#&gt; 2 {whipped/sour cream}      0.244  3.40 0.00671</span></span>
+<span id="cb18-12"><a href="#cb18-12" tabindex="-1"></a><span class="co">#&gt; 3 {curd}                    0.177  3.32 0.00488</span></span>
+<span id="cb18-13"><a href="#cb18-13" tabindex="-1"></a><span class="co">#&gt; 4 {domestic eggs}           0.174  2.75 0.00966</span></span>
+<span id="cb18-14"><a href="#cb18-14" tabindex="-1"></a><span class="co">#&gt; 5 {root vegetables}         0.299  2.74 0.00824</span></span></code></pre></div>
+<p>Confidence around 0.2 is weak on its own — one basket in five. Lift
+near 3.4 is what makes these worth reading: eggs are three times more
+likely in a basket that already holds milk and butter than in a basket
+picked at random. For common items, mine wide and rank on lift.</p>
+</div>
+<div id="visualising" class="section level2">
+<h2>Visualising</h2>
+<p><code>visualize_rules()</code> returns a ggplot2 object for the
+scatter method, so it composes like any other plot in the package.</p>
+<div class="sourceCode" id="cb19"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb19-1"><a href="#cb19-1" tabindex="-1"></a><span class="fu">visualize_rules</span>(rules, <span class="at">method =</span> <span class="st">&quot;scatter&quot;</span>, <span class="at">top_n =</span> <span class="dv">200</span>)</span></code></pre></div>
+<p><img role="img" src="data:image/png;base64,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" /><!-- --></p>
+<p>Support on one axis against confidence on the other, coloured by
+lift, is the standard first look. Rules sitting well away from the main
+cloud are the ones to read.</p>
+<div class="sourceCode" id="cb20"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb20-1"><a href="#cb20-1" tabindex="-1"></a><span class="fu">visualize_rules</span>(rules, <span class="at">method =</span> <span class="st">&quot;graph&quot;</span>, <span class="at">top_n =</span> <span class="dv">20</span>)</span></code></pre></div>
+<p><img role="img" src="data:image/png;base64,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" /><!-- --></p>
+<p>The graph method needs arulesViz and draws items as nodes with rules
+as edges, which is the more useful view once you have narrowed to a
+handful of rules worth reading.</p>
+</div>
+<div id="from-a-data-frame" class="section level2">
+<h2>From a Data Frame</h2>
+<p><code>Groceries</code> is already a <code>transactions</code> object.
+Real data usually arrives as one row per line item, which
+<code>arules</code> coerces:</p>
+<div class="sourceCode" id="cb21"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb21-1"><a href="#cb21-1" tabindex="-1"></a>receipts <span class="ot">&lt;-</span> <span class="fu">data.frame</span>(</span>
+<span id="cb21-2"><a href="#cb21-2" tabindex="-1"></a>  <span class="at">basket_id =</span> <span class="fu">c</span>(<span class="dv">1</span>, <span class="dv">1</span>, <span class="dv">1</span>, <span class="dv">2</span>, <span class="dv">2</span>, <span class="dv">3</span>, <span class="dv">3</span>, <span class="dv">3</span>, <span class="dv">4</span>, <span class="dv">4</span>, <span class="dv">5</span>, <span class="dv">5</span>, <span class="dv">5</span>),</span>
+<span id="cb21-3"><a href="#cb21-3" tabindex="-1"></a>  <span class="at">item =</span> <span class="fu">c</span>(<span class="st">&quot;bread&quot;</span>, <span class="st">&quot;butter&quot;</span>, <span class="st">&quot;jam&quot;</span>,</span>
+<span id="cb21-4"><a href="#cb21-4" tabindex="-1"></a>           <span class="st">&quot;bread&quot;</span>, <span class="st">&quot;butter&quot;</span>,</span>
+<span id="cb21-5"><a href="#cb21-5" tabindex="-1"></a>           <span class="st">&quot;bread&quot;</span>, <span class="st">&quot;butter&quot;</span>, <span class="st">&quot;jam&quot;</span>,</span>
+<span id="cb21-6"><a href="#cb21-6" tabindex="-1"></a>           <span class="st">&quot;milk&quot;</span>, <span class="st">&quot;bread&quot;</span>,</span>
+<span id="cb21-7"><a href="#cb21-7" tabindex="-1"></a>           <span class="st">&quot;bread&quot;</span>, <span class="st">&quot;butter&quot;</span>, <span class="st">&quot;jam&quot;</span>),</span>
+<span id="cb21-8"><a href="#cb21-8" tabindex="-1"></a>  <span class="at">stringsAsFactors =</span> <span class="cn">TRUE</span></span>
+<span id="cb21-9"><a href="#cb21-9" tabindex="-1"></a>)</span>
+<span id="cb21-10"><a href="#cb21-10" tabindex="-1"></a></span>
+<span id="cb21-11"><a href="#cb21-11" tabindex="-1"></a>baskets <span class="ot">&lt;-</span> <span class="fu">split</span>(<span class="fu">as.character</span>(receipts<span class="sc">$</span>item), receipts<span class="sc">$</span>basket_id)</span>
+<span id="cb21-12"><a href="#cb21-12" tabindex="-1"></a>transactions <span class="ot">&lt;-</span> <span class="fu">as</span>(baskets, <span class="st">&quot;transactions&quot;</span>)</span>
+<span id="cb21-13"><a href="#cb21-13" tabindex="-1"></a>transactions</span>
+<span id="cb21-14"><a href="#cb21-14" tabindex="-1"></a><span class="co">#&gt; transactions in sparse format with</span></span>
+<span id="cb21-15"><a href="#cb21-15" tabindex="-1"></a><span class="co">#&gt;  5 transactions (rows) and</span></span>
+<span id="cb21-16"><a href="#cb21-16" tabindex="-1"></a><span class="co">#&gt;  4 items (columns)</span></span></code></pre></div>
+<div class="sourceCode" id="cb22"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb22-1"><a href="#cb22-1" tabindex="-1"></a>small_rules <span class="ot">&lt;-</span> <span class="fu">tidy_apriori</span>(</span>
+<span id="cb22-2"><a href="#cb22-2" tabindex="-1"></a>  transactions,</span>
+<span id="cb22-3"><a href="#cb22-3" tabindex="-1"></a>  <span class="at">support =</span> <span class="fl">0.4</span>, <span class="at">confidence =</span> <span class="fl">0.6</span>, <span class="at">minlen =</span> <span class="dv">2</span></span>
+<span id="cb22-4"><a href="#cb22-4" tabindex="-1"></a>)</span>
+<span id="cb22-5"><a href="#cb22-5" tabindex="-1"></a><span class="co">#&gt; Apriori</span></span>
+<span id="cb22-6"><a href="#cb22-6" tabindex="-1"></a><span class="co">#&gt; </span></span>
+<span id="cb22-7"><a href="#cb22-7" tabindex="-1"></a><span class="co">#&gt; Parameter specification:</span></span>
+<span id="cb22-8"><a href="#cb22-8" tabindex="-1"></a><span class="co">#&gt;  confidence minval smax arem  aval originalSupport maxtime support minlen</span></span>
+<span id="cb22-9"><a href="#cb22-9" tabindex="-1"></a><span class="co">#&gt;         0.6    0.1    1 none FALSE            TRUE       5     0.4      2</span></span>
+<span id="cb22-10"><a href="#cb22-10" tabindex="-1"></a><span class="co">#&gt;  maxlen target  ext</span></span>
+<span id="cb22-11"><a href="#cb22-11" tabindex="-1"></a><span class="co">#&gt;      10  rules TRUE</span></span>
+<span id="cb22-12"><a href="#cb22-12" tabindex="-1"></a><span class="co">#&gt; </span></span>
+<span id="cb22-13"><a href="#cb22-13" tabindex="-1"></a><span class="co">#&gt; Algorithmic control:</span></span>
+<span id="cb22-14"><a href="#cb22-14" tabindex="-1"></a><span class="co">#&gt;  filter tree heap memopt load sort verbose</span></span>
+<span id="cb22-15"><a href="#cb22-15" tabindex="-1"></a><span class="co">#&gt;     0.1 TRUE TRUE  FALSE TRUE    2    TRUE</span></span>
+<span id="cb22-16"><a href="#cb22-16" tabindex="-1"></a><span class="co">#&gt; </span></span>
+<span id="cb22-17"><a href="#cb22-17" tabindex="-1"></a><span class="co">#&gt; Absolute minimum support count: 2 </span></span>
+<span id="cb22-18"><a href="#cb22-18" tabindex="-1"></a><span class="co">#&gt; </span></span>
+<span id="cb22-19"><a href="#cb22-19" tabindex="-1"></a><span class="co">#&gt; set item appearances ...[0 item(s)] done [0.00s].</span></span>
+<span id="cb22-20"><a href="#cb22-20" tabindex="-1"></a><span class="co">#&gt; set transactions ...[4 item(s), 5 transaction(s)] done [0.00s].</span></span>
+<span id="cb22-21"><a href="#cb22-21" tabindex="-1"></a><span class="co">#&gt; sorting and recoding items ... [3 item(s)] done [0.00s].</span></span>
+<span id="cb22-22"><a href="#cb22-22" tabindex="-1"></a><span class="co">#&gt; creating transaction tree ... done [0.00s].</span></span>
+<span id="cb22-23"><a href="#cb22-23" tabindex="-1"></a><span class="co">#&gt; checking subsets of size 1 2 3 done [0.00s].</span></span>
+<span id="cb22-24"><a href="#cb22-24" tabindex="-1"></a><span class="co">#&gt; writing ... [9 rule(s)] done [0.00s].</span></span>
+<span id="cb22-25"><a href="#cb22-25" tabindex="-1"></a><span class="co">#&gt; creating S4 object  ... done [0.00s].</span></span>
+<span id="cb22-26"><a href="#cb22-26" tabindex="-1"></a></span>
+<span id="cb22-27"><a href="#cb22-27" tabindex="-1"></a>small_rules<span class="sc">$</span>rules_tbl <span class="sc">%&gt;%</span></span>
+<span id="cb22-28"><a href="#cb22-28" tabindex="-1"></a>  <span class="fu">arrange</span>(<span class="fu">desc</span>(lift)) <span class="sc">%&gt;%</span></span>
+<span id="cb22-29"><a href="#cb22-29" tabindex="-1"></a>  <span class="fu">select</span>(lhs, rhs, support, confidence, lift)</span>
+<span id="cb22-30"><a href="#cb22-30" tabindex="-1"></a><span class="co">#&gt; # A tibble: 9 × 5</span></span>
+<span id="cb22-31"><a href="#cb22-31" tabindex="-1"></a><span class="co">#&gt;   lhs            rhs      support confidence  lift</span></span>
+<span id="cb22-32"><a href="#cb22-32" tabindex="-1"></a><span class="co">#&gt;   &lt;chr&gt;          &lt;chr&gt;      &lt;dbl&gt;      &lt;dbl&gt; &lt;dbl&gt;</span></span>
+<span id="cb22-33"><a href="#cb22-33" tabindex="-1"></a><span class="co">#&gt; 1 {jam}          {butter}     0.6       1     1.25</span></span>
+<span id="cb22-34"><a href="#cb22-34" tabindex="-1"></a><span class="co">#&gt; 2 {butter}       {jam}        0.6       0.75  1.25</span></span>
+<span id="cb22-35"><a href="#cb22-35" tabindex="-1"></a><span class="co">#&gt; 3 {bread,jam}    {butter}     0.6       1     1.25</span></span>
+<span id="cb22-36"><a href="#cb22-36" tabindex="-1"></a><span class="co">#&gt; 4 {bread,butter} {jam}        0.6       0.75  1.25</span></span>
+<span id="cb22-37"><a href="#cb22-37" tabindex="-1"></a><span class="co">#&gt; 5 {jam}          {bread}      0.6       1     1   </span></span>
+<span id="cb22-38"><a href="#cb22-38" tabindex="-1"></a><span class="co">#&gt; 6 {bread}        {jam}        0.6       0.6   1   </span></span>
+<span id="cb22-39"><a href="#cb22-39" tabindex="-1"></a><span class="co">#&gt; 7 {butter}       {bread}      0.8       1     1   </span></span>
+<span id="cb22-40"><a href="#cb22-40" tabindex="-1"></a><span class="co">#&gt; 8 {bread}        {butter}     0.8       0.8   1   </span></span>
+<span id="cb22-41"><a href="#cb22-41" tabindex="-1"></a><span class="co">#&gt; 9 {butter,jam}   {bread}      0.6       1     1</span></span></code></pre></div>
+<p>With five baskets these numbers mean nothing — the point is the shape
+of the input. Anything <code>arules</code> accepts as
+<code>transactions</code>, <code>tidy_apriori()</code> accepts.</p>
+</div>
+<div id="what-the-numbers-do-not-tell-you" class="section level2">
+<h2>What the Numbers Do Not Tell You</h2>
+<p>Three cautions worth carrying:</p>
+<ol style="list-style-type: decimal">
+<li><strong>Lift is symmetric; the rule is not.</strong> <em>A ⇒ B</em>
+and <em>B ⇒ A</em> have the same lift and usually different confidence.
+Which direction you act on is a decision about the business, not a
+result from the data.</li>
+<li><strong>A rule is not a cause.</strong> Bread and butter co-occur
+because people buy both, not because one drives the other. Moving butter
+next to bread is a testable hypothesis, and the test is an
+experiment.</li>
+<li><strong>Rules describe the period you mined.</strong> A month of
+grocery data carries that month’s seasonality. Re-mine rather than
+reusing a stored rule set across a season boundary.</li>
+</ol>
+</div>
+<div id="function-reference" class="section level2">
+<h2>Function Reference</h2>
+<table>
+<colgroup>
+<col width="50%" />
+<col width="50%" />
+</colgroup>
+<thead>
+<tr class="header">
+<th>Function</th>
+<th>Purpose</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td><code>tidy_apriori()</code></td>
+<td>Mine rules, return a tibble</td>
+</tr>
+<tr class="even">
+<td><code>tidy_rules()</code></td>
+<td>Convert an arules rules object to a tibble</td>
+</tr>
+<tr class="odd">
+<td><code>inspect_rules()</code></td>
+<td>Sort by a quality measure and take the head</td>
+</tr>
+<tr class="even">
+<td><code>summarize_rules()</code></td>
+<td>Distribution of support, confidence and lift</td>
+</tr>
+<tr class="odd">
+<td><code>filter_rules_by_item()</code></td>
+<td>Rules mentioning an item, by side</td>
+</tr>
+<tr class="even">
+<td><code>find_related_items()</code></td>
+<td>Items associated with one item, above a lift floor</td>
+</tr>
+<tr class="odd">
+<td><code>recommend_products()</code></td>
+<td>Suggestions for a given basket</td>
+</tr>
+<tr class="even">
+<td><code>visualize_rules()</code></td>
+<td>Scatter, graph and grouped-matrix plots</td>
+</tr>
+</tbody>
+</table>
+</div>
+
+
+
+<!-- code folding -->
+
+
+<!-- dynamically load mathjax for compatibility with self-contained -->
+<script>
+  (function () {
+    var script = document.createElement("script");
+    script.type = "text/javascript";
+    script.src  = "https://mathjax.rstudio.com/latest/MathJax.js?config=TeX-AMS-MML_HTMLorMML";
+    document.getElementsByTagName("head")[0].appendChild(script);
+  })();
+</script>
+
+</body>
+</html>

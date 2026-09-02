@@ -343,35 +343,26 @@ code > span.er { color: #a61717; background-color: #e3d2d2; }
 
 <div id="introduction" class="section level2">
 <h2>Introduction</h2>
-<p><code>tidylearn</code> provides a <strong>unified
-tidyverse-compatible interface</strong> to R’s machine learning
-ecosystem. It wraps proven packages like glmnet, randomForest, xgboost,
-e1071, cluster, and dbscan - you get the reliability of established
-implementations with the convenience of a consistent, tidy API.</p>
-<p><strong>What tidylearn does:</strong></p>
-<ul>
-<li>Provides one consistent interface (<code>tl_model()</code>) to 20+
-ML algorithms</li>
-<li>Returns tidy tibbles instead of varied output formats</li>
-<li>Offers unified ggplot2-based visualization across all methods</li>
-<li>Enables pipe-friendly workflows</li>
-</ul>
-<p><strong>What tidylearn is NOT:</strong></p>
-<ul>
-<li>A reimplementation of ML algorithms (uses established packages under
-the hood)</li>
-<li>A replacement for the underlying packages (you can access the raw
-model via <code>model$fit</code>)</li>
-</ul>
+<p>Every machine learning package in R has its own API and its own
+output format. tidylearn puts one signature over 20 of them:
+<code>tl_model()</code> picks the underlying package from the
+<code>method</code> you name, and whatever comes back is a tibble or a
+ggplot2 object.</p>
+<p>The algorithms are untouched. glmnet, randomForest, xgboost, e1071,
+cluster and dbscan do the fitting, and <code>model$fit</code> hands you
+the object they returned — <code>model$fit$model</code> for an
+unsupervised method, whose <code>$fit</code> is the list of tidied
+components — so nothing here closes off the package underneath.</p>
+<p>This vignette covers the shape of a workflow end to end. The articles
+listed at the bottom go deeper on each step.</p>
 </div>
 <div id="installation" class="section level2">
 <h2>Installation</h2>
-<div class="sourceCode" id="cb1"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb1-1"><a href="#cb1-1" tabindex="-1"></a><span class="co"># Install from CRAN</span></span>
+<div class="sourceCode" id="cb1"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb1-1"><a href="#cb1-1" tabindex="-1"></a><span class="co"># From CRAN</span></span>
 <span id="cb1-2"><a href="#cb1-2" tabindex="-1"></a><span class="fu">install.packages</span>(<span class="st">&quot;tidylearn&quot;</span>)</span>
 <span id="cb1-3"><a href="#cb1-3" tabindex="-1"></a></span>
-<span id="cb1-4"><a href="#cb1-4" tabindex="-1"></a><span class="co"># Or install development version from GitHub</span></span>
-<span id="cb1-5"><a href="#cb1-5" tabindex="-1"></a><span class="co"># Install the development version from GitHub:</span></span>
-<span id="cb1-6"><a href="#cb1-6" tabindex="-1"></a><span class="co"># devtools::install_github(&quot;ces0491/tidylearn&quot;) # nolint</span></span></code></pre></div>
+<span id="cb1-4"><a href="#cb1-4" tabindex="-1"></a><span class="co"># Development version</span></span>
+<span id="cb1-5"><a href="#cb1-5" tabindex="-1"></a><span class="co"># devtools::install_github(&quot;ces0491/tidylearn&quot;) # nolint</span></span></code></pre></div>
 <div class="sourceCode" id="cb2"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb2-1"><a href="#cb2-1" tabindex="-1"></a><span class="fu">library</span>(tidylearn)</span>
 <span id="cb2-2"><a href="#cb2-2" tabindex="-1"></a><span class="fu">library</span>(dplyr)</span></code></pre></div>
 </div>
@@ -516,25 +507,27 @@ handle it:</p>
 <span id="cb12-4"><a href="#cb12-4" tabindex="-1"></a><span class="co">#&gt; # A tibble: 6 × 2</span></span>
 <span id="cb12-5"><a href="#cb12-5" tabindex="-1"></a><span class="co">#&gt;   .obs_id cluster</span></span>
 <span id="cb12-6"><a href="#cb12-6" tabindex="-1"></a><span class="co">#&gt;   &lt;chr&gt;     &lt;int&gt;</span></span>
-<span id="cb12-7"><a href="#cb12-7" tabindex="-1"></a><span class="co">#&gt; 1 1             2</span></span>
-<span id="cb12-8"><a href="#cb12-8" tabindex="-1"></a><span class="co">#&gt; 2 2             2</span></span>
-<span id="cb12-9"><a href="#cb12-9" tabindex="-1"></a><span class="co">#&gt; 3 3             2</span></span>
-<span id="cb12-10"><a href="#cb12-10" tabindex="-1"></a><span class="co">#&gt; 4 4             2</span></span>
-<span id="cb12-11"><a href="#cb12-11" tabindex="-1"></a><span class="co">#&gt; 5 5             2</span></span>
-<span id="cb12-12"><a href="#cb12-12" tabindex="-1"></a><span class="co">#&gt; 6 6             2</span></span></code></pre></div>
+<span id="cb12-7"><a href="#cb12-7" tabindex="-1"></a><span class="co">#&gt; 1 1             3</span></span>
+<span id="cb12-8"><a href="#cb12-8" tabindex="-1"></a><span class="co">#&gt; 2 2             3</span></span>
+<span id="cb12-9"><a href="#cb12-9" tabindex="-1"></a><span class="co">#&gt; 3 3             3</span></span>
+<span id="cb12-10"><a href="#cb12-10" tabindex="-1"></a><span class="co">#&gt; 4 4             3</span></span>
+<span id="cb12-11"><a href="#cb12-11" tabindex="-1"></a><span class="co">#&gt; 5 5             3</span></span>
+<span id="cb12-12"><a href="#cb12-12" tabindex="-1"></a><span class="co">#&gt; 6 6             3</span></span></code></pre></div>
 <div class="sourceCode" id="cb13"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb13-1"><a href="#cb13-1" tabindex="-1"></a><span class="co"># Compare with actual species</span></span>
 <span id="cb13-2"><a href="#cb13-2" tabindex="-1"></a><span class="fu">table</span>(clusters<span class="sc">$</span>cluster, iris<span class="sc">$</span>Species)</span>
 <span id="cb13-3"><a href="#cb13-3" tabindex="-1"></a><span class="co">#&gt;    </span></span>
 <span id="cb13-4"><a href="#cb13-4" tabindex="-1"></a><span class="co">#&gt;     setosa versicolor virginica</span></span>
-<span id="cb13-5"><a href="#cb13-5" tabindex="-1"></a><span class="co">#&gt;   1      0         48        14</span></span>
-<span id="cb13-6"><a href="#cb13-6" tabindex="-1"></a><span class="co">#&gt;   2     50          0         0</span></span>
-<span id="cb13-7"><a href="#cb13-7" tabindex="-1"></a><span class="co">#&gt;   3      0          2        36</span></span></code></pre></div>
+<span id="cb13-5"><a href="#cb13-5" tabindex="-1"></a><span class="co">#&gt;   1      0          2        36</span></span>
+<span id="cb13-6"><a href="#cb13-6" tabindex="-1"></a><span class="co">#&gt;   2      0         48        14</span></span>
+<span id="cb13-7"><a href="#cb13-7" tabindex="-1"></a><span class="co">#&gt;   3     50          0         0</span></span></code></pre></div>
 </div>
 </div>
 </div>
 <div id="data-preprocessing" class="section level2">
 <h2>Data Preprocessing</h2>
-<p>tidylearn provides comprehensive preprocessing functions:</p>
+<p><code>tl_prepare_data()</code> handles imputation, scaling and
+encoding in one call, and records what it did so the same transformation
+can be replayed on new data:</p>
 <div class="sourceCode" id="cb14"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb14-1"><a href="#cb14-1" tabindex="-1"></a><span class="co"># Prepare data with multiple preprocessing steps</span></span>
 <span id="cb14-2"><a href="#cb14-2" tabindex="-1"></a>processed <span class="ot">&lt;-</span> <span class="fu">tl_prepare_data</span>(</span>
 <span id="cb14-3"><a href="#cb14-3" tabindex="-1"></a>  iris,</span>
@@ -712,8 +705,8 @@ packages:</p>
 </div>
 <div id="accessing-the-underlying-model" class="section level3">
 <h3>Accessing the Underlying Model</h3>
-<p>You always have access to the raw model from the underlying package
-via <code>$fit</code>:</p>
+<p>The raw model from the underlying package is reachable through
+<code>$fit</code>:</p>
 <div class="sourceCode" id="cb19"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb19-1"><a href="#cb19-1" tabindex="-1"></a><span class="co"># Example: Access the raw randomForest object</span></span>
 <span id="cb19-2"><a href="#cb19-2" tabindex="-1"></a>model_forest <span class="ot">&lt;-</span> <span class="fu">tl_model</span>(iris, Species <span class="sc">~</span> ., <span class="at">method =</span> <span class="st">&quot;forest&quot;</span>)</span>
 <span id="cb19-3"><a href="#cb19-3" tabindex="-1"></a><span class="fu">class</span>(model_forest<span class="sc">$</span>fit)  <span class="co"># This is the randomForest object</span></span>
@@ -721,50 +714,58 @@ via <code>$fit</code>:</p>
 <span id="cb19-5"><a href="#cb19-5" tabindex="-1"></a></span>
 <span id="cb19-6"><a href="#cb19-6" tabindex="-1"></a><span class="co"># Use package-specific functions if needed</span></span>
 <span id="cb19-7"><a href="#cb19-7" tabindex="-1"></a><span class="co"># randomForest::varImpPlot(model_forest$fit) # nolint</span></span></code></pre></div>
+<p>An unsupervised method returns tidied components as well, so its
+<code>$fit</code> is the list holding them and the wrapped object sits
+at <code>$fit$model</code>:</p>
+<div class="sourceCode" id="cb20"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb20-1"><a href="#cb20-1" tabindex="-1"></a>model_pca <span class="ot">&lt;-</span> <span class="fu">tl_model</span>(iris, <span class="sc">~</span> ., <span class="at">method =</span> <span class="st">&quot;pca&quot;</span>)</span>
+<span id="cb20-2"><a href="#cb20-2" tabindex="-1"></a><span class="fu">names</span>(model_pca<span class="sc">$</span>fit)</span>
+<span id="cb20-3"><a href="#cb20-3" tabindex="-1"></a><span class="co">#&gt; [1] &quot;scores&quot;             &quot;loadings&quot;           &quot;variance_explained&quot;</span></span>
+<span id="cb20-4"><a href="#cb20-4" tabindex="-1"></a><span class="co">#&gt; [4] &quot;model&quot;              &quot;settings&quot;</span></span>
+<span id="cb20-5"><a href="#cb20-5" tabindex="-1"></a><span class="fu">class</span>(model_pca<span class="sc">$</span>fit<span class="sc">$</span>model)  <span class="co"># This is the prcomp object</span></span>
+<span id="cb20-6"><a href="#cb20-6" tabindex="-1"></a><span class="co">#&gt; [1] &quot;prcomp&quot;</span></span></code></pre></div>
 </div>
+</div>
+<div id="the-whole-workflow" class="section level2">
+<h2>The Whole Workflow</h2>
+<p>Split, fit, predict, score — the four steps this vignette covered, in
+the order they run:</p>
+<div class="sourceCode" id="cb21"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb21-1"><a href="#cb21-1" tabindex="-1"></a><span class="co"># Quick example combining everything</span></span>
+<span id="cb21-2"><a href="#cb21-2" tabindex="-1"></a>data_split <span class="ot">&lt;-</span> <span class="fu">tl_split</span>(iris, <span class="at">prop =</span> <span class="fl">0.7</span>, <span class="at">stratify =</span> <span class="st">&quot;Species&quot;</span>, <span class="at">seed =</span> <span class="dv">42</span>)</span>
+<span id="cb21-3"><a href="#cb21-3" tabindex="-1"></a></span>
+<span id="cb21-4"><a href="#cb21-4" tabindex="-1"></a><span class="co"># Random forests are scale-invariant, so no scaling is needed here. When a</span></span>
+<span id="cb21-5"><a href="#cb21-5" tabindex="-1"></a><span class="co"># method does need scaled inputs, the same transformation has to be applied</span></span>
+<span id="cb21-6"><a href="#cb21-6" tabindex="-1"></a><span class="co"># to the test set -- see the Supervised Learning vignette.</span></span>
+<span id="cb21-7"><a href="#cb21-7" tabindex="-1"></a>model_final <span class="ot">&lt;-</span> <span class="fu">tl_model</span>(data_split<span class="sc">$</span>train, Species <span class="sc">~</span> ., <span class="at">method =</span> <span class="st">&quot;forest&quot;</span>)</span>
+<span id="cb21-8"><a href="#cb21-8" tabindex="-1"></a>test_preds <span class="ot">&lt;-</span> <span class="fu">predict</span>(model_final, <span class="at">new_data =</span> data_split<span class="sc">$</span>test)</span>
+<span id="cb21-9"><a href="#cb21-9" tabindex="-1"></a></span>
+<span id="cb21-10"><a href="#cb21-10" tabindex="-1"></a>accuracy <span class="ot">&lt;-</span> <span class="fu">mean</span>(test_preds<span class="sc">$</span>.pred <span class="sc">==</span> data_split<span class="sc">$</span>test<span class="sc">$</span>Species)</span>
+<span id="cb21-11"><a href="#cb21-11" tabindex="-1"></a><span class="fu">cat</span>(<span class="st">&quot;Test accuracy:&quot;</span>, <span class="fu">round</span>(accuracy <span class="sc">*</span> <span class="dv">100</span>, <span class="dv">1</span>), <span class="st">&quot;%</span><span class="sc">\n</span><span class="st">&quot;</span>)</span>
+<span id="cb21-12"><a href="#cb21-12" tabindex="-1"></a><span class="co">#&gt; Test accuracy: 95.6 %</span></span></code></pre></div>
 </div>
 <div id="next-steps" class="section level2">
 <h2>Next Steps</h2>
-<p>Now that you understand the basics, explore:</p>
-<ol style="list-style-type: decimal">
-<li><strong>Supervised Learning</strong> - Dive deeper into
-classification and regression</li>
-<li><strong>Unsupervised Learning</strong> - Explore clustering and
-dimensionality reduction</li>
-<li><strong>Integration Workflows</strong> - Combine supervised and
-unsupervised learning</li>
-<li><strong>AutoML</strong> - Automated machine learning with
-<code>tl_auto_ml()</code></li>
-</ol>
-</div>
-<div id="summary" class="section level2">
-<h2>Summary</h2>
-<p>tidylearn is a <strong>wrapper package</strong> that provides:</p>
 <ul>
-<li><strong>Unified Interface</strong>: One function
-(<code>tl_model()</code>) that dispatches to proven packages like
-glmnet, randomForest, xgboost, e1071, and others</li>
-<li><strong>Transparency</strong>: Access raw model objects via
-<code>model$fit</code> for package-specific functionality</li>
-<li><strong>Tidy Output</strong>: All results are tibbles for easy
-manipulation with dplyr and ggplot2</li>
-<li><strong>Consistent Visualization</strong>: Unified ggplot2-based
-plots regardless of model type</li>
+<li><code>vignette(&quot;data-ingestion&quot;)</code> — reading from files,
+databases and cloud sources</li>
+<li><code>vignette(&quot;supervised-learning&quot;)</code> — classification and
+regression in depth, and how to replay preprocessing on a test set</li>
+<li><code>vignette(&quot;unsupervised-learning&quot;)</code> — clustering,
+ordination, and choosing the number of clusters</li>
+<li><code>vignette(&quot;market-basket&quot;)</code> — association rules</li>
+<li><code>vignette(&quot;tuning-and-pipelines&quot;)</code> — hyperparameter
+search, and bundling a workflow you can save</li>
+<li><code>vignette(&quot;automl&quot;)</code> — searching across methods under a
+time budget</li>
+<li><code>vignette(&quot;diagnostics&quot;)</code> — assumptions, influence and
+model comparison</li>
+<li><code>vignette(&quot;reporting&quot;)</code> — plots and formatted
+<code>gt</code> tables</li>
+<li><code>vignette(&quot;integration-workflows&quot;)</code> — combining
+supervised and unsupervised steps</li>
+<li><code>vignette(&quot;compute-backends&quot;)</code> — when a fit is too slow
+or too large for this machine: GPU routing, cost estimates, and the
+cloud safety model</li>
 </ul>
-<p>The underlying algorithms are unchanged - tidylearn simply makes them
-easier to use together.</p>
-<div class="sourceCode" id="cb20"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb20-1"><a href="#cb20-1" tabindex="-1"></a><span class="co"># Quick example combining everything</span></span>
-<span id="cb20-2"><a href="#cb20-2" tabindex="-1"></a>data_split <span class="ot">&lt;-</span> <span class="fu">tl_split</span>(iris, <span class="at">prop =</span> <span class="fl">0.7</span>, <span class="at">stratify =</span> <span class="st">&quot;Species&quot;</span>, <span class="at">seed =</span> <span class="dv">42</span>)</span>
-<span id="cb20-3"><a href="#cb20-3" tabindex="-1"></a></span>
-<span id="cb20-4"><a href="#cb20-4" tabindex="-1"></a><span class="co"># Random forests are scale-invariant, so no scaling is needed here. When a</span></span>
-<span id="cb20-5"><a href="#cb20-5" tabindex="-1"></a><span class="co"># method does need scaled inputs, the same transformation has to be applied</span></span>
-<span id="cb20-6"><a href="#cb20-6" tabindex="-1"></a><span class="co"># to the test set -- see the Supervised Learning vignette.</span></span>
-<span id="cb20-7"><a href="#cb20-7" tabindex="-1"></a>model_final <span class="ot">&lt;-</span> <span class="fu">tl_model</span>(data_split<span class="sc">$</span>train, Species <span class="sc">~</span> ., <span class="at">method =</span> <span class="st">&quot;forest&quot;</span>)</span>
-<span id="cb20-8"><a href="#cb20-8" tabindex="-1"></a>test_preds <span class="ot">&lt;-</span> <span class="fu">predict</span>(model_final, <span class="at">new_data =</span> data_split<span class="sc">$</span>test)</span>
-<span id="cb20-9"><a href="#cb20-9" tabindex="-1"></a></span>
-<span id="cb20-10"><a href="#cb20-10" tabindex="-1"></a>accuracy <span class="ot">&lt;-</span> <span class="fu">mean</span>(test_preds<span class="sc">$</span>.pred <span class="sc">==</span> data_split<span class="sc">$</span>test<span class="sc">$</span>Species)</span>
-<span id="cb20-11"><a href="#cb20-11" tabindex="-1"></a><span class="fu">cat</span>(<span class="st">&quot;Test accuracy:&quot;</span>, <span class="fu">round</span>(accuracy <span class="sc">*</span> <span class="dv">100</span>, <span class="dv">1</span>), <span class="st">&quot;%</span><span class="sc">\n</span><span class="st">&quot;</span>)</span>
-<span id="cb20-12"><a href="#cb20-12" tabindex="-1"></a><span class="co">#&gt; Test accuracy: 93.3 %</span></span></code></pre></div>
 </div>
 
 

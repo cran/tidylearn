@@ -12,295 +12,238 @@ library(dplyr)
 library(ggplot2)
 
 ## -----------------------------------------------------------------------------
-# Perform PCA on iris data (excluding species)
-model_pca <- tl_model(iris[, 1:4], method = "pca")
-print(model_pca)
+# Same algorithm, two interfaces
+model <- tl_model(iris[, 1:4], method = "kmeans", k = 3)
+km <- tidy_kmeans(iris[, 1:4], k = 3)
+
+names(km)
 
 ## -----------------------------------------------------------------------------
-# Extract variance explained
-variance_explained <- model_pca$fit$variance_explained
-print(variance_explained)
+iris_scaled <- standardize_data(iris[, 1:4])
+
+sapply(iris_scaled, function(x) round(c(mean = mean(x), sd = sd(x)), 3))
 
 ## -----------------------------------------------------------------------------
-# Cumulative variance explained
-cumsum(variance_explained$prop_variance)
+pca <- tidy_pca(iris[, 1:4], scale = TRUE)
+names(pca)
 
 ## -----------------------------------------------------------------------------
-# Transform data to principal components
-pca_scores <- predict(model_pca)
-head(pca_scores)
+get_pca_variance(pca)
 
 ## -----------------------------------------------------------------------------
-# Visualize first two components
-pca_plot_data <- pca_scores %>%
-  mutate(Species = iris$Species)
+get_pca_loadings(pca, n_components = 2)
 
-ggplot(pca_plot_data, aes(x = PC1, y = PC2, color = Species)) +
+## -----------------------------------------------------------------------------
+plot_variance_explained(get_pca_variance(pca), threshold = 0.9)
+
+## -----------------------------------------------------------------------------
+tidy_pca_screeplot(pca)
+
+## -----------------------------------------------------------------------------
+scored <- augment_pca(pca, iris, n_components = 2)
+head(scored, 3)
+
+## -----------------------------------------------------------------------------
+ggplot(scored, aes(x = PC1, y = PC2, color = Species)) +
   geom_point(size = 3, alpha = 0.7) +
   labs(
-    title = "PCA of Iris Dataset",
-    x = paste0(
-      "PC1 (", round(variance_explained$prop_variance[1] * 100, 1), "%)"
-    ),
-    y = paste0(
-      "PC2 (", round(variance_explained$prop_variance[2] * 100, 1), "%)"
-    )
+    title = "PCA of Iris",
+    x = paste0("PC1 (",
+               round(get_pca_variance(pca)$prop_variance[1] * 100, 1), "%)"),
+    y = paste0("PC2 (",
+               round(get_pca_variance(pca)$prop_variance[2] * 100, 1), "%)")
   ) +
   theme_minimal()
 
 ## -----------------------------------------------------------------------------
-# Examine loadings (variable contributions)
-loadings <- model_pca$fit$loadings
-print(loadings)
+tidy_pca_biplot(pca, color_by = iris$Species)
 
 ## -----------------------------------------------------------------------------
-# Perform MDS
-model_mds <- tl_model(iris[, 1:4], method = "mds", k = 2)
-print(model_mds)
+opt <- optimal_clusters(iris[, 1:4], max_k = 8)
+names(opt)
 
 ## -----------------------------------------------------------------------------
-# Extract MDS coordinates
-mds_points <- predict(model_mds)
-head(mds_points)
+opt$wss
 
 ## -----------------------------------------------------------------------------
-# Visualize MDS
-mds_plot_data <- mds_points %>%
-  mutate(Species = iris$Species)
-
-ggplot(mds_plot_data, aes(x = Dim1, y = Dim2, color = Species)) +
-  geom_point(size = 3, alpha = 0.7) +
-  labs(title = "MDS of Iris Dataset") +
-  theme_minimal()
+opt$silhouette
 
 ## -----------------------------------------------------------------------------
-# Perform k-means with k=3
-model_kmeans <- tl_model(iris[, 1:4], method = "kmeans", k = 3)
-print(model_kmeans)
+c(silhouette = attr(opt$silhouette, "optimal_k"),
+  gap = opt$gap$recommended_k)
 
 ## -----------------------------------------------------------------------------
-# Extract cluster assignments
-clusters <- model_kmeans$fit$clusters
-head(clusters)
+plot_elbow(opt$wss, suggested_k = 3)
 
 ## -----------------------------------------------------------------------------
-# Compare clusters with actual species
-table(Cluster = clusters$cluster, Species = iris$Species)
+plot_gap_stat(opt$gap)
 
 ## -----------------------------------------------------------------------------
-# Visualize clusters using PCA
-cluster_viz <- pca_scores %>%
-  mutate(
-    Cluster = as.factor(clusters$cluster),
-    Species = iris$Species
-  )
-
-ggplot(cluster_viz, aes(x = PC1, y = PC2, color = Cluster, shape = Species)) +
-  geom_point(size = 3, alpha = 0.7) +
-  labs(title = "K-means Clusters vs True Species") +
-  theme_minimal()
+calc_wss(iris[, 1:4], max_k = 6)
 
 ## -----------------------------------------------------------------------------
-# Access cluster centers
-centers <- model_kmeans$fit$centers
-print(centers)
+km <- tidy_kmeans(iris[, 1:4], k = 3)
+km$centers
 
 ## -----------------------------------------------------------------------------
-# Perform PAM clustering
-model_pam <- tl_model(iris[, 1:4], method = "pam", k = 3)
-print(model_pam)
-
-# Extract clusters
-clusters_pam <- model_pam$fit$clusters
-table(Cluster = clusters_pam$cluster, Species = iris$Species)
+km$clusters
 
 ## -----------------------------------------------------------------------------
-# Perform hierarchical clustering
-model_hclust <- tl_model(iris[, 1:4], method = "hclust")
-print(model_hclust)
+iris_clustered <- augment_kmeans(km, iris)
+table(Cluster = iris_clustered$cluster, Species = iris_clustered$Species)
 
 ## -----------------------------------------------------------------------------
-# plot() dispatches on the model type -- a dendrogram for hclust,
-# a variance plot for PCA, a cluster scatter plot for k-means and friends
-plot(model_hclust)
+plot_cluster_sizes(km$clusters$cluster)
 
 ## -----------------------------------------------------------------------------
-# Or work with the underlying hclust object directly
-plot(model_hclust$fit$model,
-     labels = FALSE,
-     main = "Hierarchical Clustering of Iris")
+plot_clusters(iris_clustered, cluster_col = "cluster",
+              x_col = "Petal.Length", y_col = "Petal.Width")
 
 ## -----------------------------------------------------------------------------
-# Cut tree to get clusters
-k <- 3
-clusters_hc <- cutree(model_hclust$fit$model, k = k)
-table(Cluster = clusters_hc, Species = iris$Species)
+dist_mat <- tidy_dist(iris[, 1:4])
+sil <- tidy_silhouette(km$clusters$cluster, dist_mat)
+
+sil$avg_width
 
 ## -----------------------------------------------------------------------------
-# Visualize hierarchical clusters
-hc_viz <- pca_scores %>%
-  mutate(
-    Cluster = as.factor(clusters_hc),
-    Species = iris$Species
-  )
-
-ggplot(hc_viz, aes(x = PC1, y = PC2, color = Cluster)) +
-  geom_point(size = 3, alpha = 0.7) +
-  labs(title = "Hierarchical Clustering Results") +
-  theme_minimal()
+sil$cluster_avg
 
 ## -----------------------------------------------------------------------------
-# Perform DBSCAN
-model_dbscan <- tl_model(iris[, 1:4], method = "dbscan", eps = 0.5, minPts = 5)
-print(model_dbscan)
-
-# Extract clusters (0 = noise/outliers)
-clusters_dbscan <- model_dbscan$fit$clusters
-table(clusters_dbscan$cluster)
-
-# Compare with species
-table(Cluster = clusters_dbscan$cluster, Species = iris$Species)
+plot_silhouette(sil)
 
 ## -----------------------------------------------------------------------------
-# Create larger dataset
+calc_validation_metrics(km$clusters$cluster, iris[, 1:4], dist_mat)
+
+## -----------------------------------------------------------------------------
+pam_result <- tidy_pam(iris[, 1:4], k = 3)
+pam_result$medoids
+
+## -----------------------------------------------------------------------------
+pam_result$silhouette_avg
+
+## -----------------------------------------------------------------------------
+table(Cluster = augment_pam(pam_result, iris)$cluster, Species = iris$Species)
+
+## -----------------------------------------------------------------------------
 large_data <- iris[rep(seq_len(nrow(iris)), 10), 1:4]
+clara_result <- tidy_clara(large_data, k = 3, samples = 5)
 
-# Perform CLARA
-model_clara <- tl_model(large_data, method = "clara", k = 3, samples = 5)
-print(model_clara)
-
-# Extract clusters
-clusters_clara <- model_clara$fit$clusters
+table(clara_result$clusters$cluster)
 
 ## -----------------------------------------------------------------------------
-# Try different values of k
-k_values <- 2:8
-within_ss <- numeric(length(k_values))
-
-for (i in seq_along(k_values)) {
-  k <- k_values[i]
-  model <- tl_model(iris[, 1:4], method = "kmeans", k = k)
-  within_ss[i] <- model$fit$model$tot.withinss
-}
-
-# Plot elbow curve
-elbow_data <- data.frame(k = k_values, within_ss = within_ss)
-
-ggplot(elbow_data, aes(x = k, y = within_ss)) +
-  geom_line(linewidth = 1) +
-  geom_point(size = 3) +
-  labs(
-    title = "Elbow Method for Optimal k",
-    x = "Number of Clusters (k)",
-    y = "Total Within-Cluster Sum of Squares"
-  ) +
-  theme_minimal()
+hc <- tidy_hclust(iris[, 1:4], method = "average")
+plot_dendrogram(hc, k = 3)
 
 ## -----------------------------------------------------------------------------
-# Train clustering model
-model_train <- tl_model(iris[1:100, 1:4], method = "kmeans", k = 3)
-
-# Predict cluster assignments for new data
-new_data <- iris[101:150, 1:4]
-new_clusters <- predict(model_train, new_data = new_data)
-
-head(new_clusters)
+optimal_hclust_k(hc, method = "silhouette", max_k = 8)$optimal_k
 
 ## -----------------------------------------------------------------------------
-# Train PCA model
-pca_train <- tl_model(iris[1:100, 1:4], method = "pca")
-
-# Transform new data
-new_pca <- predict(pca_train, new_data = new_data)
-head(new_pca)
+cuts <- tidy_cutree(hc, k = 3)
+head(cuts, 3)
 
 ## -----------------------------------------------------------------------------
-# Reduce dimensions with PCA
-pca_model <- tl_model(iris[, 1:4], method = "pca")
-pca_data <- predict(pca_model)
-
-# Select first 2 components
-pca_reduced <- pca_data %>% select(PC1, PC2)
-
-# Cluster in reduced space
-kmeans_pca <- tl_model(pca_reduced, method = "kmeans", k = 3)
-clusters_pca <- kmeans_pca$fit$clusters
-
-# Visualize
-viz_combined <- pca_data %>%
-  mutate(
-    Cluster = as.factor(clusters_pca$cluster),
-    Species = iris$Species
-  )
-
-ggplot(viz_combined, aes(x = PC1, y = PC2, color = Cluster, shape = Species)) +
-  geom_point(size = 3, alpha = 0.7) +
-  labs(title = "Clustering in PCA Space") +
-  theme_minimal()
+hc_data <- augment_hclust(hc, iris, k = 3)
+table(Cluster = hc_data$cluster, Species = hc_data$Species)
 
 ## -----------------------------------------------------------------------------
-# Simulate customer data
-set.seed(42)
-customers <- data.frame(
-  age = rnorm(200, 40, 15),
-  income = rnorm(200, 50000, 20000),
-  spending_score = rnorm(200, 50, 25)
+linkages <- c("single", "average", "complete", "ward.D2")
+
+sapply(linkages, function(m) {
+  cl <- tidy_cutree(tidy_hclust(iris[, 1:4], method = m), k = 3)$cluster
+  max(table(cl))
+})
+
+## -----------------------------------------------------------------------------
+eps_suggestion <- suggest_eps(iris[, 1:4], minPts = 5)
+eps_suggestion$eps
+
+## -----------------------------------------------------------------------------
+plot_knn_dist(iris[, 1:4], k = 5)
+
+## -----------------------------------------------------------------------------
+db <- tidy_dbscan(iris[, 1:4], eps = eps_suggestion$eps, minPts = 5)
+
+c(clusters = db$n_clusters, noise = db$n_noise)
+
+## -----------------------------------------------------------------------------
+db_data <- augment_dbscan(db, iris)
+table(Cluster = db_data$cluster, Species = db_data$Species)
+
+## -----------------------------------------------------------------------------
+explore_dbscan_params(
+  iris[, 1:4],
+  eps_values = c(0.4, 0.6, 0.8, 1.0),
+  minPts_values = c(4, 5, 10)
 )
 
-# Standardize features
-customers_scaled <- scale(customers) %>% as.data.frame()
-
-# Cluster customers
-customer_segments <- tl_model(customers_scaled, method = "kmeans", k = 4)
-customers$segment <- customer_segments$fit$clusters$cluster
-
-# Visualize segments
-ggplot(customers,
-       aes(x = income, y = spending_score,
-           color = as.factor(segment))) +
-  geom_point(size = 3, alpha = 0.7) +
-  labs(
-    title = "Customer Segmentation",
-    color = "Segment"
-  ) +
-  theme_minimal()
+## -----------------------------------------------------------------------------
+mds <- tidy_mds(iris[, 1:4], method = "classical", ndim = 2)
+head(mds$config, 3)
 
 ## -----------------------------------------------------------------------------
-# Use PCA for feature extraction
-pca_features <- tl_model(mtcars, method = "pca")
+plot_mds(mds, color_by = iris$Species, label_points = FALSE)
 
-# Keep components explaining 90% of variance
-var_exp <- pca_features$fit$variance_explained
-cumulative_var <- cumsum(var_exp$prop_variance)
-n_components <- which(cumulative_var >= 0.90)[1]
+## ----error = TRUE-------------------------------------------------------------
+try({
+tidy_mds(iris[, 1:4], method = "sammon", ndim = 2)
+})
 
-cat("Components needed for 90% variance:", n_components, "\n")
-cat("Original features:", ncol(mtcars), "\n")
-dim_reduction <- round(
-  (1 - n_components / ncol(mtcars)) * 100, 1
+## -----------------------------------------------------------------------------
+distinct_iris <- iris[!duplicated(iris[, 1:4]), 1:4]
+sammon <- tidy_mds(distinct_iris, method = "sammon", ndim = 2)
+sammon$stress
+
+## -----------------------------------------------------------------------------
+comparison <- compare_clusterings(
+  list(
+    kmeans = km$clusters$cluster,
+    pam = pam_result$clusters$cluster,
+    hclust = cuts$cluster,
+    dbscan = db$clusters$cluster
+  ),
+  iris[, 1:4],
+  dist_mat
 )
-cat("Dimension reduction:", dim_reduction, "%\n")
+
+comparison
 
 ## -----------------------------------------------------------------------------
-# Complete unsupervised workflow
-workflow_data <- iris[, 1:4]
+plot_cluster_comparison(
+  iris[, 1:4] %>%
+    mutate(kmeans = km$clusters$cluster, hclust = cuts$cluster),
+  cluster_cols = c("kmeans", "hclust"),
+  x_col = "Petal.Length",
+  y_col = "Petal.Width"
+)
 
-# 1. Reduce dimensions
-pca_final <- tl_model(workflow_data, method = "pca")
+## -----------------------------------------------------------------------------
+names(compare_distances(iris[, 1:4]))
 
-# 2. Cluster in reduced space
-pca_coords <- predict(pca_final) %>% select(PC1, PC2)
-clusters_final <- tl_model(pca_coords, method = "kmeans", k = 3)
+## -----------------------------------------------------------------------------
+plot_distance_heatmap(dist_mat)
 
-# 3. Visualize
-final_viz <- pca_coords %>%
-  mutate(
-    Cluster = as.factor(clusters_final$fit$clusters$cluster),
-    Species = iris$Species
-  )
+## -----------------------------------------------------------------------------
+data_matrix <- standardize_data(iris[, 1:4])
 
-ggplot(final_viz, aes(x = PC1, y = PC2, color = Cluster)) +
-  geom_point(size = 3, alpha = 0.7) +
-  labs(title = "Complete Unsupervised Workflow") +
-  theme_minimal()
+# 1. How many clusters does the data support?
+choice <- optimal_clusters(data_matrix, max_k = 8)
+k <- attr(choice$silhouette, "optimal_k")
+k
+
+## -----------------------------------------------------------------------------
+# 2. Cluster at that k
+final_km <- tidy_kmeans(data_matrix, k = k)
+
+# 3. Score the result before believing it
+final_sil <- tidy_silhouette(final_km$clusters$cluster, tidy_dist(data_matrix))
+final_sil$avg_width
+
+## -----------------------------------------------------------------------------
+# 4. Attach the assignment and look at it
+final_data <- augment_kmeans(final_km, iris)
+table(Cluster = final_data$cluster, Species = final_data$Species)
+
+## -----------------------------------------------------------------------------
+plot_clusters(final_data, cluster_col = "cluster",
+              x_col = "Petal.Length", y_col = "Petal.Width")
 

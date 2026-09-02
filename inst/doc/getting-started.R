@@ -7,11 +7,10 @@ knitr::opts_chunk$set(
 )
 
 ## ----eval = FALSE-------------------------------------------------------------
-# # Install from CRAN
+# # From CRAN
 # install.packages("tidylearn")
 # 
-# # Or install development version from GitHub
-# # Install the development version from GitHub:
+# # Development version
 # # devtools::install_github("ces0491/tidylearn") # nolint
 
 ## ----setup--------------------------------------------------------------------
@@ -120,6 +119,11 @@ class(model_forest$fit)  # This is the randomForest object
 
 # Use package-specific functions if needed
 # randomForest::varImpPlot(model_forest$fit) # nolint
+
+## -----------------------------------------------------------------------------
+model_pca <- tl_model(iris, ~ ., method = "pca")
+names(model_pca$fit)
+class(model_pca$fit$model)  # This is the prcomp object
 
 ## -----------------------------------------------------------------------------
 # Quick example combining everything

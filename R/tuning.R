@@ -53,6 +53,7 @@ tl_tune_grid <- function(data, formula, method,
                          maximize = NULL,
                          verbose = TRUE, ...) {
   # Input validation
+  formula <- tl_as_formula(formula)
   if (!is.list(param_grid)) {
     stop("param_grid must be a named list", call. = FALSE)
   }
@@ -164,7 +165,14 @@ tl_tune_grid <- function(data, formula, method,
         fold_model, valid_fold, metrics = metric
       )
 
-      # Store metric value
+      # Store metric value. A metric the evaluation did not produce --
+      # a classification metric on a regression task, or a name that is
+      # not a metric at all -- leaves a zero-length right-hand side, and
+      # the assignment failed with "replacement has length zero", which
+      # says nothing about the metric that was asked for.
+      tl_check_metric_available(
+        metric, eval_metrics, fold_model, valid_fold
+      )
       fold_metrics[j] <- eval_metrics$value[
         eval_metrics$metric == metric
       ]
@@ -263,14 +271,134 @@ tl_tune_grid <- function(data, formula, method,
   final_model
 }
 
+#' Refuse a metric the evaluation cannot produce
+#'
+#' @param metric The requested metric name
+#' @param eval_metrics The tibble returned by \code{tl_evaluate()}
+#' @return `TRUE`, invisibly, when the metric is present
+#' @keywords internal
+#' @noRd
+tl_check_metric_available <- function(metric, eval_metrics,
+                                      model = NULL, new_data = NULL) {
+  if (metric %in% eval_metrics$metric) {
+    return(invisible(TRUE))
+  }
+
+  # tl_evaluate() filters to the metrics it was asked for, so an
+  # unrecognised name leaves nothing behind to list. Ask again without
+  # the filter, on this error path only, to find out what this task
+  # actually produces.
+  available <- eval_metrics$metric
+  if (length(available) == 0 && !is.null(model)) {
+    available <- tryCatch(
+      suppressWarnings(suppressMessages(
+        tl_evaluate(model, new_data = new_data)$metric
+      )),
+      error = function(e) character()
+    )
+  }
+
+  stop(
+    "Metric \"", metric, "\" was not produced for this task",
+    if (length(available)) {
+      paste0(". Available: ", paste0("\"", available, "\"", collapse = ", "))
+    } else {
+      ""
+    },
+    ". Classification metrics are not computed for a numeric response, ",
+    "nor regression metrics for a factor one.",
+    call. = FALSE
+  )
+}
+
+#' Refuse a parameter range that runs the wrong way
+#'
+#' A continuous range is sampled with \code{runif(1, min, max)} and a
+#' log-uniform one with \code{exp(runif(1, log(min), log(max)))}. Both
+#' return \code{NaN} when \code{min > max}, and R gives only a warning,
+#' so \code{c(0.1, 0.001)} instead of \code{c(0.001, 0.1)} produced a
+#' full grid of NaN parameters, fitted models with them, and reported
+#' \code{best_params} of NaN -- without failing anywhere.
+#'
+#' Integer ranges are unaffected: \code{500:100} is a valid descending
+#' sequence and \code{sample()} draws from it happily.
+#'
+#' @param param_space The space passed to \code{tl_tune_random()}
+#' @return `TRUE`, invisibly, when every range is usable
+#' @keywords internal
+#' @noRd
+tl_check_param_space <- function(param_space) {
+  for (param_name in names(param_space)) {
+    param_def <- param_space[[param_name]]
+    if (is.function(param_def)) {
+      next
+    }
+
+    is_log_spec <- length(param_def) == 3 &&
+      identical(as.character(param_def[3]), "log") &&
+      !anyNA(suppressWarnings(as.numeric(param_def[1:2])))
+
+    bounds <- if (is_log_spec) {
+      as.numeric(param_def[1:2])
+    } else if (is.numeric(param_def) && length(param_def) == 2 &&
+                 !all(param_def == floor(param_def))) {
+      param_def
+    } else {
+      next
+    }
+
+    if (!all(is.finite(bounds))) {
+      stop(
+        "param_space$", param_name,
+        " has a non-finite bound: c(", paste(bounds, collapse = ", "), ").",
+        call. = FALSE
+      )
+    }
+
+    if (bounds[1] >= bounds[2]) {
+      stop(
+        "param_space$", param_name, " runs from ", bounds[1], " to ",
+        bounds[2], ", but a range is c(min, max). Sampling it would give ",
+        "NaN for every iteration. Write it as c(", bounds[2], ", ",
+        bounds[1], ")",
+        if (is_log_spec) ", \"log\")" else ")", ".",
+        call. = FALSE
+      )
+    }
+
+    if (is_log_spec && bounds[1] <= 0) {
+      stop(
+        "param_space$", param_name,
+        " is log-uniform, so both bounds must be positive, but the lower ",
+        "bound is ", bounds[1], ".",
+        call. = FALSE
+      )
+    }
+  }
+
+  invisible(TRUE)
+}
+
 #' Tune hyperparameters using random search
 #'
 #' @param data A data frame containing the training
 #'   data
 #' @param formula A formula specifying the model
 #' @param method The modeling method to tune
-#' @param param_space A named list of parameter spaces
-#'   to sample from
+#' @param param_space A named list of parameter spaces to sample from.
+#'   Each element is read by its type and length:
+#'   \describe{
+#'     \item{a function}{called with no arguments to draw one value}
+#'     \item{\code{c(min, max, "log")}}{log-uniform draw between
+#'       \code{min} and \code{max}}
+#'     \item{two whole numbers}{integer range, e.g.
+#'       \code{c(10, 20)} draws from 10:20}
+#'     \item{three or more numbers}{a discrete set, sampled from as
+#'       given, whether or not they are whole}
+#'     \item{two other numbers}{uniform draw between them, e.g.
+#'       \code{c(0.01, 0.1)}}
+#'     \item{character or factor}{categorical, sampled from as given}
+#'   }
 #' @param n_iter Number of random parameter
 #'   combinations to try
 #' @param folds Number of cross-validation folds
@@ -300,10 +428,10 @@ tl_tune_random <- function(data, formula, method,
                            maximize = NULL,
                            verbose = TRUE,
                            seed = NULL, ...) {
-  # Set seed if provided
-  if (!is.null(seed)) {
-    set.seed(seed)
-  }
+  formula <- tl_as_formula(formula)
+
+  # Seed this call without rewriting the caller's random stream
+  tl_local_seed(seed)
 
   # Input validation
   if (!is.list(param_space)) {
@@ -312,6 +440,8 @@ tl_tune_random <- function(data, formula, method,
       call. = FALSE
     )
   }
+
+  tl_check_param_space(param_space)
 
   # Determine if classification or regression
   response_var <- all.vars(formula)[1]
@@ -356,26 +486,27 @@ tl_tune_random <- function(data, formula, method,
     for (param_name in names(param_space)) {
       param_def <- param_space[[param_name]]
 
+      # Order matters here. A log-uniform spec c(min, max, "log") is a
+      # CHARACTER vector -- c() coerces -- so it has to be recognised
+      # before any is.numeric() branch, and the whole-number test has to
+      # come before the continuous one or an integer set like c(100, 500)
+      # gets sampled with runif() and yields 234.66.
+      is_log_spec <- length(param_def) == 3 &&
+        identical(as.character(param_def[3]), "log") &&
+        !anyNA(suppressWarnings(as.numeric(param_def[1:2])))
+
       if (is.function(param_def)) {
         # Custom sampling function
         params[[param_name]] <- param_def()
-      } else if (is.numeric(param_def) &&
-                   length(param_def) == 2) {
-        # Numeric range: [min, max]
-        params[[param_name]] <- runif(
-          1, param_def[1], param_def[2]
-        )
-      } else if (is.numeric(param_def) &&
-                   length(param_def) == 3 &&
-                   param_def[3] == "log") {
+      } else if (is_log_spec) {
         # Log-uniform range: [min, max, "log"]
+        bounds <- as.numeric(param_def[1:2])
         params[[param_name]] <- exp(runif(
-          1, log(param_def[1]), log(param_def[2])
+          1, log(bounds[1]), log(bounds[2])
         ))
       } else if (is.integer(param_def) ||
                    (is.numeric(param_def) &&
                       all(param_def == floor(param_def)))) {
-        # Integer range or discrete values
         if (length(param_def) == 2) {
           # Integer range: [min, max]
           params[[param_name]] <- sample(
@@ -383,10 +514,22 @@ tl_tune_random <- function(data, formula, method,
           )
         } else {
           # Discrete values
-          params[[param_name]] <- sample(
-            param_def, 1
-          )
+          params[[param_name]] <- sample(param_def, 1)
         }
+      } else if (is.numeric(param_def) &&
+                   length(param_def) == 2) {
+        # Continuous range: [min, max]
+        params[[param_name]] <- runif(
+          1, param_def[1], param_def[2]
+        )
+      } else if (is.numeric(param_def) && length(param_def) >= 3) {
+        # Discrete set of any numbers, e.g. c(0.001, 0.01, 0.1). Only
+        # whole numbers reached the discrete branch above, so the natural
+        # way to write a set of candidate cp or alpha values -- the
+        # parameters that are never integers -- was rejected as an
+        # "Unsupported parameter space definition", while tl_tune_grid()
+        # took the same vector without complaint.
+        params[[param_name]] <- sample(param_def, 1)
       } else if (is.character(param_def) ||
                    is.factor(param_def)) {
         # Categorical parameter
@@ -473,7 +616,14 @@ tl_tune_random <- function(data, formula, method,
         fold_model, valid_fold, metrics = metric
       )
 
-      # Store metric value
+      # Store metric value. A metric the evaluation did not produce --
+      # a classification metric on a regression task, or a name that is
+      # not a metric at all -- leaves a zero-length right-hand side, and
+      # the assignment failed with "replacement has length zero", which
+      # says nothing about the metric that was asked for.
+      tl_check_metric_available(
+        metric, eval_metrics, fold_model, valid_fold
+      )
       fold_metrics[j] <- eval_metrics$value[
         eval_metrics$metric == metric
       ]
@@ -800,7 +950,9 @@ tl_plot_tuning_results <- function(model,
         y = .data$value,
         group = .data$rank,
         color = .data$mean_metric,
-        size = .data$is_top,
+        # `size` on a line is deprecated since ggplot2 3.4.0 and warns
+        # the caller to file a bug against tidylearn
+        linewidth = .data$is_top,
         alpha = .data$is_top
       )
     ) +
@@ -813,7 +965,7 @@ tl_plot_tuning_results <- function(model,
           results_df$mean_metric, na.rm = TRUE
         )
       ) +
-      ggplot2::scale_size_manual(
+      ggplot2::scale_linewidth_manual(
         values = c(0.5, 1.5)
       ) +
       ggplot2::scale_alpha_manual(
@@ -831,7 +983,7 @@ tl_plot_tuning_results <- function(model,
         x = "Parameter",
         y = "Normalized Value",
         color = tuning_results$metric,
-        size = "Top Result",
+        linewidth = "Top Result",
         alpha = "Top Result"
       ) +
       ggplot2::theme_minimal() +
@@ -851,12 +1003,25 @@ tl_plot_tuning_results <- function(model,
       param_names,
       function(param) {
         if (is.numeric(results_df[[param]])) {
-          # For numeric parameters, use correlation
-          cor_val <- cor(
-            results_df[[param]],
-            results_df$mean_metric,
-            use = "pairwise.complete.obs"
-          )
+          # For numeric parameters, use correlation. A parameter that took
+          # one value, or a metric that did not move across the grid, gives
+          # cor() a zero-variance input: it warns and returns NA, and the
+          # bar silently disappears from the plot. Zero variance means the
+          # parameter explained none of the score, so say that instead.
+          has_spread <- function(x) {
+            x <- x[!is.na(x)]
+            length(x) > 1L && stats::sd(x) > 0
+          }
+          cor_val <- if (has_spread(results_df[[param]]) &&
+                           has_spread(results_df$mean_metric)) {
+            cor(
+              results_df[[param]],
+              results_df$mean_metric,
+              use = "pairwise.complete.obs"
+            )
+          } else {
+            0
+          }
           data.frame(
             parameter = param,
             importance = abs(cor_val),
@@ -881,7 +1046,8 @@ tl_plot_tuning_results <- function(model,
             anova_result[[1]]$"Sum Sq"
           )
           ss_param <- anova_result[[1]]$"Sum Sq"[1]
-          eta_squared <- ss_param / ss_total
+          # A constant metric makes ss_total zero and eta squared NaN
+          eta_squared <- if (isTRUE(ss_total > 0)) ss_param / ss_total else 0
 
           data.frame(
             parameter = param,
@@ -939,8 +1105,11 @@ tl_plot_tuning_results <- function(model,
       ggplot2::theme_minimal()
   } else {
     stop(
-      "Invalid plot_type or insufficient ",
-      "parameters for plotting",
+      "plot_type must be one of \"scatter\", \"grid\", ",
+      "\"parallel\" or \"importance\"; got \"", plot_type, "\". ",
+      "\"scatter\" and \"grid\" additionally need two tuned ",
+      "parameters, and this search tuned ",
+      length(param_names), ".",
       call. = FALSE
     )
   }

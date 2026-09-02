@@ -110,9 +110,6 @@ tl_fit_regularized <- function(data, formula,
   # Parse the formula
   response_var <- all.vars(formula)[1]
 
-  # Extract response (y) and predictors matrices
-  y <- data[[response_var]]
-
   # Create model matrix for predictors
   # Remove intercept as glmnet adds it by default
   model_frame <- stats::model.frame(formula, data = data)
@@ -120,6 +117,15 @@ tl_fit_regularized <- function(data, formula,
   x_mat <- stats::model.matrix(
     design_terms, model_frame
   )[, -1, drop = FALSE]
+
+  # Take the response from the model frame rather than from `data`.
+  # model.frame() applies na.omit, so one missing predictor drops that row
+  # from x_mat while data[[response_var]] still holds every row -- and
+  # glmnet then reports "number of observations in y (60) not equal to the
+  # number of rows of x (59)", which names neither missing values nor the
+  # column responsible. lm(), rpart(), nnet() and svm() all drop the row
+  # and carry on; this now does the same.
+  y <- stats::model.response(model_frame)
 
   # Retain the terms and factor levels so prediction can rebuild an
   # identically-coded design matrix on new data
@@ -278,7 +284,8 @@ tl_plot_regularization_path <- function(model,
     )
   ) +
     ggplot2::geom_line(
-      ggplot2::aes(alpha = is_top, size = is_top)
+      # `size` on a line is deprecated since ggplot2 3.4.0
+      ggplot2::aes(alpha = is_top, linewidth = is_top)
     ) +
     ggplot2::geom_vline(
       xintercept = lambda_min,
@@ -294,7 +301,7 @@ tl_plot_regularization_path <- function(model,
     ggplot2::scale_alpha_manual(
       values = c(0.3, 1)
     ) +
-    ggplot2::scale_size_manual(
+    ggplot2::scale_linewidth_manual(
       values = c(0.5, 1.2)
     ) +
     ggplot2::scale_color_manual(
@@ -578,8 +585,12 @@ tl_predict_glmnet <- function(model, new_data,
         !!class_levels[2] := positive
       )
     } else {
-      # Multinomial: an [observation, class, lambda] array
-      prob_mat <- probs[, , 1, drop = TRUE]
+      # Multinomial: an [observation, class, lambda] array. drop = TRUE
+      # would flatten a single-row prediction to a bare vector, so pin
+      # the shape explicitly instead.
+      prob_mat <- matrix(
+        probs[, , 1], nrow = nrow(x_new), ncol = length(class_levels)
+      )
       colnames(prob_mat) <- class_levels
       tibble::as_tibble(as.data.frame(prob_mat))
     }

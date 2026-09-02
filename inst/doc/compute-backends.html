@@ -1,0 +1,573 @@
+<!DOCTYPE html>
+
+<html>
+
+<head>
+
+<meta charset="utf-8" />
+<meta name="generator" content="pandoc" />
+<meta http-equiv="X-UA-Compatible" content="IE=EDGE" />
+
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+
+
+
+<title>Compute Backends: CPU, GPU and Cloud</title>
+
+<script>// Pandoc 2.9 adds attributes on both header and div. We remove the former (to
+// be compatible with the behavior of Pandoc < 2.8).
+document.addEventListener('DOMContentLoaded', function(e) {
+  var hs = document.querySelectorAll("div.section[class*='level'] > :first-child");
+  var i, h, a;
+  for (i = 0; i < hs.length; i++) {
+    h = hs[i];
+    if (!/^h[1-6]$/i.test(h.tagName)) continue;  // it should be a header h1-h6
+    a = h.attributes;
+    while (a.length > 0) h.removeAttribute(a[0].name);
+  }
+});
+</script>
+
+<style type="text/css">
+code{white-space: pre-wrap;}
+span.smallcaps{font-variant: small-caps;}
+span.underline{text-decoration: underline;}
+div.column{display: inline-block; vertical-align: top; width: 50%;}
+div.hanging-indent{margin-left: 1.5em; text-indent: -1.5em;}
+ul.task-list{list-style: none;}
+</style>
+
+
+
+<style type="text/css">
+code {
+white-space: pre;
+}
+.sourceCode {
+overflow: visible;
+}
+</style>
+<style type="text/css" data-origin="pandoc">
+html { -webkit-text-size-adjust: 100%; }
+pre > code.sourceCode { white-space: pre; position: relative; }
+pre > code.sourceCode > span { display: inline-block; line-height: 1.25; }
+pre > code.sourceCode > span:empty { height: 1.2em; }
+.sourceCode { overflow: visible; }
+code.sourceCode > span { color: inherit; text-decoration: inherit; }
+div.sourceCode { margin: 1em 0; }
+pre.sourceCode { margin: 0; }
+@media screen {
+div.sourceCode { overflow: auto; }
+}
+@media print {
+pre > code.sourceCode { white-space: pre-wrap; }
+pre > code.sourceCode > span { text-indent: -5em; padding-left: 5em; }
+}
+pre.numberSource code
+{ counter-reset: source-line 0; }
+pre.numberSource code > span
+{ position: relative; left: -4em; counter-increment: source-line; }
+pre.numberSource code > span > a:first-child::before
+{ content: counter(source-line);
+position: relative; left: -1em; text-align: right; vertical-align: baseline;
+border: none; display: inline-block;
+-webkit-touch-callout: none; -webkit-user-select: none;
+-khtml-user-select: none; -moz-user-select: none;
+-ms-user-select: none; user-select: none;
+padding: 0 4px; width: 4em;
+color: #aaaaaa;
+}
+pre.numberSource { margin-left: 3em; border-left: 1px solid #aaaaaa; padding-left: 4px; }
+div.sourceCode
+{ }
+@media screen {
+pre > code.sourceCode > span > a:first-child::before { text-decoration: underline; }
+}
+code span.al { color: #ff0000; font-weight: bold; } 
+code span.an { color: #60a0b0; font-weight: bold; font-style: italic; } 
+code span.at { color: #7d9029; } 
+code span.bn { color: #40a070; } 
+code span.bu { color: #008000; } 
+code span.cf { color: #007020; font-weight: bold; } 
+code span.ch { color: #4070a0; } 
+code span.cn { color: #880000; } 
+code span.co { color: #60a0b0; font-style: italic; } 
+code span.cv { color: #60a0b0; font-weight: bold; font-style: italic; } 
+code span.do { color: #ba2121; font-style: italic; } 
+code span.dt { color: #902000; } 
+code span.dv { color: #40a070; } 
+code span.er { color: #ff0000; font-weight: bold; } 
+code span.ex { } 
+code span.fl { color: #40a070; } 
+code span.fu { color: #06287e; } 
+code span.im { color: #008000; font-weight: bold; } 
+code span.in { color: #60a0b0; font-weight: bold; font-style: italic; } 
+code span.kw { color: #007020; font-weight: bold; } 
+code span.op { color: #666666; } 
+code span.ot { color: #007020; } 
+code span.pp { color: #bc7a00; } 
+code span.sc { color: #4070a0; } 
+code span.ss { color: #bb6688; } 
+code span.st { color: #4070a0; } 
+code span.va { color: #19177c; } 
+code span.vs { color: #4070a0; } 
+code span.wa { color: #60a0b0; font-weight: bold; font-style: italic; } 
+</style>
+<script>
+// apply pandoc div.sourceCode style to pre.sourceCode instead
+(function() {
+  var sheets = document.styleSheets;
+  for (var i = 0; i < sheets.length; i++) {
+    if (sheets[i].ownerNode.dataset["origin"] !== "pandoc") continue;
+    try { var rules = sheets[i].cssRules; } catch (e) { continue; }
+    var j = 0;
+    while (j < rules.length) {
+      var rule = rules[j];
+      // check if there is a div.sourceCode rule
+      if (rule.type !== rule.STYLE_RULE || rule.selectorText !== "div.sourceCode") {
+        j++;
+        continue;
+      }
+      var style = rule.style.cssText;
+      // check if color or background-color is set
+      if (rule.style.color === '' && rule.style.backgroundColor === '') {
+        j++;
+        continue;
+      }
+      // replace div.sourceCode by a pre.sourceCode rule
+      sheets[i].deleteRule(j);
+      sheets[i].insertRule('pre.sourceCode{' + style + '}', j);
+    }
+  }
+})();
+</script>
+
+
+
+
+<style type="text/css">body {
+background-color: #fff;
+margin: 1em auto;
+max-width: 700px;
+overflow: visible;
+padding-left: 2em;
+padding-right: 2em;
+font-family: "Open Sans", "Helvetica Neue", Helvetica, Arial, sans-serif;
+font-size: 14px;
+line-height: 1.35;
+}
+#TOC {
+clear: both;
+margin: 0 0 10px 10px;
+padding: 4px;
+width: 400px;
+border: 1px solid #CCCCCC;
+border-radius: 5px;
+background-color: #f6f6f6;
+font-size: 13px;
+line-height: 1.3;
+}
+#TOC .toctitle {
+font-weight: bold;
+font-size: 15px;
+margin-left: 5px;
+}
+#TOC ul {
+padding-left: 40px;
+margin-left: -1.5em;
+margin-top: 5px;
+margin-bottom: 5px;
+}
+#TOC ul ul {
+margin-left: -2em;
+}
+#TOC li {
+line-height: 16px;
+}
+table {
+margin: 1em auto;
+border-width: 1px;
+border-color: #DDDDDD;
+border-style: outset;
+border-collapse: collapse;
+}
+table th {
+border-width: 2px;
+padding: 5px;
+border-style: inset;
+}
+table td {
+border-width: 1px;
+border-style: inset;
+line-height: 18px;
+padding: 5px 5px;
+}
+table, table th, table td {
+border-left-style: none;
+border-right-style: none;
+}
+table thead, table tr.even {
+background-color: #f7f7f7;
+}
+p {
+margin: 0.5em 0;
+}
+blockquote {
+background-color: #f6f6f6;
+padding: 0.25em 0.75em;
+}
+hr {
+border-style: solid;
+border: none;
+border-top: 1px solid #777;
+margin: 28px 0;
+}
+dl {
+margin-left: 0;
+}
+dl dd {
+margin-bottom: 13px;
+margin-left: 13px;
+}
+dl dt {
+font-weight: bold;
+}
+ul {
+margin-top: 0;
+}
+ul li {
+list-style: circle outside;
+}
+ul ul {
+margin-bottom: 0;
+}
+pre, code {
+background-color: #f7f7f7;
+border-radius: 3px;
+color: #333;
+white-space: pre-wrap; 
+}
+pre {
+border-radius: 3px;
+margin: 5px 0px 10px 0px;
+padding: 10px;
+}
+pre:not([class]) {
+background-color: #f7f7f7;
+}
+code {
+font-family: Consolas, Monaco, 'Courier New', monospace;
+font-size: 85%;
+}
+p > code, li > code {
+padding: 2px 0px;
+}
+div.figure {
+text-align: center;
+}
+img {
+background-color: #FFFFFF;
+padding: 2px;
+border: 1px solid #DDDDDD;
+border-radius: 3px;
+border: 1px solid #CCCCCC;
+margin: 0 5px;
+}
+h1 {
+margin-top: 0;
+font-size: 35px;
+line-height: 40px;
+}
+h2 {
+border-bottom: 4px solid #f7f7f7;
+padding-top: 10px;
+padding-bottom: 2px;
+font-size: 145%;
+}
+h3 {
+border-bottom: 2px solid #f7f7f7;
+padding-top: 10px;
+font-size: 120%;
+}
+h4 {
+border-bottom: 1px solid #f7f7f7;
+margin-left: 8px;
+font-size: 105%;
+}
+h5, h6 {
+border-bottom: 1px solid #ccc;
+font-size: 105%;
+}
+a {
+color: #0033dd;
+text-decoration: none;
+}
+a:hover {
+color: #6666ff; }
+a:visited {
+color: #800080; }
+a:visited:hover {
+color: #BB00BB; }
+a[href^="http:"] {
+text-decoration: underline; }
+a[href^="https:"] {
+text-decoration: underline; }
+
+code > span.kw { color: #555; font-weight: bold; } 
+code > span.dt { color: #902000; } 
+code > span.dv { color: #40a070; } 
+code > span.bn { color: #d14; } 
+code > span.fl { color: #d14; } 
+code > span.ch { color: #d14; } 
+code > span.st { color: #d14; } 
+code > span.co { color: #888888; font-style: italic; } 
+code > span.ot { color: #007020; } 
+code > span.al { color: #ff0000; font-weight: bold; } 
+code > span.fu { color: #900; font-weight: bold; } 
+code > span.er { color: #a61717; background-color: #e3d2d2; } 
+</style>
+
+
+
+
+</head>
+
+<body>
+
+
+
+
+<h1 class="title toc-ignore">Compute Backends: CPU, GPU and Cloud</h1>
+
+
+
+<div class="sourceCode" id="cb1"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb1-1"><a href="#cb1-1" tabindex="-1"></a><span class="fu">library</span>(tidylearn)</span></code></pre></div>
+<div id="where-a-fit-runs" class="section level2">
+<h2>Where a fit runs</h2>
+<p>Most of the time, nowhere interesting: <code>tl_model()</code> runs
+on the CPU and you never think about it. This vignette is about the
+cases where you should — a fit that would take hours, or one that will
+not fit in memory at all.</p>
+<p>tidylearn separates two questions that are easy to conflate:</p>
+<ul>
+<li><strong>Can this method go faster on a GPU?</strong> Only two
+can.</li>
+<li><strong>Will this job fit on this machine?</strong> Any of them
+might not.</li>
+</ul>
+</div>
+<div id="what-this-machine-can-do" class="section level2">
+<h2>What this machine can do</h2>
+<div class="sourceCode" id="cb2"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb2-1"><a href="#cb2-1" tabindex="-1"></a><span class="fu">tl_check_gpu</span>()</span></code></pre></div>
+<p><code>tl_check_gpu()</code> parses <code>nvidia-smi</code> and checks
+which GPU-capable backends are installed. It is cheap by design: it does
+not load Python, import TensorFlow, or fit anything. It returns an
+object with a <code>print()</code> method describing the CUDA driver,
+the devices found, and which of xgboost, keras, tensorflow and torch are
+installed.</p>
+</div>
+<div id="only-two-methods-have-a-gpu-path" class="section level2">
+<h2>Only two methods have a GPU path</h2>
+<p>Of the thirteen supervised methods, only <code>&quot;xgboost&quot;</code> and
+<code>&quot;deep&quot;</code> have an upstream GPU implementation. The other
+eleven — linear, polynomial and logistic regression, ridge, LASSO,
+elastic net, decision trees, random forests, gradient boosting, SVM and
+neural networks — wrap packages that have no CUDA path at all. Asking
+for a GPU gets you a warning and a CPU fit:</p>
+<div class="sourceCode" id="cb3"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb3-1"><a href="#cb3-1" tabindex="-1"></a><span class="co"># Routed to CUDA when a capable backend is present</span></span>
+<span id="cb3-2"><a href="#cb3-2" tabindex="-1"></a>model <span class="ot">&lt;-</span> <span class="fu">tl_model</span>(data, y <span class="sc">~</span> ., <span class="at">method =</span> <span class="st">&quot;xgboost&quot;</span>, <span class="at">compute =</span> <span class="st">&quot;gpu&quot;</span>)</span>
+<span id="cb3-3"><a href="#cb3-3" tabindex="-1"></a></span>
+<span id="cb3-4"><a href="#cb3-4" tabindex="-1"></a><span class="co"># Warns and falls back to CPU: randomForest has no GPU implementation</span></span>
+<span id="cb3-5"><a href="#cb3-5" tabindex="-1"></a>model <span class="ot">&lt;-</span> <span class="fu">tl_model</span>(data, y <span class="sc">~</span> ., <span class="at">method =</span> <span class="st">&quot;forest&quot;</span>, <span class="at">compute =</span> <span class="st">&quot;gpu&quot;</span>)</span>
+<span id="cb3-6"><a href="#cb3-6" tabindex="-1"></a></span>
+<span id="cb3-7"><a href="#cb3-7" tabindex="-1"></a><span class="co"># Let tidylearn decide per call</span></span>
+<span id="cb3-8"><a href="#cb3-8" tabindex="-1"></a>model <span class="ot">&lt;-</span> <span class="fu">tl_model</span>(data, y <span class="sc">~</span> ., <span class="at">method =</span> <span class="st">&quot;xgboost&quot;</span>, <span class="at">compute =</span> <span class="st">&quot;auto&quot;</span>)</span></code></pre></div>
+<p>For those eleven methods the question to ask is whether the job fits
+in memory, and how many cores you can throw at it.</p>
+</div>
+<div id="estimating-before-you-commit" class="section level2">
+<h2>Estimating before you commit</h2>
+<p><code>tl_compute_advisor()</code> answers that. It is arithmetic over
+the problem dimensions, so it needs neither a GPU nor the backend
+package installed:</p>
+<div class="sourceCode" id="cb4"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb4-1"><a href="#cb4-1" tabindex="-1"></a>advice <span class="ot">&lt;-</span> <span class="fu">tl_compute_advisor</span>(</span>
+<span id="cb4-2"><a href="#cb4-2" tabindex="-1"></a>  <span class="st">&quot;xgboost&quot;</span>, iris, Species <span class="sc">~</span> .,</span>
+<span id="cb4-3"><a href="#cb4-3" tabindex="-1"></a>  <span class="at">hyperparams =</span> <span class="fu">list</span>(<span class="at">nrounds =</span> <span class="dv">1000</span>)</span>
+<span id="cb4-4"><a href="#cb4-4" tabindex="-1"></a>)</span>
+<span id="cb4-5"><a href="#cb4-5" tabindex="-1"></a></span>
+<span id="cb4-6"><a href="#cb4-6" tabindex="-1"></a>advice<span class="sc">$</span>recommendation</span>
+<span id="cb4-7"><a href="#cb4-7" tabindex="-1"></a><span class="co">#&gt; [1] &quot;cpu&quot;</span></span></code></pre></div>
+<div class="sourceCode" id="cb5"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb5-1"><a href="#cb5-1" tabindex="-1"></a>advice</span>
+<span id="cb5-2"><a href="#cb5-2" tabindex="-1"></a><span class="co">#&gt; &lt;tidylearn compute advice&gt;</span></span>
+<span id="cb5-3"><a href="#cb5-3" tabindex="-1"></a><span class="co">#&gt; Problem:        xgboost on 150 rows x 4 cols (~0.0 MB)</span></span>
+<span id="cb5-4"><a href="#cb5-4" tabindex="-1"></a><span class="co">#&gt; </span></span>
+<span id="cb5-5"><a href="#cb5-5" tabindex="-1"></a><span class="co">#&gt; Tier estimates (order-of-magnitude):</span></span>
+<span id="cb5-6"><a href="#cb5-6" tabindex="-1"></a><span class="co">#&gt;   Local CPU:    0.0s   (peak RAM ~0 MB, 16 cores)</span></span>
+<span id="cb5-7"><a href="#cb5-7" tabindex="-1"></a><span class="co">#&gt;   Local GPU:    --   [not applicable]</span></span>
+<span id="cb5-8"><a href="#cb5-8" tabindex="-1"></a><span class="co">#&gt;   Cloud:        45.0s   (~$0.01) [T4 (16 GB VRAM / 16 GB RAM)]   [not configured]</span></span>
+<span id="cb5-9"><a href="#cb5-9" tabindex="-1"></a><span class="co">#&gt; </span></span>
+<span id="cb5-10"><a href="#cb5-10" tabindex="-1"></a><span class="co">#&gt; Recommendation: cpu</span></span>
+<span id="cb5-11"><a href="#cb5-11" tabindex="-1"></a><span class="co">#&gt; </span></span>
+<span id="cb5-12"><a href="#cb5-12" tabindex="-1"></a><span class="co">#&gt; Reasoning:</span></span>
+<span id="cb5-13"><a href="#cb5-13" tabindex="-1"></a><span class="co">#&gt;   - Estimated local CPU runtime ~0.0s. Cloud cold-start (~45s) would dominate; just run it locally.</span></span>
+<span id="cb5-14"><a href="#cb5-14" tabindex="-1"></a><span class="co">#&gt; </span></span>
+<span id="cb5-15"><a href="#cb5-15" tabindex="-1"></a><span class="co">#&gt; Notes:</span></span>
+<span id="cb5-16"><a href="#cb5-16" tabindex="-1"></a><span class="co">#&gt;   - Method &#39;xgboost&#39; could use GPU, but no GPU-capable backend was detected. See ?tl_check_gpu.</span></span>
+<span id="cb5-17"><a href="#cb5-17" tabindex="-1"></a><span class="co">#&gt;   - Cloud integration is not yet configured in tidylearn. Estimates shown so users can see the tier&#39;s shape; actual submission is not yet supported.</span></span></code></pre></div>
+<p>The advisor covers all thirteen supervised methods, and treats cloud
+as a <em>memory headroom</em> tier. It will recommend cloud for a
+CPU-only method such as random forest or SVM when the job is
+RAM-infeasible locally, which is the common case for large data. On a
+small dataset like <code>iris</code> it will tell you to stay local.</p>
+<p>Estimates are order-of-magnitude. Runtime constants are calibrated
+per method, and Modal pricing is approximate as of early 2026. Treat the
+output as a decision aid.</p>
+<p>Unsupervised methods are not modelled. Calling the advisor on one
+errors.</p>
+</div>
+<div id="cloud-compute" class="section level2">
+<h2>Cloud compute</h2>
+<p><strong>Cloud execution is not available yet.</strong>
+<code>compute = &quot;cloud&quot;</code> errors with a message saying so, and the
+advisor’s cloud tier is reported for planning only. What follows
+describes what is already in place, so that you can see the safety model
+before the feature that uses it.</p>
+<p>A cloud fit uploads your training data to your own Modal account.
+That is a third party, and it may be something your organisation’s
+data-handling rules forbid. tidylearn treats that transfer as the
+consequential step it is.</p>
+<div id="consent-is-explicit" class="section level3">
+<h3>Consent is explicit</h3>
+<p>Nothing is uploaded without you saying so, either per call or for the
+session:</p>
+<div class="sourceCode" id="cb6"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb6-1"><a href="#cb6-1" tabindex="-1"></a><span class="co"># For the session</span></span>
+<span id="cb6-2"><a href="#cb6-2" tabindex="-1"></a><span class="fu">tl_cloud_consent</span>()</span>
+<span id="cb6-3"><a href="#cb6-3" tabindex="-1"></a><span class="co">#&gt; Cloud uploads enabled for this R session. Training data passed to tl_model(compute = &#39;cloud&#39;) will be sent to your Modal account. Revoke with tl_cloud_consent(FALSE).</span></span>
+<span id="cb6-4"><a href="#cb6-4" tabindex="-1"></a></span>
+<span id="cb6-5"><a href="#cb6-5" tabindex="-1"></a><span class="co"># Revoke early</span></span>
+<span id="cb6-6"><a href="#cb6-6" tabindex="-1"></a><span class="fu">tl_cloud_consent</span>(<span class="cn">FALSE</span>)</span>
+<span id="cb6-7"><a href="#cb6-7" tabindex="-1"></a><span class="co">#&gt; Cloud uploads disabled for this R session.</span></span></code></pre></div>
+<p>The session lock is held in memory only. It is never written to disk
+and does not survive an R restart. There is also no interactive prompt
+anywhere in the cloud path, so <code>Rscript</code>, CI and knitted
+documents behave exactly like an interactive session. A prompt that
+cannot be answered in batch would block them.</p>
+<p>Per call, the equivalent is <code>confirm_upload = TRUE</code>.</p>
+</div>
+<div id="destinations-are-checked-not-trusted" class="section level3">
+<h3>Destinations are checked, not trusted</h3>
+<p>The endpoint is read from an environment variable:</p>
+<div class="sourceCode" id="cb7"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb7-1"><a href="#cb7-1" tabindex="-1"></a><span class="fu">Sys.setenv</span>(</span>
+<span id="cb7-2"><a href="#cb7-2" tabindex="-1"></a>  <span class="at">TIDYLEARN_MODAL_ENDPOINT =</span> <span class="st">&quot;https://you--tidylearn-fit.modal.run&quot;</span></span>
+<span id="cb7-3"><a href="#cb7-3" tabindex="-1"></a>)</span></code></pre></div>
+<p>An environment variable rather than an R option, deliberately: a
+shared <code>.Rprofile</code> can set an option without you noticing,
+and the whole point of this check is that a destination should not
+appear silently.</p>
+<p>Before anything is sent, the URL must parse, use <code>https</code>,
+and resolve to a host on the allowlist. Anything else errors. The
+default allowlist is Modal’s own domains:</p>
+<div class="sourceCode" id="cb8"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb8-1"><a href="#cb8-1" tabindex="-1"></a><span class="fu">tl_cloud_allowed_hosts</span>()</span>
+<span id="cb8-2"><a href="#cb8-2" tabindex="-1"></a><span class="co">#&gt; [1] &quot;modal.run&quot; &quot;modal.com&quot;</span></span></code></pre></div>
+<p>Modal customers serving Web Functions from a custom domain can add
+it, for the session:</p>
+<div class="sourceCode" id="cb9"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb9-1"><a href="#cb9-1" tabindex="-1"></a><span class="fu">tl_cloud_allow_host</span>(<span class="st">&quot;fits.example.com&quot;</span>)</span>
+<span id="cb9-2"><a href="#cb9-2" tabindex="-1"></a><span class="co">#&gt; Cloud uploads may now also go to: fits.example.com. This is in addition to Modal&#39;s own hosts and lasts for this R session only.</span></span>
+<span id="cb9-3"><a href="#cb9-3" tabindex="-1"></a><span class="fu">tl_cloud_allowed_hosts</span>()</span>
+<span id="cb9-4"><a href="#cb9-4" tabindex="-1"></a><span class="co">#&gt; [1] &quot;modal.run&quot;        &quot;modal.com&quot;        &quot;fits.example.com&quot;</span></span></code></pre></div>
+<p>Matching is anchored, so allowing a host allows exactly it and its
+subdomains. <code>fits.example.com</code> does not admit
+<code>example.com</code>, <code>evil-fits.example.com</code>, or
+<code>fits.example.com.evil.test</code>. Single-label names such as
+<code>&quot;com&quot;</code> are refused outright, since they would open an entire
+top-level domain.</p>
+</div>
+<div id="bounding-the-cost" class="section level3">
+<h3>Bounding the cost</h3>
+<p>A job submitted to Modal runs there to completion whatever your R
+session does next. Pressing Ctrl-C, closing the IDE, a crashed session
+and a closed laptop all leave it running, because the session was only
+polling for a result. A job you thought you had abandoned keeps billing
+until it finishes or something kills it.</p>
+<p>No amount of care in the R client can guarantee anything against
+that, because a killed session runs no cleanup handlers. So the controls
+are layered by what survives:</p>
+<p><strong>What holds even if your session dies.</strong> Every
+submission sets an explicit timeout, derived from the estimate with
+headroom and capped well below Modal’s 24-hour maximum. Modal’s
+inherited default is never used and neither is no timeout at all. The
+worker runs with retries disabled, because Modal applies timeouts per
+attempt and three retries would bill four full timeouts for one hung
+job. You should also set a spend budget on your Modal workspace, which
+is the only true hard cap and is not tidylearn’s to set.</p>
+<p><strong>What is best-effort.</strong> The pre-flight gates, the job
+registry and cancel-on-interrupt catch the ordinary cases, and none of
+them survive a killed session.</p>
+<p>Before a fit, the figure you are asked to accept is the <strong>worst
+case</strong> — the timeout at the tier’s rate — rather than the
+estimate:</p>
+<div class="sourceCode" id="cb10"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb10-1"><a href="#cb10-1" tabindex="-1"></a>model <span class="ot">&lt;-</span> <span class="fu">tl_model</span>(data, y <span class="sc">~</span> ., <span class="at">method =</span> <span class="st">&quot;xgboost&quot;</span>, <span class="at">compute =</span> <span class="st">&quot;cloud&quot;</span>,</span>
+<span id="cb10-2"><a href="#cb10-2" tabindex="-1"></a>                  <span class="at">confirm_upload =</span> <span class="cn">TRUE</span>, <span class="at">max_cost =</span> <span class="dv">5</span>)</span></code></pre></div>
+<p>That refuses before anything is uploaded if the worst case exceeds
+<code>max_cost</code>. It also refuses a fit whose estimate is so large
+that the job would be killed by its own timeout before finishing —
+submitting that would bill the full timeout and return nothing.</p>
+<p>Nothing in flight is invisible:</p>
+<div class="sourceCode" id="cb11"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb11-1"><a href="#cb11-1" tabindex="-1"></a><span class="fu">tl_cloud_jobs</span>()</span>
+<span id="cb11-2"><a href="#cb11-2" tabindex="-1"></a><span class="co">#&gt; # A tibble: 0 × 5</span></span>
+<span id="cb11-3"><a href="#cb11-3" tabindex="-1"></a><span class="co">#&gt; # ℹ 5 variables: call_id &lt;chr&gt;, method &lt;chr&gt;, submitted_at &lt;dttm&gt;,</span></span>
+<span id="cb11-4"><a href="#cb11-4" tabindex="-1"></a><span class="co">#&gt; #   timeout_seconds &lt;int&gt;, worst_case_cost &lt;dbl&gt;</span></span></code></pre></div>
+<p>A job leaves that list when its result is collected or it is
+cancelled. The list itself does not outlive the session; the timeout
+does.</p>
+</div>
+<div id="the-contract-is-written-down" class="section level3">
+<h3>The contract is written down</h3>
+<p>What cloud compute will and will not do is documented as a threat
+model that ships with the package, including an audit checklist a
+reviewer can run against the source:</p>
+<div class="sourceCode" id="cb12"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb12-1"><a href="#cb12-1" tabindex="-1"></a><span class="fu">file.show</span>(</span>
+<span id="cb12-2"><a href="#cb12-2" tabindex="-1"></a>  <span class="fu">system.file</span>(<span class="st">&quot;security/threat-model.md&quot;</span>, <span class="at">package =</span> <span class="st">&quot;tidylearn&quot;</span>)</span>
+<span id="cb12-3"><a href="#cb12-3" tabindex="-1"></a>)</span></code></pre></div>
+<p>It covers token handling, egress consent, ephemeral compute, the
+absence of telemetry, and destination validation.</p>
+</div>
+</div>
+<div id="what-is-coming" class="section level2">
+<h2>What is coming</h2>
+<p>The remaining work is the submission path itself — building the
+authenticated request, uploading, polling for the result, and restoring
+the fitted model in your session. Models cross that boundary as bytes;
+twelve of the thirteen methods serialise natively, and
+<code>&quot;deep&quot;</code> carries its keras weights separately because a keras
+model is a reference to a Python object rather than an R one.</p>
+<p>Until that lands, use <code>tl_compute_advisor()</code> to size the
+problem and run locally.</p>
+</div>
+<div id="see-also" class="section level2">
+<h2>See also</h2>
+<ul>
+<li><code>vignette(&quot;getting-started&quot;, package = &quot;tidylearn&quot;)</code></li>
+<li><code>vignette(&quot;supervised-learning&quot;, package = &quot;tidylearn&quot;)</code></li>
+<li><code>?tl_check_gpu</code>, <code>?tl_compute_advisor</code>,
+<code>?tl_cloud_consent</code></li>
+</ul>
+</div>
+
+
+
+<!-- code folding -->
+
+
+<!-- dynamically load mathjax for compatibility with self-contained -->
+<script>
+  (function () {
+    var script = document.createElement("script");
+    script.type = "text/javascript";
+    script.src  = "https://mathjax.rstudio.com/latest/MathJax.js?config=TeX-AMS-MML_HTMLorMML";
+    document.getElementsByTagName("head")[0].appendChild(script);
+  })();
+</script>
+
+</body>
+</html>

@@ -11,13 +11,19 @@ library(tidylearn)
 library(dplyr)
 
 ## -----------------------------------------------------------------------------
-# Create binary classification dataset
+# Create binary classification dataset. setosa is linearly separable from
+# the other two species, and logistic regression has no finite maximum
+# likelihood estimate on separable data -- glm() fits, warns that the
+# algorithm did not converge, and returns coefficients that diverged.
+# versicolor and virginica overlap, so this is a real classification
+# problem. Even here, a 70% split of 100 rows is separable at some seeds;
+# this one is not.
 iris_binary <- iris %>%
-  filter(Species %in% c("setosa", "versicolor")) %>%
+  filter(Species %in% c("versicolor", "virginica")) %>%
   mutate(Species = droplevels(Species))
 
 # Split data
-split <- tl_split(iris_binary, prop = 0.7, stratify = "Species", seed = 123)
+split <- tl_split(iris_binary, prop = 0.7, stratify = "Species", seed = 42)
 
 ## -----------------------------------------------------------------------------
 # Train logistic regression
@@ -222,7 +228,9 @@ model_cat <- tl_model(split_cat$train, mpg ~ ., method = "forest")
 print(model_cat)
 
 ## -----------------------------------------------------------------------------
-# Create data with missing values
+# Create data with missing values. Seeded so the vignette renders the
+# same output on every build.
+set.seed(123)
 mtcars_missing <- mtcars
 mtcars_missing[sample(seq_len(nrow(mtcars_missing)), 5), "hp"] <- NA
 mtcars_missing[sample(seq_len(nrow(mtcars_missing)), 3), "wt"] <- NA

@@ -344,583 +344,421 @@ tidylearn</h1>
 
 <div class="sourceCode" id="cb1"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb1-1"><a href="#cb1-1" tabindex="-1"></a><span class="fu">library</span>(tidylearn)</span>
 <span id="cb1-2"><a href="#cb1-2" tabindex="-1"></a><span class="fu">library</span>(dplyr)</span>
-<span id="cb1-3"><a href="#cb1-3" tabindex="-1"></a><span class="co">#&gt; Warning: package &#39;dplyr&#39; was built under R version 4.5.3</span></span>
-<span id="cb1-4"><a href="#cb1-4" tabindex="-1"></a><span class="co">#&gt; </span></span>
-<span id="cb1-5"><a href="#cb1-5" tabindex="-1"></a><span class="co">#&gt; Attaching package: &#39;dplyr&#39;</span></span>
-<span id="cb1-6"><a href="#cb1-6" tabindex="-1"></a><span class="co">#&gt; The following objects are masked from &#39;package:stats&#39;:</span></span>
-<span id="cb1-7"><a href="#cb1-7" tabindex="-1"></a><span class="co">#&gt; </span></span>
-<span id="cb1-8"><a href="#cb1-8" tabindex="-1"></a><span class="co">#&gt;     filter, lag</span></span>
-<span id="cb1-9"><a href="#cb1-9" tabindex="-1"></a><span class="co">#&gt; The following objects are masked from &#39;package:base&#39;:</span></span>
-<span id="cb1-10"><a href="#cb1-10" tabindex="-1"></a><span class="co">#&gt; </span></span>
-<span id="cb1-11"><a href="#cb1-11" tabindex="-1"></a><span class="co">#&gt;     intersect, setdiff, setequal, union</span></span>
-<span id="cb1-12"><a href="#cb1-12" tabindex="-1"></a><span class="fu">library</span>(ggplot2)</span>
-<span id="cb1-13"><a href="#cb1-13" tabindex="-1"></a><span class="co">#&gt; Warning: package &#39;ggplot2&#39; was built under R version 4.5.3</span></span></code></pre></div>
+<span id="cb1-3"><a href="#cb1-3" tabindex="-1"></a><span class="co">#&gt; Warning: package &#39;dplyr&#39; was built under R version 4.5.3</span></span></code></pre></div>
 <div id="introduction" class="section level2">
 <h2>Introduction</h2>
-<p>Automated Machine Learning (AutoML) streamlines the model development
-process by automatically trying multiple approaches and selecting the
-best one. tidylearn’s <code>tl_auto_ml()</code> function explores
-various modeling strategies including dimensionality reduction,
-clustering, and different supervised methods.</p>
-<p><strong>Note:</strong> AutoML orchestrates the wrapped packages
-(glmnet, randomForest, xgboost, etc.) rather than implementing new
-algorithms. Each model in the leaderboard wraps an established package,
-and you can access the raw model objects via <code>model$fit</code>.</p>
+<p><code>tl_auto_ml()</code> searches across methods rather than within
+one. It trains several models, engineers a couple of feature sets,
+cross-validates what the budget allows, and ranks the results.</p>
+<p>It orchestrates the wrapped packages rather than implementing
+anything new. Every model on the leaderboard is an ordinary tidylearn
+model, so <code>predict()</code>, <code>plot()</code> and
+<code>$fit</code> all work on it.</p>
 </div>
-<div id="basic-usage" class="section level2">
-<h2>Basic Usage</h2>
-<div id="classification-task" class="section level3">
-<h3>Classification Task</h3>
-<div class="sourceCode" id="cb2"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb2-1"><a href="#cb2-1" tabindex="-1"></a><span class="co"># Run AutoML on iris dataset</span></span>
-<span id="cb2-2"><a href="#cb2-2" tabindex="-1"></a>result <span class="ot">&lt;-</span> <span class="fu">tl_auto_ml</span>(iris, Species <span class="sc">~</span> .,</span>
-<span id="cb2-3"><a href="#cb2-3" tabindex="-1"></a>                     <span class="at">task =</span> <span class="st">&quot;classification&quot;</span>,</span>
-<span id="cb2-4"><a href="#cb2-4" tabindex="-1"></a>                     <span class="at">time_budget =</span> <span class="dv">60</span>)</span>
-<span id="cb2-5"><a href="#cb2-5" tabindex="-1"></a></span>
-<span id="cb2-6"><a href="#cb2-6" tabindex="-1"></a><span class="co"># View best model</span></span>
-<span id="cb2-7"><a href="#cb2-7" tabindex="-1"></a><span class="fu">print</span>(result<span class="sc">$</span>best_model)</span></code></pre></div>
-<div class="sourceCode" id="cb3"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb3-1"><a href="#cb3-1" tabindex="-1"></a><span class="co"># View all models tried</span></span>
-<span id="cb3-2"><a href="#cb3-2" tabindex="-1"></a><span class="fu">names</span>(result<span class="sc">$</span>models)</span></code></pre></div>
-<div class="sourceCode" id="cb4"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb4-1"><a href="#cb4-1" tabindex="-1"></a><span class="co"># View leaderboard</span></span>
-<span id="cb4-2"><a href="#cb4-2" tabindex="-1"></a>result<span class="sc">$</span>leaderboard</span></code></pre></div>
+<div id="a-first-run" class="section level2">
+<h2>A First Run</h2>
+<div class="sourceCode" id="cb2"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb2-1"><a href="#cb2-1" tabindex="-1"></a>result <span class="ot">&lt;-</span> <span class="fu">tl_auto_ml</span>(</span>
+<span id="cb2-2"><a href="#cb2-2" tabindex="-1"></a>  iris, Species <span class="sc">~</span> .,</span>
+<span id="cb2-3"><a href="#cb2-3" tabindex="-1"></a>  <span class="at">time_budget =</span> <span class="dv">30</span>,</span>
+<span id="cb2-4"><a href="#cb2-4" tabindex="-1"></a>  <span class="at">cv_folds =</span> <span class="dv">3</span></span>
+<span id="cb2-5"><a href="#cb2-5" tabindex="-1"></a>)</span></code></pre></div>
+<div class="sourceCode" id="cb3"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb3-1"><a href="#cb3-1" tabindex="-1"></a>result<span class="sc">$</span>leaderboard</span>
+<span id="cb3-2"><a href="#cb3-2" tabindex="-1"></a><span class="co">#&gt; # A tibble: 8 × 3</span></span>
+<span id="cb3-3"><a href="#cb3-3" tabindex="-1"></a><span class="co">#&gt;   model            score evaluation</span></span>
+<span id="cb3-4"><a href="#cb3-4" tabindex="-1"></a><span class="co">#&gt;   &lt;chr&gt;            &lt;dbl&gt; &lt;chr&gt;     </span></span>
+<span id="cb3-5"><a href="#cb3-5" tabindex="-1"></a><span class="co">#&gt; 1 advanced_svm     0.96  cv        </span></span>
+<span id="cb3-6"><a href="#cb3-6" tabindex="-1"></a><span class="co">#&gt; 2 advanced_xgboost 0.96  cv        </span></span>
+<span id="cb3-7"><a href="#cb3-7" tabindex="-1"></a><span class="co">#&gt; 3 baseline_forest  0.947 cv        </span></span>
+<span id="cb3-8"><a href="#cb3-8" tabindex="-1"></a><span class="co">#&gt; 4 clustered_tree   0.94  cv        </span></span>
+<span id="cb3-9"><a href="#cb3-9" tabindex="-1"></a><span class="co">#&gt; 5 clustered_forest 0.94  cv        </span></span>
+<span id="cb3-10"><a href="#cb3-10" tabindex="-1"></a><span class="co">#&gt; 6 baseline_tree    0.933 cv        </span></span>
+<span id="cb3-11"><a href="#cb3-11" tabindex="-1"></a><span class="co">#&gt; 7 pca_tree         0.907 cv        </span></span>
+<span id="cb3-12"><a href="#cb3-12" tabindex="-1"></a><span class="co">#&gt; 8 pca_forest       0.9   cv</span></span></code></pre></div>
+<p>Three columns: which model, what it scored, and how the score was
+obtained.</p>
+<div class="sourceCode" id="cb4"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb4-1"><a href="#cb4-1" tabindex="-1"></a>result<span class="sc">$</span>best_model</span>
+<span id="cb4-2"><a href="#cb4-2" tabindex="-1"></a><span class="co">#&gt; tidylearn Model</span></span>
+<span id="cb4-3"><a href="#cb4-3" tabindex="-1"></a><span class="co">#&gt; ===============</span></span>
+<span id="cb4-4"><a href="#cb4-4" tabindex="-1"></a><span class="co">#&gt; Paradigm: supervised </span></span>
+<span id="cb4-5"><a href="#cb4-5" tabindex="-1"></a><span class="co">#&gt; Method: svm </span></span>
+<span id="cb4-6"><a href="#cb4-6" tabindex="-1"></a><span class="co">#&gt; Task: Classification </span></span>
+<span id="cb4-7"><a href="#cb4-7" tabindex="-1"></a><span class="co">#&gt; Formula: Species ~ . </span></span>
+<span id="cb4-8"><a href="#cb4-8" tabindex="-1"></a><span class="co">#&gt; </span></span>
+<span id="cb4-9"><a href="#cb4-9" tabindex="-1"></a><span class="co">#&gt; Training observations: 150</span></span></code></pre></div>
+<div class="sourceCode" id="cb5"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb5-1"><a href="#cb5-1" tabindex="-1"></a>result<span class="sc">$</span>task</span>
+<span id="cb5-2"><a href="#cb5-2" tabindex="-1"></a><span class="co">#&gt; [1] &quot;classification&quot;</span></span>
+<span id="cb5-3"><a href="#cb5-3" tabindex="-1"></a>result<span class="sc">$</span>metric</span>
+<span id="cb5-4"><a href="#cb5-4" tabindex="-1"></a><span class="co">#&gt; [1] &quot;accuracy&quot;</span></span>
+<span id="cb5-5"><a href="#cb5-5" tabindex="-1"></a><span class="fu">round</span>(<span class="fu">as.numeric</span>(result<span class="sc">$</span>runtime, <span class="at">units =</span> <span class="st">&quot;secs&quot;</span>), <span class="dv">1</span>)</span>
+<span id="cb5-6"><a href="#cb5-6" tabindex="-1"></a><span class="co">#&gt; [1] 1.9</span></span></code></pre></div>
+<p>Regression is the same call with a numeric response —
+<code>task = &quot;auto&quot;</code> reads it off the data:</p>
+<div class="sourceCode" id="cb6"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb6-1"><a href="#cb6-1" tabindex="-1"></a>result_reg <span class="ot">&lt;-</span> <span class="fu">tl_auto_ml</span>(</span>
+<span id="cb6-2"><a href="#cb6-2" tabindex="-1"></a>  mtcars, mpg <span class="sc">~</span> .,</span>
+<span id="cb6-3"><a href="#cb6-3" tabindex="-1"></a>  <span class="at">time_budget =</span> <span class="dv">30</span>,</span>
+<span id="cb6-4"><a href="#cb6-4" tabindex="-1"></a>  <span class="at">cv_folds =</span> <span class="dv">3</span></span>
+<span id="cb6-5"><a href="#cb6-5" tabindex="-1"></a>)</span>
+<span id="cb6-6"><a href="#cb6-6" tabindex="-1"></a></span>
+<span id="cb6-7"><a href="#cb6-7" tabindex="-1"></a>result_reg<span class="sc">$</span>task</span>
+<span id="cb6-8"><a href="#cb6-8" tabindex="-1"></a><span class="co">#&gt; [1] &quot;regression&quot;</span></span></code></pre></div>
+<div class="sourceCode" id="cb7"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb7-1"><a href="#cb7-1" tabindex="-1"></a>result_reg<span class="sc">$</span>leaderboard</span>
+<span id="cb7-2"><a href="#cb7-2" tabindex="-1"></a><span class="co">#&gt; # A tibble: 11 × 3</span></span>
+<span id="cb7-3"><a href="#cb7-3" tabindex="-1"></a><span class="co">#&gt;    model            score evaluation</span></span>
+<span id="cb7-4"><a href="#cb7-4" tabindex="-1"></a><span class="co">#&gt;    &lt;chr&gt;            &lt;dbl&gt; &lt;chr&gt;     </span></span>
+<span id="cb7-5"><a href="#cb7-5" tabindex="-1"></a><span class="co">#&gt;  1 clustered_forest  2.50 cv        </span></span>
+<span id="cb7-6"><a href="#cb7-6" tabindex="-1"></a><span class="co">#&gt;  2 advanced_ridge    2.63 cv        </span></span>
+<span id="cb7-7"><a href="#cb7-7" tabindex="-1"></a><span class="co">#&gt;  3 pca_linear        2.68 cv        </span></span>
+<span id="cb7-8"><a href="#cb7-8" tabindex="-1"></a><span class="co">#&gt;  4 baseline_forest   2.96 cv        </span></span>
+<span id="cb7-9"><a href="#cb7-9" tabindex="-1"></a><span class="co">#&gt;  5 advanced_lasso    3.12 cv        </span></span>
+<span id="cb7-10"><a href="#cb7-10" tabindex="-1"></a><span class="co">#&gt;  6 baseline_linear   3.57 cv        </span></span>
+<span id="cb7-11"><a href="#cb7-11" tabindex="-1"></a><span class="co">#&gt;  7 pca_forest        3.77 cv        </span></span>
+<span id="cb7-12"><a href="#cb7-12" tabindex="-1"></a><span class="co">#&gt;  8 baseline_tree     4.00 cv        </span></span>
+<span id="cb7-13"><a href="#cb7-13" tabindex="-1"></a><span class="co">#&gt;  9 pca_tree          4.22 cv        </span></span>
+<span id="cb7-14"><a href="#cb7-14" tabindex="-1"></a><span class="co">#&gt; 10 clustered_tree    5.12 cv        </span></span>
+<span id="cb7-15"><a href="#cb7-15" tabindex="-1"></a><span class="co">#&gt; 11 clustered_linear  5.67 cv</span></span></code></pre></div>
 </div>
-<div id="regression-task" class="section level3">
-<h3>Regression Task</h3>
-<div class="sourceCode" id="cb5"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb5-1"><a href="#cb5-1" tabindex="-1"></a><span class="co"># Run AutoML on regression problem</span></span>
-<span id="cb5-2"><a href="#cb5-2" tabindex="-1"></a>result_reg <span class="ot">&lt;-</span> <span class="fu">tl_auto_ml</span>(mtcars, mpg <span class="sc">~</span> .,</span>
-<span id="cb5-3"><a href="#cb5-3" tabindex="-1"></a>                         <span class="at">task =</span> <span class="st">&quot;regression&quot;</span>,</span>
-<span id="cb5-4"><a href="#cb5-4" tabindex="-1"></a>                         <span class="at">time_budget =</span> <span class="dv">60</span>)</span>
-<span id="cb5-5"><a href="#cb5-5" tabindex="-1"></a></span>
-<span id="cb5-6"><a href="#cb5-6" tabindex="-1"></a><span class="co"># Best model</span></span>
-<span id="cb5-7"><a href="#cb5-7" tabindex="-1"></a><span class="fu">print</span>(result_reg<span class="sc">$</span>best_model)</span></code></pre></div>
-</div>
-</div>
-<div id="how-automl-works" class="section level2">
-<h2>How AutoML Works</h2>
-<p>The <code>tl_auto_ml()</code> function follows a four-phase pipeline.
-Which phases actually run – and how thoroughly – depends on the
-<code>time_budget</code> and the toggle parameters
-<code>use_reduction</code> and <code>use_clustering</code>.</p>
-<table style="width:100%;">
+<div id="how-the-search-works" class="section level2">
+<h2>How the Search Works</h2>
+<p>Four phases run in order, each gated on the remaining budget and on
+the <code>use_reduction</code> and <code>use_clustering</code>
+toggles.</p>
+<table>
 <colgroup>
-<col width="8%" />
-<col width="16%" />
-<col width="39%" />
-<col width="34%" />
+<col width="14%" />
+<col width="27%" />
+<col width="33%" />
+<col width="25%" />
 </colgroup>
 <thead>
 <tr class="header">
 <th>Phase</th>
 <th>What it does</th>
-<th>Models added (classification)</th>
-<th>Models added (regression)</th>
+<th>Classification</th>
+<th>Regression</th>
 </tr>
 </thead>
 <tbody>
 <tr class="odd">
 <td>1. Baselines</td>
-<td>Trains standard models</td>
+<td>Standard models on the raw features</td>
 <td>tree, logistic*, forest</td>
 <td>tree, linear, forest</td>
 </tr>
 <tr class="even">
 <td>2. PCA variants</td>
-<td>PCA preprocessing + baseline methods</td>
+<td>PCA preprocessing, then the baselines</td>
 <td>pca_tree, pca_logistic*, pca_forest</td>
 <td>pca_tree, pca_linear, pca_forest</td>
 </tr>
 <tr class="odd">
 <td>3. Cluster variants</td>
-<td>Adds cluster assignments as features</td>
+<td>Cluster assignment added as a feature</td>
 <td>clustered_tree, clustered_logistic*, clustered_forest</td>
 <td>clustered_tree, clustered_linear, clustered_forest</td>
 </tr>
 <tr class="even">
 <td>4. Advanced</td>
-<td>Tries heavier methods</td>
+<td>Heavier methods</td>
 <td>svm, xgboost</td>
 <td>ridge, lasso</td>
 </tr>
 </tbody>
 </table>
-<p>* Logistic regression is binary only, so it is included only when the
+<p>* Logistic regression is binary only, so it appears only when the
 response has exactly two classes. On a multiclass problem such as
-<code>iris</code> the baselines are tree and forest, and the
-<code>_logistic</code> variants are absent.</p>
-<p>Each model is first fit on the full training data, then (if budget
-allows) evaluated with k-fold cross-validation. When time is tight,
-models fall back to training-set metrics instead of CV.</p>
-<p>The <code>evaluation</code> column on the leaderboard records which
-of the two produced each score — <code>&quot;cv&quot;</code> or
-<code>&quot;train&quot;</code>. Training metrics are optimistically biased, so a
-leaderboard mixing the two is not ranking like with like. If you see
-both, raise the budget.</p>
-</div>
-<div id="understanding-the-time-budget" class="section level2">
-<h2>Understanding the Time Budget</h2>
-<p>The <code>time_budget</code> parameter (in seconds) is the most
-important knob for controlling the speed/thoroughness trade-off. It is
-checked <strong>between</strong> model fits, not during them. Once a
-model starts training it runs to completion, because many of the wrapped
-packages (randomForest, xgboost, e1071) execute C-level code that R
-cannot safely interrupt mid-execution. This means the actual wall-clock
-time may modestly exceed the budget by the duration of the last model
-that started before the budget expired.</p>
-<div id="budget-tiers-at-a-glance" class="section level3">
-<h3>Budget tiers at a glance</h3>
-<table>
-<colgroup>
-<col width="8%" />
-<col width="12%" />
-<col width="5%" />
-<col width="24%" />
-<col width="19%" />
-<col width="17%" />
-<col width="11%" />
-</colgroup>
-<thead>
-<tr class="header">
-<th>Budget</th>
-<th>Baselines</th>
-<th>CV</th>
-<th>PCA/Cluster variants</th>
-<th>Advanced models</th>
-<th>Typical models</th>
-<th>Use case</th>
-</tr>
-</thead>
-<tbody>
-<tr class="odd">
-<td>&lt; 30 s</td>
-<td>tree + logistic/linear only</td>
-<td>No (training metrics)</td>
-<td>No</td>
-<td>No</td>
-<td>1–2</td>
-<td>Quick sanity check, interactive use</td>
-</tr>
-<tr class="even">
-<td>30–120 s</td>
-<td>tree + logistic/linear + forest</td>
-<td>When time remains</td>
-<td>If enabled and &gt; 10 % budget left</td>
-<td>If &gt; 40 % budget left</td>
-<td>3–7</td>
-<td>Development iteration, notebook exploration</td>
-</tr>
-<tr class="odd">
-<td>120 s+</td>
-<td>All</td>
-<td>Yes</td>
-<td>Yes (if enabled)</td>
-<td>Yes</td>
-<td>8–11</td>
-<td>Thorough comparison, final model selection</td>
-</tr>
-</tbody>
-</table>
-<p>Model counts are for a binary response. A multiclass problem drops
-the logistic variants, so expect one fewer per phase.</p>
-<p>The “forest” baseline and all advanced models (SVM, XGBoost, ridge,
-lasso) involve C-level code that typically takes 3–15 seconds per fit
-depending on data size. They are only attempted when
-<code>time_budget &gt;= 30</code>.</p>
-</div>
-<div id="why-cv-is-the-expensive-step" class="section level3">
-<h3>Why CV is the expensive step</h3>
-<p>A single <code>tl_model()</code> call fits one model.
-Cross-validation (<code>tl_cv(folds = 5)</code>) fits
-<strong>five</strong> models on subsets, so it costs roughly 5x the
-time. The function checks the remaining budget after each model fit and
-skips CV when it would likely exceed the budget, falling back to
-training-set evaluation instead. Reducing <code>cv_folds</code>
-(e.g. from 5 to 2) is the most effective way to stay closer to the
-budget while still getting out-of-sample estimates.</p>
-</div>
-<div id="practical-examples" class="section level3">
-<h3>Practical examples</h3>
-<div class="sourceCode" id="cb6"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb6-1"><a href="#cb6-1" tabindex="-1"></a><span class="co"># Quick sanity check -- 2 fast models, no CV, done in ~1s</span></span>
-<span id="cb6-2"><a href="#cb6-2" tabindex="-1"></a>quick <span class="ot">&lt;-</span> <span class="fu">tl_auto_ml</span>(iris, Species <span class="sc">~</span> .,</span>
-<span id="cb6-3"><a href="#cb6-3" tabindex="-1"></a>                    <span class="at">time_budget =</span> <span class="dv">10</span>,</span>
-<span id="cb6-4"><a href="#cb6-4" tabindex="-1"></a>                    <span class="at">use_reduction =</span> <span class="cn">FALSE</span>,</span>
-<span id="cb6-5"><a href="#cb6-5" tabindex="-1"></a>                    <span class="at">use_clustering =</span> <span class="cn">FALSE</span>)</span>
-<span id="cb6-6"><a href="#cb6-6" tabindex="-1"></a>quick<span class="sc">$</span>leaderboard</span>
-<span id="cb6-7"><a href="#cb6-7" tabindex="-1"></a><span class="co">#&gt; baseline_tree only -- iris is multiclass, so logistic is skipped.</span></span>
-<span id="cb6-8"><a href="#cb6-8" tabindex="-1"></a><span class="co">#&gt; On a two-class response this would be baseline_tree, baseline_logistic.</span></span>
-<span id="cb6-9"><a href="#cb6-9" tabindex="-1"></a></span>
-<span id="cb6-10"><a href="#cb6-10" tabindex="-1"></a><span class="co"># Development iteration -- baselines + forest, some CV</span></span>
-<span id="cb6-11"><a href="#cb6-11" tabindex="-1"></a>medium <span class="ot">&lt;-</span> <span class="fu">tl_auto_ml</span>(iris, Species <span class="sc">~</span> .,</span>
-<span id="cb6-12"><a href="#cb6-12" tabindex="-1"></a>                     <span class="at">time_budget =</span> <span class="dv">60</span>,</span>
-<span id="cb6-13"><a href="#cb6-13" tabindex="-1"></a>                     <span class="at">cv_folds =</span> <span class="dv">3</span>)</span>
-<span id="cb6-14"><a href="#cb6-14" tabindex="-1"></a>medium<span class="sc">$</span>leaderboard</span>
-<span id="cb6-15"><a href="#cb6-15" tabindex="-1"></a><span class="co">#&gt; 4--7 models depending on data size and number of classes</span></span>
-<span id="cb6-16"><a href="#cb6-16" tabindex="-1"></a></span>
-<span id="cb6-17"><a href="#cb6-17" tabindex="-1"></a><span class="co"># Thorough search -- all phases, full CV</span></span>
-<span id="cb6-18"><a href="#cb6-18" tabindex="-1"></a>thorough <span class="ot">&lt;-</span> <span class="fu">tl_auto_ml</span>(iris, Species <span class="sc">~</span> .,</span>
-<span id="cb6-19"><a href="#cb6-19" tabindex="-1"></a>                       <span class="at">time_budget =</span> <span class="dv">300</span>,</span>
-<span id="cb6-20"><a href="#cb6-20" tabindex="-1"></a>                       <span class="at">cv_folds =</span> <span class="dv">5</span>)</span>
-<span id="cb6-21"><a href="#cb6-21" tabindex="-1"></a>thorough<span class="sc">$</span>leaderboard</span>
-<span id="cb6-22"><a href="#cb6-22" tabindex="-1"></a><span class="co">#&gt; 8--11 models with cross-validated scores (iris is multiclass,</span></span>
-<span id="cb6-23"><a href="#cb6-23" tabindex="-1"></a><span class="co">#&gt; so the logistic variants are skipped)</span></span></code></pre></div>
+<code>iris</code> the baselines are tree and forest.</p>
+<p>You can see the phases in what actually got trained:</p>
+<div class="sourceCode" id="cb8"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb8-1"><a href="#cb8-1" tabindex="-1"></a><span class="fu">names</span>(result<span class="sc">$</span>models)</span>
+<span id="cb8-2"><a href="#cb8-2" tabindex="-1"></a><span class="co">#&gt; [1] &quot;baseline_tree&quot;    &quot;baseline_forest&quot;  &quot;pca_tree&quot;         &quot;pca_forest&quot;      </span></span>
+<span id="cb8-3"><a href="#cb8-3" tabindex="-1"></a><span class="co">#&gt; [5] &quot;clustered_tree&quot;   &quot;clustered_forest&quot; &quot;advanced_svm&quot;     &quot;advanced_xgboost&quot;</span></span></code></pre></div>
+<div class="sourceCode" id="cb9"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb9-1"><a href="#cb9-1" tabindex="-1"></a><span class="co"># The same search on a two-class problem picks up the logistic variants</span></span>
+<span id="cb9-2"><a href="#cb9-2" tabindex="-1"></a>iris_binary <span class="ot">&lt;-</span> iris <span class="sc">%&gt;%</span></span>
+<span id="cb9-3"><a href="#cb9-3" tabindex="-1"></a>  <span class="fu">filter</span>(Species <span class="sc">!=</span> <span class="st">&quot;setosa&quot;</span>) <span class="sc">%&gt;%</span></span>
+<span id="cb9-4"><a href="#cb9-4" tabindex="-1"></a>  <span class="fu">mutate</span>(<span class="at">Species =</span> <span class="fu">droplevels</span>(Species))</span>
+<span id="cb9-5"><a href="#cb9-5" tabindex="-1"></a></span>
+<span id="cb9-6"><a href="#cb9-6" tabindex="-1"></a>binary_result <span class="ot">&lt;-</span> <span class="fu">tl_auto_ml</span>(iris_binary, Species <span class="sc">~</span> ., <span class="at">time_budget =</span> <span class="dv">30</span>,</span>
+<span id="cb9-7"><a href="#cb9-7" tabindex="-1"></a>                            <span class="at">cv_folds =</span> <span class="dv">3</span>)</span>
+<span id="cb9-8"><a href="#cb9-8" tabindex="-1"></a><span class="fu">names</span>(binary_result<span class="sc">$</span>models)</span>
+<span id="cb9-9"><a href="#cb9-9" tabindex="-1"></a><span class="co">#&gt;  [1] &quot;baseline_tree&quot;      &quot;baseline_logistic&quot;  &quot;baseline_forest&quot;   </span></span>
+<span id="cb9-10"><a href="#cb9-10" tabindex="-1"></a><span class="co">#&gt;  [4] &quot;pca_tree&quot;           &quot;pca_logistic&quot;       &quot;pca_forest&quot;        </span></span>
+<span id="cb9-11"><a href="#cb9-11" tabindex="-1"></a><span class="co">#&gt;  [7] &quot;clustered_tree&quot;     &quot;clustered_logistic&quot; &quot;clustered_forest&quot;  </span></span>
+<span id="cb9-12"><a href="#cb9-12" tabindex="-1"></a><span class="co">#&gt; [10] &quot;advanced_svm&quot;       &quot;advanced_xgboost&quot;</span></span></code></pre></div>
+<p>That call emits a run of
+<code>glm.fit: algorithm did not converge</code> warnings, which this
+chunk hides only because there are a dozen of them. They are worth
+understanding rather than ignoring: <em>versicolor</em> and
+<em>virginica</em> overlap only slightly, and a three-fold split of 100
+rows will sometimes produce a fold where the two are perfectly
+separable. Logistic regression has no finite maximum likelihood estimate
+on separable data, so the coefficients diverge and <code>glm()</code>
+says so.</p>
+<p>The fit on the full data is fine:</p>
+<div class="sourceCode" id="cb10"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb10-1"><a href="#cb10-1" tabindex="-1"></a><span class="fu">tl_model</span>(iris_binary, Species <span class="sc">~</span> ., <span class="at">method =</span> <span class="st">&quot;logistic&quot;</span>)<span class="sc">$</span>spec<span class="sc">$</span>method</span>
+<span id="cb10-2"><a href="#cb10-2" tabindex="-1"></a><span class="co">#&gt; [1] &quot;logistic&quot;</span></span></code></pre></div>
+<p>It is the folds, not the dataset. Seeing this on your own data means
+the classes are close to separable at that sample size — a reason to
+prefer a regularised method, which is what <code>ridge</code> and
+<code>lasso</code> are doing in phase 4 of the regression search.</p>
+<div id="the-evaluation-column" class="section level3">
+<h3>The evaluation column</h3>
+<p>Each model is fitted on the full training data, then cross-validated
+if the budget allows. When it does not, the leaderboard falls back to
+training-set metrics.</p>
+<div class="sourceCode" id="cb11"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb11-1"><a href="#cb11-1" tabindex="-1"></a><span class="fu">table</span>(result<span class="sc">$</span>leaderboard<span class="sc">$</span>evaluation)</span>
+<span id="cb11-2"><a href="#cb11-2" tabindex="-1"></a><span class="co">#&gt; </span></span>
+<span id="cb11-3"><a href="#cb11-3" tabindex="-1"></a><span class="co">#&gt; cv </span></span>
+<span id="cb11-4"><a href="#cb11-4" tabindex="-1"></a><span class="co">#&gt;  8</span></span></code></pre></div>
+<p>Training metrics are optimistically biased, so a leaderboard mixing
+<code>&quot;cv&quot;</code> and <code>&quot;train&quot;</code> is not ranking like with
+like. If you see both, raise the budget or lower
+<code>cv_folds</code>.</p>
 </div>
 </div>
-<div id="task-type-detection" class="section level2">
-<h2>Task Type Detection</h2>
-<p>AutoML automatically detects the task type from the response
-variable:</p>
-<div class="sourceCode" id="cb7"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb7-1"><a href="#cb7-1" tabindex="-1"></a><span class="co"># Factor/character response -&gt; classification</span></span>
-<span id="cb7-2"><a href="#cb7-2" tabindex="-1"></a>result_class <span class="ot">&lt;-</span> <span class="fu">tl_auto_ml</span>(iris, Species <span class="sc">~</span> ., <span class="at">task =</span> <span class="st">&quot;auto&quot;</span>)</span>
-<span id="cb7-3"><a href="#cb7-3" tabindex="-1"></a></span>
-<span id="cb7-4"><a href="#cb7-4" tabindex="-1"></a><span class="co"># Numeric response -&gt; regression</span></span>
-<span id="cb7-5"><a href="#cb7-5" tabindex="-1"></a>result_reg <span class="ot">&lt;-</span> <span class="fu">tl_auto_ml</span>(mtcars, mpg <span class="sc">~</span> ., <span class="at">task =</span> <span class="st">&quot;auto&quot;</span>)</span></code></pre></div>
+<div id="the-time-budget" class="section level2">
+<h2>The Time Budget</h2>
+<p><code>time_budget</code> is in seconds and is checked
+<strong>between</strong> model fits, not during them. Once a model
+starts it runs to completion, because the wrapped packages execute
+C-level code that R cannot safely interrupt. Wall-clock time can
+therefore overshoot by the duration of whichever model started last.</p>
+<p>The budget controls how much gets tried. The relationship on this
+data and this machine:</p>
+<div class="sourceCode" id="cb12"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb12-1"><a href="#cb12-1" tabindex="-1"></a>budgets <span class="ot">&lt;-</span> <span class="fu">c</span>(<span class="dv">2</span>, <span class="dv">5</span>, <span class="dv">10</span>, <span class="dv">30</span>)</span>
+<span id="cb12-2"><a href="#cb12-2" tabindex="-1"></a></span>
+<span id="cb12-3"><a href="#cb12-3" tabindex="-1"></a>sweep <span class="ot">&lt;-</span> <span class="fu">lapply</span>(budgets, <span class="cf">function</span>(b) {</span>
+<span id="cb12-4"><a href="#cb12-4" tabindex="-1"></a>  t0 <span class="ot">&lt;-</span> <span class="fu">Sys.time</span>()</span>
+<span id="cb12-5"><a href="#cb12-5" tabindex="-1"></a>  r <span class="ot">&lt;-</span> <span class="fu">tl_auto_ml</span>(iris, Species <span class="sc">~</span> ., <span class="at">time_budget =</span> b, <span class="at">cv_folds =</span> <span class="dv">3</span>)</span>
+<span id="cb12-6"><a href="#cb12-6" tabindex="-1"></a>  <span class="fu">data.frame</span>(</span>
+<span id="cb12-7"><a href="#cb12-7" tabindex="-1"></a>    <span class="at">budget =</span> b,</span>
+<span id="cb12-8"><a href="#cb12-8" tabindex="-1"></a>    <span class="at">elapsed =</span> <span class="fu">round</span>(<span class="fu">as.numeric</span>(<span class="fu">difftime</span>(<span class="fu">Sys.time</span>(), t0, <span class="at">units =</span> <span class="st">&quot;secs&quot;</span>)), <span class="dv">1</span>),</span>
+<span id="cb12-9"><a href="#cb12-9" tabindex="-1"></a>    <span class="at">models =</span> <span class="fu">nrow</span>(r<span class="sc">$</span>leaderboard),</span>
+<span id="cb12-10"><a href="#cb12-10" tabindex="-1"></a>    <span class="at">cv_scored =</span> <span class="fu">sum</span>(r<span class="sc">$</span>leaderboard<span class="sc">$</span>evaluation <span class="sc">==</span> <span class="st">&quot;cv&quot;</span>),</span>
+<span id="cb12-11"><a href="#cb12-11" tabindex="-1"></a>    <span class="at">best =</span> r<span class="sc">$</span>leaderboard<span class="sc">$</span>model[<span class="dv">1</span>]</span>
+<span id="cb12-12"><a href="#cb12-12" tabindex="-1"></a>  )</span>
+<span id="cb12-13"><a href="#cb12-13" tabindex="-1"></a>})</span>
+<span id="cb12-14"><a href="#cb12-14" tabindex="-1"></a></span>
+<span id="cb12-15"><a href="#cb12-15" tabindex="-1"></a><span class="fu">do.call</span>(rbind, sweep)</span>
+<span id="cb12-16"><a href="#cb12-16" tabindex="-1"></a><span class="co">#&gt;   budget elapsed models cv_scored          best</span></span>
+<span id="cb12-17"><a href="#cb12-17" tabindex="-1"></a><span class="co">#&gt; 1      2     0.0      1         1 baseline_tree</span></span>
+<span id="cb12-18"><a href="#cb12-18" tabindex="-1"></a><span class="co">#&gt; 2      5     0.0      1         1 baseline_tree</span></span>
+<span id="cb12-19"><a href="#cb12-19" tabindex="-1"></a><span class="co">#&gt; 3     10     0.1      3         3 baseline_tree</span></span>
+<span id="cb12-20"><a href="#cb12-20" tabindex="-1"></a><span class="co">#&gt; 4     30     1.7      8         8  advanced_svm</span></span></code></pre></div>
+<p>iris is 150 rows, so everything here is quick and the budget is
+barely touched. On data where a single forest fit takes ten seconds the
+same numbers look very different, so run the sweep on your own data.</p>
+<p>Two things are worth knowing regardless of size:</p>
+<ul>
+<li>The forest baseline and every advanced model are only attempted when
+<code>time_budget &gt;= 30</code>.</li>
+<li>Cross-validation is the expensive step.
+<code>tl_cv(folds = 5)</code> fits five models where a plain fit costs
+one, so <code>cv_folds</code> is the most effective lever.</li>
+</ul>
 </div>
 <div id="controlling-the-search" class="section level2">
 <h2>Controlling the Search</h2>
-<div id="feature-engineering-options" class="section level3">
-<h3>Feature Engineering Options</h3>
-<div class="sourceCode" id="cb8"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb8-1"><a href="#cb8-1" tabindex="-1"></a><span class="co"># Disable dimensionality reduction</span></span>
-<span id="cb8-2"><a href="#cb8-2" tabindex="-1"></a>no_reduction <span class="ot">&lt;-</span> <span class="fu">tl_auto_ml</span>(iris, Species <span class="sc">~</span> .,</span>
-<span id="cb8-3"><a href="#cb8-3" tabindex="-1"></a>                           <span class="at">use_reduction =</span> <span class="cn">FALSE</span>,</span>
-<span id="cb8-4"><a href="#cb8-4" tabindex="-1"></a>                           <span class="at">time_budget =</span> <span class="dv">60</span>)</span>
-<span id="cb8-5"><a href="#cb8-5" tabindex="-1"></a></span>
-<span id="cb8-6"><a href="#cb8-6" tabindex="-1"></a><span class="co"># Disable cluster features</span></span>
-<span id="cb8-7"><a href="#cb8-7" tabindex="-1"></a>no_clustering <span class="ot">&lt;-</span> <span class="fu">tl_auto_ml</span>(iris, Species <span class="sc">~</span> .,</span>
-<span id="cb8-8"><a href="#cb8-8" tabindex="-1"></a>                            <span class="at">use_clustering =</span> <span class="cn">FALSE</span>,</span>
-<span id="cb8-9"><a href="#cb8-9" tabindex="-1"></a>                            <span class="at">time_budget =</span> <span class="dv">60</span>)</span>
-<span id="cb8-10"><a href="#cb8-10" tabindex="-1"></a></span>
-<span id="cb8-11"><a href="#cb8-11" tabindex="-1"></a><span class="co"># Baseline models only</span></span>
-<span id="cb8-12"><a href="#cb8-12" tabindex="-1"></a>baseline_only <span class="ot">&lt;-</span> <span class="fu">tl_auto_ml</span>(iris, Species <span class="sc">~</span> .,</span>
-<span id="cb8-13"><a href="#cb8-13" tabindex="-1"></a>                            <span class="at">use_reduction =</span> <span class="cn">FALSE</span>,</span>
-<span id="cb8-14"><a href="#cb8-14" tabindex="-1"></a>                            <span class="at">use_clustering =</span> <span class="cn">FALSE</span>,</span>
-<span id="cb8-15"><a href="#cb8-15" tabindex="-1"></a>                            <span class="at">time_budget =</span> <span class="dv">30</span>)</span></code></pre></div>
-</div>
-<div id="cross-validation-settings" class="section level3">
-<h3>Cross-Validation Settings</h3>
-<div class="sourceCode" id="cb9"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb9-1"><a href="#cb9-1" tabindex="-1"></a><span class="co"># Adjust cross-validation folds</span></span>
-<span id="cb9-2"><a href="#cb9-2" tabindex="-1"></a>result_cv <span class="ot">&lt;-</span> <span class="fu">tl_auto_ml</span>(iris, Species <span class="sc">~</span> .,</span>
-<span id="cb9-3"><a href="#cb9-3" tabindex="-1"></a>                        <span class="at">cv_folds =</span> <span class="dv">10</span>,</span>
-<span id="cb9-4"><a href="#cb9-4" tabindex="-1"></a>                        <span class="at">time_budget =</span> <span class="dv">120</span>)</span>
-<span id="cb9-5"><a href="#cb9-5" tabindex="-1"></a></span>
-<span id="cb9-6"><a href="#cb9-6" tabindex="-1"></a><span class="co"># Fewer folds for faster evaluation</span></span>
-<span id="cb9-7"><a href="#cb9-7" tabindex="-1"></a>result_fast <span class="ot">&lt;-</span> <span class="fu">tl_auto_ml</span>(iris, Species <span class="sc">~</span> .,</span>
-<span id="cb9-8"><a href="#cb9-8" tabindex="-1"></a>                          <span class="at">cv_folds =</span> <span class="dv">3</span>,</span>
-<span id="cb9-9"><a href="#cb9-9" tabindex="-1"></a>                          <span class="at">time_budget =</span> <span class="dv">60</span>)</span></code></pre></div>
-</div>
-</div>
-<div id="understanding-results" class="section level2">
-<h2>Understanding Results</h2>
-<div id="accessing-models" class="section level3">
-<h3>Accessing Models</h3>
-<div class="sourceCode" id="cb10"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb10-1"><a href="#cb10-1" tabindex="-1"></a>result <span class="ot">&lt;-</span> <span class="fu">tl_auto_ml</span>(iris, Species <span class="sc">~</span> ., <span class="at">time_budget =</span> <span class="dv">60</span>)</span>
-<span id="cb10-2"><a href="#cb10-2" tabindex="-1"></a></span>
-<span id="cb10-3"><a href="#cb10-3" tabindex="-1"></a><span class="co"># Best performing model</span></span>
-<span id="cb10-4"><a href="#cb10-4" tabindex="-1"></a>best_model <span class="ot">&lt;-</span> result<span class="sc">$</span>best_model</span>
-<span id="cb10-5"><a href="#cb10-5" tabindex="-1"></a></span>
-<span id="cb10-6"><a href="#cb10-6" tabindex="-1"></a><span class="co"># All models trained</span></span>
-<span id="cb10-7"><a href="#cb10-7" tabindex="-1"></a>all_models <span class="ot">&lt;-</span> result<span class="sc">$</span>models</span>
-<span id="cb10-8"><a href="#cb10-8" tabindex="-1"></a></span>
-<span id="cb10-9"><a href="#cb10-9" tabindex="-1"></a><span class="co"># Specific model</span></span>
-<span id="cb10-10"><a href="#cb10-10" tabindex="-1"></a>baseline_logistic <span class="ot">&lt;-</span> result<span class="sc">$</span>models<span class="sc">$</span>baseline_logistic</span>
-<span id="cb10-11"><a href="#cb10-11" tabindex="-1"></a>pca_forest <span class="ot">&lt;-</span> result<span class="sc">$</span>models<span class="sc">$</span>pca_forest</span></code></pre></div>
-</div>
-<div id="leaderboard" class="section level3">
-<h3>Leaderboard</h3>
-<div class="sourceCode" id="cb11"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb11-1"><a href="#cb11-1" tabindex="-1"></a><span class="co"># View performance comparison. Columns are model, score and evaluation</span></span>
-<span id="cb11-2"><a href="#cb11-2" tabindex="-1"></a><span class="co"># (&quot;cv&quot; or &quot;train&quot; -- see &quot;How AutoML Works&quot; above).</span></span>
-<span id="cb11-3"><a href="#cb11-3" tabindex="-1"></a>leaderboard <span class="ot">&lt;-</span> result<span class="sc">$</span>leaderboard</span>
-<span id="cb11-4"><a href="#cb11-4" tabindex="-1"></a></span>
-<span id="cb11-5"><a href="#cb11-5" tabindex="-1"></a><span class="co"># Already sorted best-first, but to re-sort explicitly:</span></span>
-<span id="cb11-6"><a href="#cb11-6" tabindex="-1"></a><span class="co"># higher is better for accuracy, lower for RMSE</span></span>
-<span id="cb11-7"><a href="#cb11-7" tabindex="-1"></a>leaderboard <span class="ot">&lt;-</span> leaderboard <span class="sc">%&gt;%</span></span>
-<span id="cb11-8"><a href="#cb11-8" tabindex="-1"></a>  <span class="fu">arrange</span>(<span class="fu">desc</span>(score))</span>
-<span id="cb11-9"><a href="#cb11-9" tabindex="-1"></a></span>
-<span id="cb11-10"><a href="#cb11-10" tabindex="-1"></a><span class="fu">print</span>(leaderboard)</span></code></pre></div>
-</div>
-<div id="making-predictions" class="section level3">
-<h3>Making Predictions</h3>
-<div class="sourceCode" id="cb12"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb12-1"><a href="#cb12-1" tabindex="-1"></a><span class="co"># Use best model for predictions</span></span>
-<span id="cb12-2"><a href="#cb12-2" tabindex="-1"></a>predictions <span class="ot">&lt;-</span> <span class="fu">predict</span>(result<span class="sc">$</span>best_model, <span class="at">new_data =</span> new_data)</span>
-<span id="cb12-3"><a href="#cb12-3" tabindex="-1"></a></span>
-<span id="cb12-4"><a href="#cb12-4" tabindex="-1"></a><span class="co"># Or use a specific model</span></span>
-<span id="cb12-5"><a href="#cb12-5" tabindex="-1"></a>predictions_pca <span class="ot">&lt;-</span> <span class="fu">predict</span>(result<span class="sc">$</span>models<span class="sc">$</span>pca_forest, <span class="at">new_data =</span> new_data)</span></code></pre></div>
-</div>
-</div>
-<div id="practical-examples-1" class="section level2">
-<h2>Practical Examples</h2>
-<div id="example-1-iris-classification" class="section level3">
-<h3>Example 1: Iris Classification</h3>
-<div class="sourceCode" id="cb13"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb13-1"><a href="#cb13-1" tabindex="-1"></a><span class="co"># Split data for evaluation</span></span>
-<span id="cb13-2"><a href="#cb13-2" tabindex="-1"></a>split <span class="ot">&lt;-</span> <span class="fu">tl_split</span>(iris, <span class="at">prop =</span> <span class="fl">0.7</span>, <span class="at">stratify =</span> <span class="st">&quot;Species&quot;</span>, <span class="at">seed =</span> <span class="dv">123</span>)</span>
-<span id="cb13-3"><a href="#cb13-3" tabindex="-1"></a></span>
-<span id="cb13-4"><a href="#cb13-4" tabindex="-1"></a><span class="co"># Run AutoML on training data</span></span>
-<span id="cb13-5"><a href="#cb13-5" tabindex="-1"></a>automl_iris <span class="ot">&lt;-</span> <span class="fu">tl_auto_ml</span>(split<span class="sc">$</span>train, Species <span class="sc">~</span> .,</span>
-<span id="cb13-6"><a href="#cb13-6" tabindex="-1"></a>                          <span class="at">time_budget =</span> <span class="dv">90</span>,</span>
-<span id="cb13-7"><a href="#cb13-7" tabindex="-1"></a>                          <span class="at">cv_folds =</span> <span class="dv">5</span>)</span>
-<span id="cb13-8"><a href="#cb13-8" tabindex="-1"></a></span>
-<span id="cb13-9"><a href="#cb13-9" tabindex="-1"></a><span class="co"># Evaluate on test set</span></span>
-<span id="cb13-10"><a href="#cb13-10" tabindex="-1"></a>test_preds <span class="ot">&lt;-</span> <span class="fu">predict</span>(automl_iris<span class="sc">$</span>best_model, <span class="at">new_data =</span> split<span class="sc">$</span>test)</span>
-<span id="cb13-11"><a href="#cb13-11" tabindex="-1"></a>test_accuracy <span class="ot">&lt;-</span> <span class="fu">mean</span>(test_preds<span class="sc">$</span>.pred <span class="sc">==</span> split<span class="sc">$</span>test<span class="sc">$</span>Species)</span>
-<span id="cb13-12"><a href="#cb13-12" tabindex="-1"></a></span>
-<span id="cb13-13"><a href="#cb13-13" tabindex="-1"></a><span class="fu">cat</span>(<span class="st">&quot;AutoML Test Accuracy:&quot;</span>, <span class="fu">round</span>(test_accuracy <span class="sc">*</span> <span class="dv">100</span>, <span class="dv">1</span>), <span class="st">&quot;%</span><span class="sc">\n</span><span class="st">&quot;</span>)</span></code></pre></div>
-<div class="sourceCode" id="cb14"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb14-1"><a href="#cb14-1" tabindex="-1"></a><span class="co"># Compare models</span></span>
-<span id="cb14-2"><a href="#cb14-2" tabindex="-1"></a><span class="cf">for</span> (model_name <span class="cf">in</span> <span class="fu">names</span>(automl_iris<span class="sc">$</span>models)) {</span>
-<span id="cb14-3"><a href="#cb14-3" tabindex="-1"></a>  model <span class="ot">&lt;-</span> automl_iris<span class="sc">$</span>models[[model_name]]</span>
-<span id="cb14-4"><a href="#cb14-4" tabindex="-1"></a>  preds <span class="ot">&lt;-</span> <span class="fu">predict</span>(model, <span class="at">new_data =</span> split<span class="sc">$</span>test)</span>
-<span id="cb14-5"><a href="#cb14-5" tabindex="-1"></a>  acc <span class="ot">&lt;-</span> <span class="fu">mean</span>(preds<span class="sc">$</span>.pred <span class="sc">==</span> split<span class="sc">$</span>test<span class="sc">$</span>Species)</span>
-<span id="cb14-6"><a href="#cb14-6" tabindex="-1"></a>  <span class="fu">cat</span>(model_name, <span class="st">&quot;:&quot;</span>, <span class="fu">round</span>(acc <span class="sc">*</span> <span class="dv">100</span>, <span class="dv">1</span>), <span class="st">&quot;%</span><span class="sc">\n</span><span class="st">&quot;</span>)</span>
-<span id="cb14-7"><a href="#cb14-7" tabindex="-1"></a>}</span></code></pre></div>
-</div>
-<div id="example-2-mpg-prediction" class="section level3">
-<h3>Example 2: MPG Prediction</h3>
-<div class="sourceCode" id="cb15"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb15-1"><a href="#cb15-1" tabindex="-1"></a><span class="co"># Split mtcars data</span></span>
-<span id="cb15-2"><a href="#cb15-2" tabindex="-1"></a>split_mtcars <span class="ot">&lt;-</span> <span class="fu">tl_split</span>(mtcars, <span class="at">prop =</span> <span class="fl">0.7</span>, <span class="at">seed =</span> <span class="dv">42</span>)</span>
+<div class="sourceCode" id="cb13"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb13-1"><a href="#cb13-1" tabindex="-1"></a><span class="co"># Baselines only -- no PCA, no cluster features</span></span>
+<span id="cb13-2"><a href="#cb13-2" tabindex="-1"></a>baseline_only <span class="ot">&lt;-</span> <span class="fu">tl_auto_ml</span>(</span>
+<span id="cb13-3"><a href="#cb13-3" tabindex="-1"></a>  iris, Species <span class="sc">~</span> .,</span>
+<span id="cb13-4"><a href="#cb13-4" tabindex="-1"></a>  <span class="at">use_reduction =</span> <span class="cn">FALSE</span>,</span>
+<span id="cb13-5"><a href="#cb13-5" tabindex="-1"></a>  <span class="at">use_clustering =</span> <span class="cn">FALSE</span>,</span>
+<span id="cb13-6"><a href="#cb13-6" tabindex="-1"></a>  <span class="at">time_budget =</span> <span class="dv">30</span>,</span>
+<span id="cb13-7"><a href="#cb13-7" tabindex="-1"></a>  <span class="at">cv_folds =</span> <span class="dv">3</span></span>
+<span id="cb13-8"><a href="#cb13-8" tabindex="-1"></a>)</span>
+<span id="cb13-9"><a href="#cb13-9" tabindex="-1"></a></span>
+<span id="cb13-10"><a href="#cb13-10" tabindex="-1"></a><span class="fu">names</span>(baseline_only<span class="sc">$</span>models)</span>
+<span id="cb13-11"><a href="#cb13-11" tabindex="-1"></a><span class="co">#&gt; [1] &quot;baseline_tree&quot;    &quot;baseline_forest&quot;  &quot;advanced_svm&quot;     &quot;advanced_xgboost&quot;</span></span></code></pre></div>
+<div class="sourceCode" id="cb14"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb14-1"><a href="#cb14-1" tabindex="-1"></a><span class="co"># Keep PCA, drop clustering</span></span>
+<span id="cb14-2"><a href="#cb14-2" tabindex="-1"></a>no_clustering <span class="ot">&lt;-</span> <span class="fu">tl_auto_ml</span>(</span>
+<span id="cb14-3"><a href="#cb14-3" tabindex="-1"></a>  iris, Species <span class="sc">~</span> .,</span>
+<span id="cb14-4"><a href="#cb14-4" tabindex="-1"></a>  <span class="at">use_clustering =</span> <span class="cn">FALSE</span>,</span>
+<span id="cb14-5"><a href="#cb14-5" tabindex="-1"></a>  <span class="at">time_budget =</span> <span class="dv">30</span>,</span>
+<span id="cb14-6"><a href="#cb14-6" tabindex="-1"></a>  <span class="at">cv_folds =</span> <span class="dv">3</span></span>
+<span id="cb14-7"><a href="#cb14-7" tabindex="-1"></a>)</span>
+<span id="cb14-8"><a href="#cb14-8" tabindex="-1"></a></span>
+<span id="cb14-9"><a href="#cb14-9" tabindex="-1"></a><span class="fu">names</span>(no_clustering<span class="sc">$</span>models)</span>
+<span id="cb14-10"><a href="#cb14-10" tabindex="-1"></a><span class="co">#&gt; [1] &quot;baseline_tree&quot;    &quot;baseline_forest&quot;  &quot;pca_tree&quot;         &quot;pca_forest&quot;      </span></span>
+<span id="cb14-11"><a href="#cb14-11" tabindex="-1"></a><span class="co">#&gt; [5] &quot;advanced_svm&quot;     &quot;advanced_xgboost&quot;</span></span></code></pre></div>
+<p>Naming a metric changes what the leaderboard optimises.
+Classification accepts <code>accuracy</code>, <code>precision</code>,
+<code>recall</code>, <code>sensitivity</code>, <code>specificity</code>,
+<code>f1</code>, <code>auc</code> and <code>pr_auc</code>; regression
+accepts <code>rmse</code>, <code>mse</code>, <code>mae</code>,
+<code>mape</code> and <code>rsq</code>.</p>
+<div class="sourceCode" id="cb15"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb15-1"><a href="#cb15-1" tabindex="-1"></a>by_f1 <span class="ot">&lt;-</span> <span class="fu">tl_auto_ml</span>(iris_binary, Species <span class="sc">~</span> ., <span class="at">metric =</span> <span class="st">&quot;f1&quot;</span>,</span>
+<span id="cb15-2"><a href="#cb15-2" tabindex="-1"></a>                    <span class="at">time_budget =</span> <span class="dv">30</span>, <span class="at">cv_folds =</span> <span class="dv">3</span>)</span>
 <span id="cb15-3"><a href="#cb15-3" tabindex="-1"></a></span>
-<span id="cb15-4"><a href="#cb15-4" tabindex="-1"></a><span class="co"># Run AutoML</span></span>
-<span id="cb15-5"><a href="#cb15-5" tabindex="-1"></a>automl_mpg <span class="ot">&lt;-</span> <span class="fu">tl_auto_ml</span>(split_mtcars<span class="sc">$</span>train, mpg <span class="sc">~</span> .,</span>
-<span id="cb15-6"><a href="#cb15-6" tabindex="-1"></a>                         <span class="at">task =</span> <span class="st">&quot;regression&quot;</span>,</span>
-<span id="cb15-7"><a href="#cb15-7" tabindex="-1"></a>                         <span class="at">time_budget =</span> <span class="dv">90</span>)</span>
-<span id="cb15-8"><a href="#cb15-8" tabindex="-1"></a></span>
-<span id="cb15-9"><a href="#cb15-9" tabindex="-1"></a><span class="co"># Evaluate</span></span>
-<span id="cb15-10"><a href="#cb15-10" tabindex="-1"></a>test_preds_mpg <span class="ot">&lt;-</span> <span class="fu">predict</span>(automl_mpg<span class="sc">$</span>best_model, <span class="at">new_data =</span> split_mtcars<span class="sc">$</span>test)</span>
-<span id="cb15-11"><a href="#cb15-11" tabindex="-1"></a>rmse <span class="ot">&lt;-</span> <span class="fu">sqrt</span>(<span class="fu">mean</span>((test_preds_mpg<span class="sc">$</span>.pred <span class="sc">-</span> split_mtcars<span class="sc">$</span>test<span class="sc">$</span>mpg)<span class="sc">^</span><span class="dv">2</span>))</span>
-<span id="cb15-12"><a href="#cb15-12" tabindex="-1"></a></span>
-<span id="cb15-13"><a href="#cb15-13" tabindex="-1"></a><span class="fu">cat</span>(<span class="st">&quot;AutoML Test RMSE:&quot;</span>, <span class="fu">round</span>(rmse, <span class="dv">2</span>), <span class="st">&quot;</span><span class="sc">\n</span><span class="st">&quot;</span>)</span></code></pre></div>
+<span id="cb15-4"><a href="#cb15-4" tabindex="-1"></a>by_f1<span class="sc">$</span>metric</span>
+<span id="cb15-5"><a href="#cb15-5" tabindex="-1"></a><span class="co">#&gt; [1] &quot;f1&quot;</span></span>
+<span id="cb15-6"><a href="#cb15-6" tabindex="-1"></a>by_f1<span class="sc">$</span>leaderboard</span>
+<span id="cb15-7"><a href="#cb15-7" tabindex="-1"></a><span class="co">#&gt; # A tibble: 11 × 3</span></span>
+<span id="cb15-8"><a href="#cb15-8" tabindex="-1"></a><span class="co">#&gt;    model              score evaluation</span></span>
+<span id="cb15-9"><a href="#cb15-9" tabindex="-1"></a><span class="co">#&gt;    &lt;chr&gt;              &lt;dbl&gt; &lt;chr&gt;     </span></span>
+<span id="cb15-10"><a href="#cb15-10" tabindex="-1"></a><span class="co">#&gt;  1 clustered_logistic 0.982 cv        </span></span>
+<span id="cb15-11"><a href="#cb15-11" tabindex="-1"></a><span class="co">#&gt;  2 baseline_logistic  0.970 cv        </span></span>
+<span id="cb15-12"><a href="#cb15-12" tabindex="-1"></a><span class="co">#&gt;  3 baseline_forest    0.941 cv        </span></span>
+<span id="cb15-13"><a href="#cb15-13" tabindex="-1"></a><span class="co">#&gt;  4 advanced_xgboost   0.926 cv        </span></span>
+<span id="cb15-14"><a href="#cb15-14" tabindex="-1"></a><span class="co">#&gt;  5 advanced_svm       0.925 cv        </span></span>
+<span id="cb15-15"><a href="#cb15-15" tabindex="-1"></a><span class="co">#&gt;  6 clustered_forest   0.911 cv        </span></span>
+<span id="cb15-16"><a href="#cb15-16" tabindex="-1"></a><span class="co">#&gt;  7 baseline_tree      0.898 cv        </span></span>
+<span id="cb15-17"><a href="#cb15-17" tabindex="-1"></a><span class="co">#&gt;  8 pca_forest         0.894 cv        </span></span>
+<span id="cb15-18"><a href="#cb15-18" tabindex="-1"></a><span class="co">#&gt;  9 clustered_tree     0.891 cv        </span></span>
+<span id="cb15-19"><a href="#cb15-19" tabindex="-1"></a><span class="co">#&gt; 10 pca_logistic       0.837 cv        </span></span>
+<span id="cb15-20"><a href="#cb15-20" tabindex="-1"></a><span class="co">#&gt; 11 pca_tree           0.778 cv</span></span></code></pre></div>
 </div>
-<div id="example-3-custom-preprocessing-automl" class="section level3">
-<h3>Example 3: Custom Preprocessing + AutoML</h3>
-<div class="sourceCode" id="cb16"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb16-1"><a href="#cb16-1" tabindex="-1"></a><span class="co"># Preprocess data first</span></span>
-<span id="cb16-2"><a href="#cb16-2" tabindex="-1"></a>processed <span class="ot">&lt;-</span> <span class="fu">tl_prepare_data</span>(</span>
-<span id="cb16-3"><a href="#cb16-3" tabindex="-1"></a>  split<span class="sc">$</span>train,</span>
-<span id="cb16-4"><a href="#cb16-4" tabindex="-1"></a>  Species <span class="sc">~</span> .,</span>
-<span id="cb16-5"><a href="#cb16-5" tabindex="-1"></a>  <span class="at">scale_method =</span> <span class="st">&quot;standardize&quot;</span>,</span>
-<span id="cb16-6"><a href="#cb16-6" tabindex="-1"></a>  <span class="at">remove_correlated =</span> <span class="cn">TRUE</span></span>
-<span id="cb16-7"><a href="#cb16-7" tabindex="-1"></a>)</span>
-<span id="cb16-8"><a href="#cb16-8" tabindex="-1"></a></span>
-<span id="cb16-9"><a href="#cb16-9" tabindex="-1"></a><span class="co"># Run AutoML on preprocessed data</span></span>
-<span id="cb16-10"><a href="#cb16-10" tabindex="-1"></a>automl_processed <span class="ot">&lt;-</span> <span class="fu">tl_auto_ml</span>(processed<span class="sc">$</span>data, Species <span class="sc">~</span> .,</span>
-<span id="cb16-11"><a href="#cb16-11" tabindex="-1"></a>                               <span class="at">time_budget =</span> <span class="dv">60</span>)</span>
-<span id="cb16-12"><a href="#cb16-12" tabindex="-1"></a></span>
-<span id="cb16-13"><a href="#cb16-13" tabindex="-1"></a><span class="co"># Note: Need to apply same preprocessing to test data</span></span>
-<span id="cb16-14"><a href="#cb16-14" tabindex="-1"></a>test_processed <span class="ot">&lt;-</span> <span class="fu">tl_prepare_data</span>(</span>
-<span id="cb16-15"><a href="#cb16-15" tabindex="-1"></a>  split<span class="sc">$</span>test,</span>
-<span id="cb16-16"><a href="#cb16-16" tabindex="-1"></a>  Species <span class="sc">~</span> .,</span>
-<span id="cb16-17"><a href="#cb16-17" tabindex="-1"></a>  <span class="at">scale_method =</span> <span class="st">&quot;standardize&quot;</span></span>
-<span id="cb16-18"><a href="#cb16-18" tabindex="-1"></a>)</span>
-<span id="cb16-19"><a href="#cb16-19" tabindex="-1"></a></span>
-<span id="cb16-20"><a href="#cb16-20" tabindex="-1"></a>test_preds_proc <span class="ot">&lt;-</span> <span class="fu">predict</span>(</span>
-<span id="cb16-21"><a href="#cb16-21" tabindex="-1"></a>  automl_processed<span class="sc">$</span>best_model,</span>
-<span id="cb16-22"><a href="#cb16-22" tabindex="-1"></a>  <span class="at">new_data =</span> test_processed<span class="sc">$</span>data</span>
-<span id="cb16-23"><a href="#cb16-23" tabindex="-1"></a>)</span></code></pre></div>
+<div id="using-the-result" class="section level2">
+<h2>Using the Result</h2>
+<div class="sourceCode" id="cb16"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb16-1"><a href="#cb16-1" tabindex="-1"></a>split <span class="ot">&lt;-</span> <span class="fu">tl_split</span>(iris, <span class="at">prop =</span> <span class="fl">0.7</span>, <span class="at">stratify =</span> <span class="st">&quot;Species&quot;</span>, <span class="at">seed =</span> <span class="dv">123</span>)</span>
+<span id="cb16-2"><a href="#cb16-2" tabindex="-1"></a></span>
+<span id="cb16-3"><a href="#cb16-3" tabindex="-1"></a>automl <span class="ot">&lt;-</span> <span class="fu">tl_auto_ml</span>(split<span class="sc">$</span>train, Species <span class="sc">~</span> ., <span class="at">time_budget =</span> <span class="dv">30</span>, <span class="at">cv_folds =</span> <span class="dv">3</span>)</span>
+<span id="cb16-4"><a href="#cb16-4" tabindex="-1"></a></span>
+<span id="cb16-5"><a href="#cb16-5" tabindex="-1"></a>test_preds <span class="ot">&lt;-</span> <span class="fu">predict</span>(automl<span class="sc">$</span>best_model, <span class="at">new_data =</span> split<span class="sc">$</span>test)</span>
+<span id="cb16-6"><a href="#cb16-6" tabindex="-1"></a><span class="fu">mean</span>(test_preds<span class="sc">$</span>.pred <span class="sc">==</span> split<span class="sc">$</span>test<span class="sc">$</span>Species)</span>
+<span id="cb16-7"><a href="#cb16-7" tabindex="-1"></a><span class="co">#&gt; [1] 0.9333333</span></span></code></pre></div>
+<p>Any model on the leaderboard can be pulled out by name:</p>
+<div class="sourceCode" id="cb17"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb17-1"><a href="#cb17-1" tabindex="-1"></a>available <span class="ot">&lt;-</span> <span class="fu">names</span>(automl<span class="sc">$</span>models)</span>
+<span id="cb17-2"><a href="#cb17-2" tabindex="-1"></a>available</span>
+<span id="cb17-3"><a href="#cb17-3" tabindex="-1"></a><span class="co">#&gt; [1] &quot;baseline_tree&quot;    &quot;baseline_forest&quot;  &quot;pca_tree&quot;         &quot;pca_forest&quot;      </span></span>
+<span id="cb17-4"><a href="#cb17-4" tabindex="-1"></a><span class="co">#&gt; [5] &quot;clustered_tree&quot;   &quot;clustered_forest&quot; &quot;advanced_svm&quot;     &quot;advanced_xgboost&quot;</span></span></code></pre></div>
+<div class="sourceCode" id="cb18"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb18-1"><a href="#cb18-1" tabindex="-1"></a>scores <span class="ot">&lt;-</span> <span class="fu">vapply</span>(available, <span class="cf">function</span>(nm) {</span>
+<span id="cb18-2"><a href="#cb18-2" tabindex="-1"></a>  preds <span class="ot">&lt;-</span> <span class="fu">predict</span>(automl<span class="sc">$</span>models[[nm]], <span class="at">new_data =</span> split<span class="sc">$</span>test)</span>
+<span id="cb18-3"><a href="#cb18-3" tabindex="-1"></a>  <span class="fu">mean</span>(preds<span class="sc">$</span>.pred <span class="sc">==</span> split<span class="sc">$</span>test<span class="sc">$</span>Species)</span>
+<span id="cb18-4"><a href="#cb18-4" tabindex="-1"></a>}, <span class="fu">numeric</span>(<span class="dv">1</span>))</span>
+<span id="cb18-5"><a href="#cb18-5" tabindex="-1"></a></span>
+<span id="cb18-6"><a href="#cb18-6" tabindex="-1"></a><span class="fu">data.frame</span>(<span class="at">model =</span> available, <span class="at">test_accuracy =</span> <span class="fu">round</span>(scores, <span class="dv">3</span>),</span>
+<span id="cb18-7"><a href="#cb18-7" tabindex="-1"></a>           <span class="at">row.names =</span> <span class="cn">NULL</span>) <span class="sc">%&gt;%</span></span>
+<span id="cb18-8"><a href="#cb18-8" tabindex="-1"></a>  <span class="fu">arrange</span>(<span class="fu">desc</span>(test_accuracy))</span>
+<span id="cb18-9"><a href="#cb18-9" tabindex="-1"></a><span class="co">#&gt;              model test_accuracy</span></span>
+<span id="cb18-10"><a href="#cb18-10" tabindex="-1"></a><span class="co">#&gt; 1    baseline_tree         0.933</span></span>
+<span id="cb18-11"><a href="#cb18-11" tabindex="-1"></a><span class="co">#&gt; 2  baseline_forest         0.933</span></span>
+<span id="cb18-12"><a href="#cb18-12" tabindex="-1"></a><span class="co">#&gt; 3   clustered_tree         0.933</span></span>
+<span id="cb18-13"><a href="#cb18-13" tabindex="-1"></a><span class="co">#&gt; 4     advanced_svm         0.933</span></span>
+<span id="cb18-14"><a href="#cb18-14" tabindex="-1"></a><span class="co">#&gt; 5 clustered_forest         0.911</span></span>
+<span id="cb18-15"><a href="#cb18-15" tabindex="-1"></a><span class="co">#&gt; 6 advanced_xgboost         0.911</span></span>
+<span id="cb18-16"><a href="#cb18-16" tabindex="-1"></a><span class="co">#&gt; 7         pca_tree         0.889</span></span>
+<span id="cb18-17"><a href="#cb18-17" tabindex="-1"></a><span class="co">#&gt; 8       pca_forest         0.867</span></span></code></pre></div>
+<p>Comparing the leaderboard against held-out accuracy is worth doing:
+the model that won the search is not always the one that generalises,
+and with a dataset this small the difference between the top few is
+noise.</p>
 </div>
-</div>
-<div id="comparing-automl-with-manual-selection" class="section level2">
-<h2>Comparing AutoML with Manual Selection</h2>
-<div class="sourceCode" id="cb17"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb17-1"><a href="#cb17-1" tabindex="-1"></a><span class="co"># Manual approach: choose one model</span></span>
-<span id="cb17-2"><a href="#cb17-2" tabindex="-1"></a>manual_model <span class="ot">&lt;-</span> <span class="fu">tl_model</span>(split<span class="sc">$</span>train, Species <span class="sc">~</span> ., <span class="at">method =</span> <span class="st">&quot;forest&quot;</span>)</span>
-<span id="cb17-3"><a href="#cb17-3" tabindex="-1"></a>manual_preds <span class="ot">&lt;-</span> <span class="fu">predict</span>(manual_model, <span class="at">new_data =</span> split<span class="sc">$</span>test)</span>
-<span id="cb17-4"><a href="#cb17-4" tabindex="-1"></a>manual_acc <span class="ot">&lt;-</span> <span class="fu">mean</span>(manual_preds<span class="sc">$</span>.pred <span class="sc">==</span> split<span class="sc">$</span>test<span class="sc">$</span>Species)</span>
-<span id="cb17-5"><a href="#cb17-5" tabindex="-1"></a></span>
-<span id="cb17-6"><a href="#cb17-6" tabindex="-1"></a><span class="co"># AutoML approach</span></span>
-<span id="cb17-7"><a href="#cb17-7" tabindex="-1"></a>automl_model <span class="ot">&lt;-</span> <span class="fu">tl_auto_ml</span>(split<span class="sc">$</span>train, Species <span class="sc">~</span> ., <span class="at">time_budget =</span> <span class="dv">60</span>)</span>
-<span id="cb17-8"><a href="#cb17-8" tabindex="-1"></a>automl_preds <span class="ot">&lt;-</span> <span class="fu">predict</span>(automl_model<span class="sc">$</span>best_model, <span class="at">new_data =</span> split<span class="sc">$</span>test)</span>
-<span id="cb17-9"><a href="#cb17-9" tabindex="-1"></a>automl_acc <span class="ot">&lt;-</span> <span class="fu">mean</span>(automl_preds<span class="sc">$</span>.pred <span class="sc">==</span> split<span class="sc">$</span>test<span class="sc">$</span>Species)</span>
-<span id="cb17-10"><a href="#cb17-10" tabindex="-1"></a></span>
-<span id="cb17-11"><a href="#cb17-11" tabindex="-1"></a><span class="fu">cat</span>(<span class="st">&quot;Manual Selection:&quot;</span>, <span class="fu">round</span>(manual_acc <span class="sc">*</span> <span class="dv">100</span>, <span class="dv">1</span>), <span class="st">&quot;%</span><span class="sc">\n</span><span class="st">&quot;</span>)</span>
-<span id="cb17-12"><a href="#cb17-12" tabindex="-1"></a><span class="fu">cat</span>(<span class="st">&quot;AutoML:&quot;</span>, <span class="fu">round</span>(automl_acc <span class="sc">*</span> <span class="dv">100</span>, <span class="dv">1</span>), <span class="st">&quot;%</span><span class="sc">\n</span><span class="st">&quot;</span>)</span></code></pre></div>
-</div>
-<div id="advanced-automl-strategies" class="section level2">
-<h2>Advanced AutoML Strategies</h2>
-<div id="strategy-1-iterative-automl" class="section level3">
-<h3>Strategy 1: Iterative AutoML</h3>
-<div class="sourceCode" id="cb18"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb18-1"><a href="#cb18-1" tabindex="-1"></a><span class="co"># First pass: quick exploration</span></span>
-<span id="cb18-2"><a href="#cb18-2" tabindex="-1"></a>quick_automl <span class="ot">&lt;-</span> <span class="fu">tl_auto_ml</span>(split<span class="sc">$</span>train, Species <span class="sc">~</span> .,</span>
-<span id="cb18-3"><a href="#cb18-3" tabindex="-1"></a>                           <span class="at">time_budget =</span> <span class="dv">30</span>,</span>
-<span id="cb18-4"><a href="#cb18-4" tabindex="-1"></a>                           <span class="at">use_reduction =</span> <span class="cn">TRUE</span>,</span>
-<span id="cb18-5"><a href="#cb18-5" tabindex="-1"></a>                           <span class="at">use_clustering =</span> <span class="cn">FALSE</span>)</span>
-<span id="cb18-6"><a href="#cb18-6" tabindex="-1"></a></span>
-<span id="cb18-7"><a href="#cb18-7" tabindex="-1"></a><span class="co"># Analyze what worked — best model name is in the leaderboard</span></span>
-<span id="cb18-8"><a href="#cb18-8" tabindex="-1"></a>best_name <span class="ot">&lt;-</span> quick_automl<span class="sc">$</span>leaderboard<span class="sc">$</span>model[<span class="dv">1</span>]</span>
-<span id="cb18-9"><a href="#cb18-9" tabindex="-1"></a>best_method <span class="ot">&lt;-</span> quick_automl<span class="sc">$</span>best_model<span class="sc">$</span>spec<span class="sc">$</span>method</span>
-<span id="cb18-10"><a href="#cb18-10" tabindex="-1"></a><span class="fu">cat</span>(<span class="st">&quot;Best model:&quot;</span>, best_name, <span class="st">&quot;(method:&quot;</span>, best_method, <span class="st">&quot;)</span><span class="sc">\n</span><span class="st">&quot;</span>)</span>
-<span id="cb18-11"><a href="#cb18-11" tabindex="-1"></a></span>
-<span id="cb18-12"><a href="#cb18-12" tabindex="-1"></a><span class="co"># Second pass: if a PCA variant won, invest more in reduction</span></span>
-<span id="cb18-13"><a href="#cb18-13" tabindex="-1"></a><span class="cf">if</span> (<span class="fu">grepl</span>(<span class="st">&quot;^pca_&quot;</span>, best_name)) {</span>
-<span id="cb18-14"><a href="#cb18-14" tabindex="-1"></a>  refined_automl <span class="ot">&lt;-</span> <span class="fu">tl_auto_ml</span>(split<span class="sc">$</span>train, Species <span class="sc">~</span> .,</span>
-<span id="cb18-15"><a href="#cb18-15" tabindex="-1"></a>                               <span class="at">time_budget =</span> <span class="dv">60</span>,</span>
-<span id="cb18-16"><a href="#cb18-16" tabindex="-1"></a>                               <span class="at">use_reduction =</span> <span class="cn">TRUE</span>,</span>
-<span id="cb18-17"><a href="#cb18-17" tabindex="-1"></a>                               <span class="at">use_clustering =</span> <span class="cn">TRUE</span>)</span>
-<span id="cb18-18"><a href="#cb18-18" tabindex="-1"></a>}</span></code></pre></div>
-</div>
-<div id="strategy-2-ensemble-of-automl-models" class="section level3">
-<h3>Strategy 2: Ensemble of AutoML Models</h3>
-<div class="sourceCode" id="cb19"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb19-1"><a href="#cb19-1" tabindex="-1"></a><span class="co"># Get top 3 models</span></span>
-<span id="cb19-2"><a href="#cb19-2" tabindex="-1"></a>top_models <span class="ot">&lt;-</span> automl_iris<span class="sc">$</span>leaderboard <span class="sc">%&gt;%</span></span>
-<span id="cb19-3"><a href="#cb19-3" tabindex="-1"></a>  <span class="fu">arrange</span>(<span class="fu">desc</span>(score)) <span class="sc">%&gt;%</span></span>
-<span id="cb19-4"><a href="#cb19-4" tabindex="-1"></a>  <span class="fu">head</span>(<span class="dv">3</span>)</span>
+<div id="automl-against-a-single-choice" class="section level2">
+<h2>AutoML Against a Single Choice</h2>
+<div class="sourceCode" id="cb19"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb19-1"><a href="#cb19-1" tabindex="-1"></a>manual <span class="ot">&lt;-</span> <span class="fu">tl_model</span>(split<span class="sc">$</span>train, Species <span class="sc">~</span> ., <span class="at">method =</span> <span class="st">&quot;forest&quot;</span>)</span>
+<span id="cb19-2"><a href="#cb19-2" tabindex="-1"></a>manual_acc <span class="ot">&lt;-</span> <span class="fu">mean</span>(</span>
+<span id="cb19-3"><a href="#cb19-3" tabindex="-1"></a>  <span class="fu">predict</span>(manual, <span class="at">new_data =</span> split<span class="sc">$</span>test)<span class="sc">$</span>.pred <span class="sc">==</span> split<span class="sc">$</span>test<span class="sc">$</span>Species</span>
+<span id="cb19-4"><a href="#cb19-4" tabindex="-1"></a>)</span>
 <span id="cb19-5"><a href="#cb19-5" tabindex="-1"></a></span>
-<span id="cb19-6"><a href="#cb19-6" tabindex="-1"></a><span class="co"># Make predictions with each</span></span>
-<span id="cb19-7"><a href="#cb19-7" tabindex="-1"></a>ensemble_preds <span class="ot">&lt;-</span> <span class="fu">list</span>()</span>
-<span id="cb19-8"><a href="#cb19-8" tabindex="-1"></a><span class="cf">for</span> (i <span class="cf">in</span> <span class="fu">seq_len</span>(<span class="fu">nrow</span>(top_models))) {</span>
-<span id="cb19-9"><a href="#cb19-9" tabindex="-1"></a>  model_name <span class="ot">&lt;-</span> top_models<span class="sc">$</span>model[i]</span>
-<span id="cb19-10"><a href="#cb19-10" tabindex="-1"></a>  model <span class="ot">&lt;-</span> automl_iris<span class="sc">$</span>models[[model_name]]</span>
-<span id="cb19-11"><a href="#cb19-11" tabindex="-1"></a>  ensemble_preds[[i]] <span class="ot">&lt;-</span> <span class="fu">predict</span>(model, <span class="at">new_data =</span> split<span class="sc">$</span>test)<span class="sc">$</span>.pred</span>
-<span id="cb19-12"><a href="#cb19-12" tabindex="-1"></a>}</span>
-<span id="cb19-13"><a href="#cb19-13" tabindex="-1"></a></span>
-<span id="cb19-14"><a href="#cb19-14" tabindex="-1"></a><span class="co"># Majority vote for classification</span></span>
-<span id="cb19-15"><a href="#cb19-15" tabindex="-1"></a>final_pred <span class="ot">&lt;-</span> <span class="fu">apply</span>(<span class="fu">do.call</span>(cbind, ensemble_preds), <span class="dv">1</span>, <span class="cf">function</span>(x) {</span>
-<span id="cb19-16"><a href="#cb19-16" tabindex="-1"></a>  <span class="fu">names</span>(<span class="fu">which.max</span>(<span class="fu">table</span>(x)))</span>
-<span id="cb19-17"><a href="#cb19-17" tabindex="-1"></a>})</span>
-<span id="cb19-18"><a href="#cb19-18" tabindex="-1"></a></span>
-<span id="cb19-19"><a href="#cb19-19" tabindex="-1"></a>ensemble_acc <span class="ot">&lt;-</span> <span class="fu">mean</span>(final_pred <span class="sc">==</span> split<span class="sc">$</span>test<span class="sc">$</span>Species)</span>
-<span id="cb19-20"><a href="#cb19-20" tabindex="-1"></a><span class="fu">cat</span>(<span class="st">&quot;Ensemble Accuracy:&quot;</span>, <span class="fu">round</span>(ensemble_acc <span class="sc">*</span> <span class="dv">100</span>, <span class="dv">1</span>), <span class="st">&quot;%</span><span class="sc">\n</span><span class="st">&quot;</span>)</span></code></pre></div>
+<span id="cb19-6"><a href="#cb19-6" tabindex="-1"></a>automl_acc <span class="ot">&lt;-</span> <span class="fu">mean</span>(test_preds<span class="sc">$</span>.pred <span class="sc">==</span> split<span class="sc">$</span>test<span class="sc">$</span>Species)</span>
+<span id="cb19-7"><a href="#cb19-7" tabindex="-1"></a></span>
+<span id="cb19-8"><a href="#cb19-8" tabindex="-1"></a><span class="fu">data.frame</span>(</span>
+<span id="cb19-9"><a href="#cb19-9" tabindex="-1"></a>  <span class="at">approach =</span> <span class="fu">c</span>(<span class="st">&quot;forest, chosen by hand&quot;</span>, <span class="st">&quot;AutoML best&quot;</span>),</span>
+<span id="cb19-10"><a href="#cb19-10" tabindex="-1"></a>  <span class="at">test_accuracy =</span> <span class="fu">round</span>(<span class="fu">c</span>(manual_acc, automl_acc), <span class="dv">3</span>)</span>
+<span id="cb19-11"><a href="#cb19-11" tabindex="-1"></a>)</span>
+<span id="cb19-12"><a href="#cb19-12" tabindex="-1"></a><span class="co">#&gt;                 approach test_accuracy</span></span>
+<span id="cb19-13"><a href="#cb19-13" tabindex="-1"></a><span class="co">#&gt; 1 forest, chosen by hand         0.933</span></span>
+<span id="cb19-14"><a href="#cb19-14" tabindex="-1"></a><span class="co">#&gt; 2            AutoML best         0.933</span></span></code></pre></div>
+<p>On iris a random forest is already the right answer, so the search
+does not improve on it. That is the expected result on an easy,
+well-understood dataset — AutoML earns its cost when you do not already
+know which method suits the data.</p>
 </div>
+<div id="preprocessing-first" class="section level2">
+<h2>Preprocessing First</h2>
+<p>AutoML does not impute. Handle missing values before the call, and
+apply the same transformation to any data you later predict on:</p>
+<div class="sourceCode" id="cb20"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb20-1"><a href="#cb20-1" tabindex="-1"></a>processed <span class="ot">&lt;-</span> <span class="fu">tl_prepare_data</span>(</span>
+<span id="cb20-2"><a href="#cb20-2" tabindex="-1"></a>  split<span class="sc">$</span>train, Species <span class="sc">~</span> .,</span>
+<span id="cb20-3"><a href="#cb20-3" tabindex="-1"></a>  <span class="at">scale_method =</span> <span class="st">&quot;standardize&quot;</span>,</span>
+<span id="cb20-4"><a href="#cb20-4" tabindex="-1"></a>  <span class="at">remove_correlated =</span> <span class="cn">TRUE</span></span>
+<span id="cb20-5"><a href="#cb20-5" tabindex="-1"></a>)</span>
+<span id="cb20-6"><a href="#cb20-6" tabindex="-1"></a></span>
+<span id="cb20-7"><a href="#cb20-7" tabindex="-1"></a>automl_processed <span class="ot">&lt;-</span> <span class="fu">tl_auto_ml</span>(processed<span class="sc">$</span>data, Species <span class="sc">~</span> .,</span>
+<span id="cb20-8"><a href="#cb20-8" tabindex="-1"></a>                               <span class="at">time_budget =</span> <span class="dv">30</span>, <span class="at">cv_folds =</span> <span class="dv">3</span>)</span>
+<span id="cb20-9"><a href="#cb20-9" tabindex="-1"></a></span>
+<span id="cb20-10"><a href="#cb20-10" tabindex="-1"></a>automl_processed<span class="sc">$</span>leaderboard<span class="sc">$</span>model[<span class="dv">1</span>]</span>
+<span id="cb20-11"><a href="#cb20-11" tabindex="-1"></a><span class="co">#&gt; [1] &quot;clustered_forest&quot;</span></span></code></pre></div>
+<p><code>tl_pipeline()</code> handles that bookkeeping properly — see
+<code>vignette(&quot;tuning-and-pipelines&quot;)</code>.</p>
 </div>
-<div id="performance-metrics" class="section level2">
-<h2>Performance Metrics</h2>
-<div id="classification-metrics" class="section level3">
-<h3>Classification Metrics</h3>
-<div class="sourceCode" id="cb20"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb20-1"><a href="#cb20-1" tabindex="-1"></a><span class="co"># AutoML automatically uses accuracy for classification</span></span>
-<span id="cb20-2"><a href="#cb20-2" tabindex="-1"></a>result_class <span class="ot">&lt;-</span> <span class="fu">tl_auto_ml</span>(iris, Species <span class="sc">~</span> .,</span>
-<span id="cb20-3"><a href="#cb20-3" tabindex="-1"></a>                           <span class="at">metric =</span> <span class="st">&quot;accuracy&quot;</span>,</span>
-<span id="cb20-4"><a href="#cb20-4" tabindex="-1"></a>                           <span class="at">time_budget =</span> <span class="dv">60</span>)</span></code></pre></div>
+<div id="when-a-model-is-missing-or-scores-na" class="section level2">
+<h2>When a Model Is Missing or Scores NA</h2>
+<p>A model that fails to fit, or errors during evaluation, is dropped
+with a message explaining why and never reaches the leaderboard. Run
+without <code>message = FALSE</code> to see which and why.</p>
+<p>A model that evaluates but produces no value for the chosen metric
+appears with an <code>NA</code> score. That usually means the metric is
+not one <code>tl_evaluate()</code> recognises for the task. If every
+score is <code>NA</code>, <code>tl_auto_ml()</code> warns and returns
+the first model trained rather than pretending to have ranked them.</p>
+<div class="sourceCode" id="cb21"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb21-1"><a href="#cb21-1" tabindex="-1"></a><span class="fu">sum</span>(<span class="fu">is.na</span>(result<span class="sc">$</span>leaderboard<span class="sc">$</span>score))</span>
+<span id="cb21-2"><a href="#cb21-2" tabindex="-1"></a><span class="co">#&gt; [1] 0</span></span></code></pre></div>
 </div>
-<div id="regression-metrics" class="section level3">
-<h3>Regression Metrics</h3>
-<div class="sourceCode" id="cb21"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb21-1"><a href="#cb21-1" tabindex="-1"></a><span class="co"># AutoML automatically uses RMSE for regression</span></span>
-<span id="cb21-2"><a href="#cb21-2" tabindex="-1"></a>result_reg <span class="ot">&lt;-</span> <span class="fu">tl_auto_ml</span>(mtcars, mpg <span class="sc">~</span> .,</span>
-<span id="cb21-3"><a href="#cb21-3" tabindex="-1"></a>                         <span class="at">metric =</span> <span class="st">&quot;rmse&quot;</span>,</span>
-<span id="cb21-4"><a href="#cb21-4" tabindex="-1"></a>                         <span class="at">time_budget =</span> <span class="dv">60</span>)</span></code></pre></div>
+<div id="automl-or-tuning" class="section level2">
+<h2>AutoML or Tuning?</h2>
+<p>They search different axes and compose in one direction:</p>
+<ul>
+<li><code>tl_auto_ml()</code> searches <strong>across methods</strong>
+at default hyperparameters.</li>
+<li><code>tl_tune_grid()</code> and <code>tl_tune_random()</code> search
+<strong>within one method</strong>.</li>
+</ul>
+<p>Run AutoML first to find out which family suits the data, then tune
+the winner:</p>
+<div class="sourceCode" id="cb22"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb22-1"><a href="#cb22-1" tabindex="-1"></a>winner <span class="ot">&lt;-</span> automl<span class="sc">$</span>best_model<span class="sc">$</span>spec<span class="sc">$</span>method</span>
+<span id="cb22-2"><a href="#cb22-2" tabindex="-1"></a>winner</span>
+<span id="cb22-3"><a href="#cb22-3" tabindex="-1"></a><span class="co">#&gt; [1] &quot;svm&quot;</span></span></code></pre></div>
+<div class="sourceCode" id="cb23"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb23-1"><a href="#cb23-1" tabindex="-1"></a>tuned <span class="ot">&lt;-</span> <span class="fu">tl_tune_grid</span>(</span>
+<span id="cb23-2"><a href="#cb23-2" tabindex="-1"></a>  split<span class="sc">$</span>train, Species <span class="sc">~</span> .,</span>
+<span id="cb23-3"><a href="#cb23-3" tabindex="-1"></a>  <span class="at">method =</span> winner,</span>
+<span id="cb23-4"><a href="#cb23-4" tabindex="-1"></a>  <span class="at">param_grid =</span> <span class="fu">tl_default_param_grid</span>(winner, <span class="at">size =</span> <span class="st">&quot;small&quot;</span>),</span>
+<span id="cb23-5"><a href="#cb23-5" tabindex="-1"></a>  <span class="at">folds =</span> <span class="dv">3</span>,</span>
+<span id="cb23-6"><a href="#cb23-6" tabindex="-1"></a>  <span class="at">verbose =</span> <span class="cn">FALSE</span></span>
+<span id="cb23-7"><a href="#cb23-7" tabindex="-1"></a>)</span>
+<span id="cb23-8"><a href="#cb23-8" tabindex="-1"></a></span>
+<span id="cb23-9"><a href="#cb23-9" tabindex="-1"></a><span class="fu">attr</span>(tuned, <span class="st">&quot;tuning_results&quot;</span>)<span class="sc">$</span>best_params</span>
+<span id="cb23-10"><a href="#cb23-10" tabindex="-1"></a><span class="co">#&gt; $kernel</span></span>
+<span id="cb23-11"><a href="#cb23-11" tabindex="-1"></a><span class="co">#&gt; [1] &quot;linear&quot;</span></span>
+<span id="cb23-12"><a href="#cb23-12" tabindex="-1"></a><span class="co">#&gt; </span></span>
+<span id="cb23-13"><a href="#cb23-13" tabindex="-1"></a><span class="co">#&gt; $cost</span></span>
+<span id="cb23-14"><a href="#cb23-14" tabindex="-1"></a><span class="co">#&gt; [1] 1</span></span></code></pre></div>
+<div class="sourceCode" id="cb24"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb24-1"><a href="#cb24-1" tabindex="-1"></a><span class="fu">mean</span>(<span class="fu">predict</span>(tuned, <span class="at">new_data =</span> split<span class="sc">$</span>test)<span class="sc">$</span>.pred <span class="sc">==</span> split<span class="sc">$</span>test<span class="sc">$</span>Species)</span>
+<span id="cb24-2"><a href="#cb24-2" tabindex="-1"></a><span class="co">#&gt; [1] 0.9777778</span></span></code></pre></div>
 </div>
-</div>
-<div id="best-practices" class="section level2">
-<h2>Best Practices</h2>
+<div id="guidance" class="section level2">
+<h2>Guidance</h2>
 <ol style="list-style-type: decimal">
-<li><strong>Start fast, then expand</strong>: Use
-<code>time_budget = 10</code> to verify the pipeline runs, then increase
-to 60–120s for real evaluation, and 300s for final model selection.</li>
-<li><strong>Reduce <code>cv_folds</code> before reducing
-<code>time_budget</code></strong>: Going from 5-fold to 2-fold CV cuts
-evaluation time by ~60% while still providing out-of-sample estimates. A
-30s budget with <code>cv_folds = 2</code> is often more useful than a
-30s budget with the default 5 folds (which will skip CV entirely).</li>
-<li><strong>Preprocess when needed</strong>: Handle missing values
-before AutoML.</li>
-<li><strong>Split your data</strong>: Always evaluate on held-out test
-data.</li>
-<li><strong>Examine multiple models</strong>: The “best” model may not
-always be robust.</li>
-<li><strong>Consider ensemble approaches</strong>: Combine top models
-for better performance.</li>
-<li><strong>Understand training-set metrics</strong>: When CV is skipped
-(short budgets), the leaderboard uses training-set metrics which are
-optimistically biased. These are useful for ranking but not for
-reporting final performance.</li>
+<li><strong>Start at <code>time_budget = 10</code></strong> to confirm
+the call is well formed, then raise it. Nothing about a 10-second run
+tells you which model is best.</li>
+<li><strong>Lower <code>cv_folds</code> before lowering
+<code>time_budget</code>.</strong> Going from 5 folds to 2 removes 60%
+of the evaluation cost and still gives out-of-sample estimates. A
+30-second budget at <code>cv_folds = 2</code> is more informative than
+the same budget at the default 5, which will skip CV entirely.</li>
+<li><strong>Preprocess first.</strong> AutoML does not impute or
+scale.</li>
+<li><strong>Score on held-out data.</strong> The leaderboard ranks; it
+does not report final performance.</li>
+<li><strong>Read past the first row.</strong> When the top few scores
+are within noise of each other, pick on interpretability or fit time
+instead.</li>
+<li><strong>Check the <code>evaluation</code> column</strong> before
+comparing scores.</li>
 </ol>
 </div>
-<div id="when-to-use-automl" class="section level2">
-<h2>When to Use AutoML</h2>
-<p><strong>Good use cases:</strong></p>
+<div id="where-to-go-next" class="section level2">
+<h2>Where to Go Next</h2>
 <ul>
-<li>Quick prototyping and baseline establishment</li>
-<li>When you’re unsure which algorithm to use</li>
-<li>Feature engineering exploration</li>
-<li>Benchmark for manual approaches</li>
-<li>Limited ML expertise</li>
+<li><strong>Tuning and pipelines</strong>
+(<code>vignette(&quot;tuning-and-pipelines&quot;)</code>) — search within a
+method, then freeze the recipe.</li>
+<li><strong>Diagnostics</strong> (<code>vignette(&quot;diagnostics&quot;)</code>)
+— what to check about the model AutoML handed you.</li>
+<li><strong>Integration workflows</strong>
+(<code>vignette(&quot;integration-workflows&quot;)</code>) — the PCA and
+clustering steps AutoML applies, driven by hand.</li>
 </ul>
-<p><strong>Consider manual selection when:</strong></p>
-<ul>
-<li>You have domain knowledge about the best approach</li>
-<li>Interpretability is critical</li>
-<li>You need fine-grained control over hyperparameters</li>
-<li>Computational resources are very limited</li>
-</ul>
-</div>
-<div id="troubleshooting" class="section level2">
-<h2>Troubleshooting</h2>
-<div id="automl-takes-longer-than-time_budget" class="section level3">
-<h3>AutoML takes longer than <code>time_budget</code></h3>
-<p>The budget is checked <strong>between</strong> model fits. A single
-random forest or XGBoost fit can take 5–30 seconds depending on data
-size, and R cannot safely interrupt C-level code mid-execution. To stay
-closer to the budget:</p>
-<div class="sourceCode" id="cb22"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb22-1"><a href="#cb22-1" tabindex="-1"></a><span class="co"># 1. Reduce CV folds (biggest impact)</span></span>
-<span id="cb22-2"><a href="#cb22-2" tabindex="-1"></a>fast_result <span class="ot">&lt;-</span> <span class="fu">tl_auto_ml</span>(data, formula,</span>
-<span id="cb22-3"><a href="#cb22-3" tabindex="-1"></a>                          <span class="at">cv_folds =</span> <span class="dv">2</span>,</span>
-<span id="cb22-4"><a href="#cb22-4" tabindex="-1"></a>                          <span class="at">time_budget =</span> <span class="dv">30</span>)</span>
-<span id="cb22-5"><a href="#cb22-5" tabindex="-1"></a></span>
-<span id="cb22-6"><a href="#cb22-6" tabindex="-1"></a><span class="co"># 2. Disable slow phases</span></span>
-<span id="cb22-7"><a href="#cb22-7" tabindex="-1"></a>baseline_result <span class="ot">&lt;-</span> <span class="fu">tl_auto_ml</span>(data, formula,</span>
-<span id="cb22-8"><a href="#cb22-8" tabindex="-1"></a>                              <span class="at">use_reduction =</span> <span class="cn">FALSE</span>,</span>
-<span id="cb22-9"><a href="#cb22-9" tabindex="-1"></a>                              <span class="at">use_clustering =</span> <span class="cn">FALSE</span>,</span>
-<span id="cb22-10"><a href="#cb22-10" tabindex="-1"></a>                              <span class="at">time_budget =</span> <span class="dv">30</span>)</span>
-<span id="cb22-11"><a href="#cb22-11" tabindex="-1"></a></span>
-<span id="cb22-12"><a href="#cb22-12" tabindex="-1"></a><span class="co"># 3. Use a budget under 30s to skip forest/SVM/XGBoost entirely</span></span>
-<span id="cb22-13"><a href="#cb22-13" tabindex="-1"></a>quick_result <span class="ot">&lt;-</span> <span class="fu">tl_auto_ml</span>(data, formula, <span class="at">time_budget =</span> <span class="dv">10</span>)</span></code></pre></div>
-</div>
-<div id="a-model-is-missing-or-its-score-is-na" class="section level3">
-<h3>A model is missing, or its score is NA</h3>
-<p>A model that fails to fit, or that errors during evaluation, is
-dropped with a message explaining why — it never reaches the
-leaderboard. Run with messages enabled to see which ones and why.</p>
-<p>A model that evaluates successfully but produces no value for the
-chosen metric appears with an <code>NA</code> score. That usually means
-the metric name is not one <code>tl_evaluate()</code> recognises for the
-task: classification supports <code>accuracy</code>,
-<code>precision</code>, <code>recall</code>, <code>sensitivity</code>,
-<code>specificity</code>, <code>f1</code>, <code>auc</code> and
-<code>pr_auc</code>; regression supports <code>rmse</code>,
-<code>mse</code>, <code>mae</code>, <code>mape</code> and
-<code>rsq</code>. If every score is <code>NA</code>,
-<code>tl_auto_ml()</code> warns and returns the first model trained
-rather than pretending to have ranked them.</p>
-</div>
-<div id="not-enough-models-tried" class="section level3">
-<h3>Not enough models tried</h3>
-<div class="sourceCode" id="cb23"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb23-1"><a href="#cb23-1" tabindex="-1"></a><span class="co"># Increase time budget to unlock all phases</span></span>
-<span id="cb23-2"><a href="#cb23-2" tabindex="-1"></a>thorough_result <span class="ot">&lt;-</span> <span class="fu">tl_auto_ml</span>(data, formula, <span class="at">time_budget =</span> <span class="dv">300</span>)</span>
-<span id="cb23-3"><a href="#cb23-3" tabindex="-1"></a></span>
-<span id="cb23-4"><a href="#cb23-4" tabindex="-1"></a><span class="co"># Ensure feature engineering is enabled</span></span>
-<span id="cb23-5"><a href="#cb23-5" tabindex="-1"></a>full_result <span class="ot">&lt;-</span> <span class="fu">tl_auto_ml</span>(data, formula,</span>
-<span id="cb23-6"><a href="#cb23-6" tabindex="-1"></a>                          <span class="at">use_reduction =</span> <span class="cn">TRUE</span>,</span>
-<span id="cb23-7"><a href="#cb23-7" tabindex="-1"></a>                          <span class="at">use_clustering =</span> <span class="cn">TRUE</span>,</span>
-<span id="cb23-8"><a href="#cb23-8" tabindex="-1"></a>                          <span class="at">time_budget =</span> <span class="dv">300</span>)</span></code></pre></div>
-</div>
-</div>
-<div id="summary" class="section level2">
-<h2>Summary</h2>
-<p>tidylearn’s AutoML provides:</p>
-<ul>
-<li><strong>Automated model selection</strong> across multiple
-algorithms</li>
-<li><strong>Feature engineering</strong> with PCA and clustering</li>
-<li><strong>Cross-validation</strong> for robust performance
-estimates</li>
-<li><strong>Easy comparison</strong> through leaderboard</li>
-<li><strong>Flexible configuration</strong> for different scenarios</li>
-<li><strong>Integration workflows</strong> combining supervised and
-unsupervised learning</li>
-</ul>
-<div class="sourceCode" id="cb24"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb24-1"><a href="#cb24-1" tabindex="-1"></a><span class="co"># Complete AutoML workflow</span></span>
-<span id="cb24-2"><a href="#cb24-2" tabindex="-1"></a>workflow_split <span class="ot">&lt;-</span> <span class="fu">tl_split</span>(iris, <span class="at">prop =</span> <span class="fl">0.7</span>, <span class="at">stratify =</span> <span class="st">&quot;Species&quot;</span>, <span class="at">seed =</span> <span class="dv">123</span>)</span>
-<span id="cb24-3"><a href="#cb24-3" tabindex="-1"></a></span>
-<span id="cb24-4"><a href="#cb24-4" tabindex="-1"></a>automl_result <span class="ot">&lt;-</span> <span class="fu">tl_auto_ml</span>(</span>
-<span id="cb24-5"><a href="#cb24-5" tabindex="-1"></a>  <span class="at">data =</span> workflow_split<span class="sc">$</span>train,</span>
-<span id="cb24-6"><a href="#cb24-6" tabindex="-1"></a>  <span class="at">formula =</span> Species <span class="sc">~</span> .,</span>
-<span id="cb24-7"><a href="#cb24-7" tabindex="-1"></a>  <span class="at">task =</span> <span class="st">&quot;auto&quot;</span>,</span>
-<span id="cb24-8"><a href="#cb24-8" tabindex="-1"></a>  <span class="at">use_reduction =</span> <span class="cn">TRUE</span>,</span>
-<span id="cb24-9"><a href="#cb24-9" tabindex="-1"></a>  <span class="at">use_clustering =</span> <span class="cn">TRUE</span>,</span>
-<span id="cb24-10"><a href="#cb24-10" tabindex="-1"></a>  <span class="at">time_budget =</span> <span class="dv">120</span>,</span>
-<span id="cb24-11"><a href="#cb24-11" tabindex="-1"></a>  <span class="at">cv_folds =</span> <span class="dv">5</span></span>
-<span id="cb24-12"><a href="#cb24-12" tabindex="-1"></a>)</span>
-<span id="cb24-13"><a href="#cb24-13" tabindex="-1"></a></span>
-<span id="cb24-14"><a href="#cb24-14" tabindex="-1"></a><span class="co"># Evaluate best model</span></span>
-<span id="cb24-15"><a href="#cb24-15" tabindex="-1"></a>final_preds <span class="ot">&lt;-</span> <span class="fu">predict</span>(automl_result<span class="sc">$</span>best_model, <span class="at">new_data =</span> workflow_split<span class="sc">$</span>test)</span>
-<span id="cb24-16"><a href="#cb24-16" tabindex="-1"></a>final_accuracy <span class="ot">&lt;-</span> <span class="fu">mean</span>(final_preds<span class="sc">$</span>.pred <span class="sc">==</span> workflow_split<span class="sc">$</span>test<span class="sc">$</span>Species)</span>
-<span id="cb24-17"><a href="#cb24-17" tabindex="-1"></a></span>
-<span id="cb24-18"><a href="#cb24-18" tabindex="-1"></a><span class="fu">cat</span>(<span class="st">&quot;Final AutoML Accuracy:&quot;</span>, <span class="fu">round</span>(final_accuracy <span class="sc">*</span> <span class="dv">100</span>, <span class="dv">1</span>), <span class="st">&quot;%</span><span class="sc">\n</span><span class="st">&quot;</span>)</span>
-<span id="cb24-19"><a href="#cb24-19" tabindex="-1"></a><span class="fu">cat</span>(<span class="st">&quot;Best approach:&quot;</span>, automl_result<span class="sc">$</span>best_model<span class="sc">$</span>spec<span class="sc">$</span>method, <span class="st">&quot;</span><span class="sc">\n</span><span class="st">&quot;</span>)</span></code></pre></div>
-<p>AutoML makes machine learning accessible and efficient, allowing you
-to quickly find good solutions while learning which approaches work best
-for your data.</p>
 </div>
 
 

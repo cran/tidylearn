@@ -507,6 +507,84 @@ test_that("tl_read_kaggle errors when kaggle CLI not installed", {
   expect_error(tl_read_kaggle("user/dataset"), "Kaggle CLI not found")
 })
 
+# The slug is interpolated into a command line: system2() applies
+# shQuote() to the command and leaves the arguments as written. A pasted
+# dataset URL is the vector, and the URL branch is skipped entirely when
+# the caller passes a bare string, so the slug is not necessarily
+# anything Kaggle produced.
+#
+# These run without the Kaggle CLI on purpose -- validation happens
+# before the CLI is looked for, so a malformed slug is reported as the
+# caller's mistake rather than as a missing dependency.
+
+test_that("tl_read_kaggle refuses a slug carrying shell metacharacters", {
+  injections <- c(
+    "owner/data;whoami",
+    "owner/data|whoami",
+    "owner/data`whoami`",
+    "owner/data$(whoami)",
+    "owner/data && rm -rf .",
+    "owner/data
+whoami"
+  )
+  for (slug in injections) {
+    expect_error(
+      tl_read_kaggle(slug), "not a valid Kaggle dataset slug", info = slug
+    )
+  }
+
+  # Same check after URL parsing, which is where a pasted link lands
+  expect_error(
+    tl_read_kaggle("https://www.kaggle.com/datasets/owner/data;whoami"),
+    "not a valid Kaggle dataset slug"
+  )
+
+  # Structurally wrong, if harmless
+  expect_error(tl_read_kaggle("nosuchslug"), "not a valid Kaggle dataset slug")
+  expect_error(tl_read_kaggle("a/b/c"), "not a valid Kaggle dataset slug")
+  expect_error(
+    tl_read_kaggle("titanic/x", type = "competition"),
+    "not a valid Kaggle competition name"
+  )
+})
+
+test_that("tl_read_kaggle refuses a file name that escapes the download", {
+  expect_error(
+    tl_read_kaggle("owner/data", file = "../../etc/passwd"),
+    "must be a relative path"
+  )
+  expect_error(
+    tl_read_kaggle("owner/data", file = "/etc/passwd"),
+    "must be a relative path"
+  )
+  expect_error(
+    tl_read_kaggle("owner/data", file = paste0("C:", "\\", "windows")),
+    "must be a relative path"
+  )
+  expect_error(
+    tl_read_kaggle("owner/data", file = "train;whoami.csv"),
+    "may contain only"
+  )
+})
+
+test_that("a well-formed Kaggle request gets past validation", {
+  skip_on_cran()
+  skip_if(nzchar(Sys.which("kaggle")), "kaggle CLI is installed")
+
+  # Reaching the CLI check is how we know validation accepted the input;
+  # going further would need the CLI and the network.
+  for (slug in c("zillow/zecon", "owner/data-set_1.0", "a/b")) {
+    expect_error(tl_read_kaggle(slug), "Kaggle CLI not found", info = slug)
+  }
+  expect_error(
+    tl_read_kaggle("titanic", type = "competition"), "Kaggle CLI not found"
+  )
+  expect_error(
+    tl_read_kaggle("owner/data", file = "data/train.csv"),
+    "Kaggle CLI not found"
+  )
+})
+
 # ---- tl_read_s3 (error path only) ----
 
 test_that("tl_read_s3 errors on invalid URI", {
@@ -665,10 +743,7 @@ test_that("tl_read_zip reads single file from archive", {
   write.csv(iris, csv_path, row.names = FALSE)
 
   # Create zip - use full path for the file inside
-  old_wd <- getwd()
-  setwd(dir)
-  utils::zip(zip_path, "data.csv")
-  setwd(old_wd)
+  withr::with_dir(dir, utils::zip(zip_path, "data.csv"))
 
   result <- tl_read_zip(zip_path, .quiet = TRUE)
   expect_s3_class(result, "tidylearn_data")
@@ -685,10 +760,7 @@ test_that("tl_read_zip reads specific file from archive", {
   write.csv(iris, file.path(dir, "iris.csv"), row.names = FALSE)
   write.csv(mtcars, file.path(dir, "mtcars.csv"), row.names = FALSE)
 
-  old_wd <- getwd()
-  setwd(dir)
-  utils::zip(zip_path, c("iris.csv", "mtcars.csv"))
-  setwd(old_wd)
+  withr::with_dir(dir, utils::zip(zip_path, c("iris.csv", "mtcars.csv")))
 
   result <- tl_read_zip(zip_path, file = "mtcars.csv", .quiet = TRUE)
   expect_s3_class(result, "tidylearn_data")
@@ -704,10 +776,7 @@ test_that("tl_read_zip row-binds multiple files", {
   write.csv(iris[1:50, ], file.path(dir, "part1.csv"), row.names = FALSE)
   write.csv(iris[51:100, ], file.path(dir, "part2.csv"), row.names = FALSE)
 
-  old_wd <- getwd()
-  setwd(dir)
-  utils::zip(zip_path, c("part1.csv", "part2.csv"))
-  setwd(old_wd)
+  withr::with_dir(dir, utils::zip(zip_path, c("part1.csv", "part2.csv")))
 
   result <- tl_read_zip(zip_path, .quiet = TRUE)
   expect_s3_class(result, "tidylearn_data")
@@ -723,10 +792,7 @@ test_that("tl_read_zip errors on missing file in archive", {
 
   write.csv(iris, file.path(dir, "data.csv"), row.names = FALSE)
 
-  old_wd <- getwd()
-  setwd(dir)
-  utils::zip(zip_path, "data.csv")
-  setwd(old_wd)
+  withr::with_dir(dir, utils::zip(zip_path, "data.csv"))
 
   expect_error(
     tl_read_zip(zip_path, file = "nonexistent.csv", .quiet = TRUE),
@@ -742,12 +808,43 @@ test_that("tl_read dispatches to tl_read_zip for .zip files", {
 
   write.csv(iris, file.path(dir, "data.csv"), row.names = FALSE)
 
-  old_wd <- getwd()
-  setwd(dir)
-  utils::zip(zip_path, "data.csv")
-  setwd(old_wd)
+  withr::with_dir(dir, utils::zip(zip_path, "data.csv"))
 
   result <- tl_read(zip_path, .quiet = TRUE)
   expect_s3_class(result, "tidylearn_data")
   expect_equal(nrow(result), 150)
+})
+
+# ---- tl_read_zip format selection ----
+
+test_that("tl_read_zip(format=) selects members rather than forcing them", {
+  d <- file.path(tempdir(), "tl_mixed_zip")
+  unlink(d, recursive = TRUE)
+  dir.create(d, recursive = TRUE)
+  on.exit(unlink(d, recursive = TRUE), add = TRUE)
+
+  write.csv(data.frame(a = 1:2), file.path(d, "a.csv"), row.names = FALSE)
+  write.csv(data.frame(a = 3:4), file.path(d, "b.csv"), row.names = FALSE)
+  writeLines('[{"a":1}]', file.path(d, "c.json"))
+
+  archive <- file.path(d, "mixed.zip")
+  old <- setwd(d)
+  on.exit(setwd(old), add = TRUE)
+  utils::zip(archive, c("a.csv", "b.csv", "c.json"), flags = "-q")
+  setwd(old)
+
+  # Forcing csv onto the json read its first line as a header, so the
+  # result carried a column literally named [{"a":1}] and the row-bind
+  # succeeded without complaint.
+  result <- suppressMessages(tl_read_zip(archive, format = "csv"))
+  expect_equal(nrow(result), 4L)
+  expect_setequal(names(result), c("a", "source_file"))
+  expect_false(any(grepl("[{]", names(result))))
+  expect_setequal(result$a, 1:4)
+
+  # A format nothing matches is an error naming what is there
+  expect_error(
+    tl_read_zip(archive, format = "parquet"),
+    "No parquet files in archive"
+  )
 })

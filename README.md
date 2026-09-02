@@ -5,6 +5,10 @@ Machine Learning for Tidynauts
 [![CRAN status](https://www.r-pkg.org/badges/version/tidylearn)](https://cran.r-project.org/package=tidylearn)
 [![R-CMD-check](https://github.com/ces0491/tidylearn/actions/workflows/R-CMD-check.yaml/badge.svg)](https://github.com/ces0491/tidylearn/actions/workflows/R-CMD-check.yaml)
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](https://opensource.org/licenses/MIT)
+[![pkgdown](https://github.com/ces0491/tidylearn/actions/workflows/pkgdown.yaml/badge.svg)](https://tidylearn.sheetsolved.com)
+
+Full documentation, including every function reference page and all eleven
+articles: **<https://tidylearn.sheetsolved.com>**
 
 ## Overview
 
@@ -18,6 +22,7 @@ implementations with the convenience of a consistent, tidy API.
 - Reads data from diverse sources (`tl_read()`) — CSV, Excel, Parquet,
   JSON, databases, S3, Kaggle, and more
 - Provides one consistent interface (`tl_model()`) to 20 ML algorithms
+  (13 supervised, 7 unsupervised)
 - Returns tidy tibbles instead of varied output formats
 - Offers unified ggplot2-based visualization and formatted `gt` tables
 - Enables pipe-friendly workflows with `%>%`
@@ -27,7 +32,7 @@ implementations with the convenience of a consistent, tidy API.
 
 - A reimplementation of ML algorithms (uses established packages under the hood)
 - A replacement for the underlying packages (you can access the raw model via
-  `model$fit`)
+  `model$fit`, or `model$fit$model` for an unsupervised method)
 
 ## Why tidylearn?
 
@@ -166,6 +171,9 @@ tidylearn provides a unified interface to these established R packages:
 | `"nn"` | nnet | `nnet()` |
 | `"deep"` | keras | `keras_model_sequential()` |
 
+`"logistic"` requires a two-level response and errors on anything else.
+Every other classification method here handles more than two classes.
+
 ### Unsupervised Learning
 
 | Method | Underlying Package | Function Called |
@@ -244,8 +252,72 @@ local CPU, local GPU and cloud tiers before you commit to a long fit:
 tl_compute_advisor("xgboost", data, y ~ ., hyperparams = list(nrounds = 5000))
 ```
 
-Estimates are order-of-magnitude, not quotes. The cloud tier is reported
-for planning only - it is not yet executable.
+Estimates are order-of-magnitude. The advisor covers all 13 supervised
+methods, and it treats cloud as a "does not fit on my machine" tier, so it
+will recommend cloud for a CPU-only method like random forest if the job is
+RAM-infeasible locally.
+
+### Cloud compute
+
+**`compute = "cloud"` is not executable yet** and errors if you ask for
+it. The cloud tier is reported by the advisor for planning only.
+
+What is in place is the safety model, which lands before any code that
+could transmit data. Cloud fits will upload your training data to your
+own Modal account - a third party - so tidylearn will not do it without
+explicit consent, and will not send it anywhere except a host you have
+allowed:
+
+```r
+# Consent, per call or for the session. Never persisted, never prompted
+# for interactively, so scripts and CI behave like an interactive session
+tl_cloud_consent()
+tl_cloud_consent(FALSE)   # revoke
+
+# The endpoint comes from an environment variable, and must be https on
+# a Modal host. A typo or a wrong host errors
+Sys.setenv(TIDYLEARN_MODAL_ENDPOINT = "https://you--tidylearn-fit.modal.run")
+
+# Modal customers on a custom domain can add it, per session
+tl_cloud_allow_host("fits.example.com")
+tl_cloud_allowed_hosts()
+```
+
+### Cost controls
+
+A job submitted to Modal runs to completion there whatever your R session
+does afterwards. Ctrl-C, a closed IDE, a crashed session and a closed
+laptop all leave it running and billing, because the session was only
+polling for a result.
+
+The bound on spend therefore cannot live in R. Every submission carries an
+explicit timeout, derived from the estimate with headroom and capped well
+below Modal's 24-hour maximum, and the worker runs with retries off so a
+hung job cannot bill several timeouts over.
+
+What you are asked to accept before a fit is the **worst case** - the
+timeout at the tier's rate. The estimate is order-of-magnitude, and the
+timeout is what actually binds:
+
+```r
+# Refused before anything is uploaded if the worst case exceeds max_cost,
+# or if the estimate is so large the job would be killed before finishing
+model <- tl_model(data, y ~ ., method = "xgboost", compute = "cloud",
+                  confirm_upload = TRUE, max_cost = 5)
+
+# Anything currently running, so no job is invisible
+tl_cloud_jobs()
+```
+
+Set a spend budget on your Modal workspace as well. That is the only true
+hard cap, and it is not tidylearn's to set.
+
+The full contract - what cloud compute will and will not do, with an
+audit checklist - ships with the package:
+
+```r
+file.show(system.file("security/threat-model.md", package = "tidylearn"))
+```
 
 ## Unified Visualization
 
@@ -269,7 +341,7 @@ tl_dashboard(model, test_data)
 
 ## Formatted Tables
 
-The `tl_table()` family produces polished `gt` tables for reporting:
+The `tl_table()` family produces formatted `gt` tables for reporting:
 
 ```r
 # Auto-selects the best table type
@@ -289,43 +361,51 @@ tl_table_comparison(model1, model2, model3,
 
 ## Philosophy
 
-tidylearn is built on these principles:
-
-1. **Transparency**: The underlying packages do the real work. tidylearn makes
-   them easier to use together without hiding what's happening.
-
-2. **Consistency**: One interface, tidy output, unified visualization - across
-   all methods.
-
-3. **Accessibility**: Focus on your analysis, not on learning different package
-   APIs.
-
-4. **Interoperability**: Results work seamlessly with dplyr, ggplot2, and the
-   broader tidyverse.
+The underlying packages do the real work, and tidylearn does not hide what
+they are doing — every method documents the function it calls, and a
+supervised model's `$fit` is the object that function returned (an
+unsupervised one keeps it at `$fit$model`, next to the tidied components).
+What tidylearn adds is one signature across all 20 methods, and output that
+is already a tibble or a ggplot2 object, so results move into dplyr and the
+rest of the tidyverse without conversion.
 
 ## Documentation
 
+The full site is at **<https://tidylearn.sheetsolved.com>** — every function
+reference page and every article, browsable without installing anything.
+
+From an R session:
+
 ```r
-# View package help
+# Package overview
 ?tidylearn
 
-# Explore main functions
+# Main entry points
 ?tl_read
 ?tl_model
 ?tl_evaluate
 ?tl_table
 ?tl_auto_ml
+
+# List the articles
+browseVignettes("tidylearn")
 ```
 
-### Vignettes
+### Articles
 
-- **Getting Started** — Overview of the tidylearn workflow
-- **Data Ingestion** — Reading from files, databases, and cloud sources
-- **Supervised Learning** — Classification and regression
-- **Unsupervised Learning** — PCA, clustering, and MDS
-- **Reporting** — Plots and formatted tables
-- **Integration Workflows** — Combining multiple techniques
-- **AutoML** — Automated machine learning
+| Article | Covers |
+| --- | --- |
+| [Getting Started](https://tidylearn.sheetsolved.com/articles/getting-started.html) | The shape of a tidylearn workflow |
+| [Data Ingestion](https://tidylearn.sheetsolved.com/articles/data-ingestion.html) | `tl_read()` over files, databases and cloud sources |
+| [Supervised Learning](https://tidylearn.sheetsolved.com/articles/supervised-learning.html) | Classification and regression, and replaying preprocessing |
+| [Unsupervised Learning](https://tidylearn.sheetsolved.com/articles/unsupervised-learning.html) | PCA, MDS, clustering, and choosing *k* |
+| [Market Basket Analysis](https://tidylearn.sheetsolved.com/articles/market-basket.html) | Association rules with `tidy_apriori()` |
+| [Tuning and Pipelines](https://tidylearn.sheetsolved.com/articles/tuning-and-pipelines.html) | Hyperparameter search, then freezing the recipe |
+| [AutoML](https://tidylearn.sheetsolved.com/articles/automl.html) | Searching across methods under a time budget |
+| [Diagnostics](https://tidylearn.sheetsolved.com/articles/diagnostics.html) | Assumptions, influence, and comparing models |
+| [Reporting](https://tidylearn.sheetsolved.com/articles/reporting.html) | Plots and formatted `gt` tables |
+| [Integration Workflows](https://tidylearn.sheetsolved.com/articles/integration-workflows.html) | Combining supervised and unsupervised steps |
+| [Compute Backends](https://tidylearn.sheetsolved.com/articles/compute-backends.html) | CPU and GPU routing, cost estimates, and the cloud safety model |
 
 ## Contributing
 
@@ -342,8 +422,7 @@ Cesaire Tobias (<cesaire@sheetsolved.com>)
 
 ## Acknowledgments
 
-tidylearn is a wrapper that builds upon the excellent work of many R package
-authors. The actual algorithms are implemented in:
+tidylearn is a wrapper. The algorithms are implemented in:
 
 - **stats** (base R): lm, glm, prcomp, kmeans, hclust, cmdscale
 - **glmnet**: Ridge, LASSO, and elastic net regularization
@@ -359,6 +438,6 @@ authors. The actual algorithms are implemented in:
 - **smacof**: SMACOF MDS algorithm
 - **keras/tensorflow**: Deep learning (optional)
 
-Thank you to all the package maintainers whose work makes tidylearn possible.
+Thanks to their maintainers.
 
 ---

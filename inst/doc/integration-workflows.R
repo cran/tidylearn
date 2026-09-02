@@ -60,9 +60,12 @@ eval_pca <- tl_evaluate(model_pca, new_data = test_transformed)
 
 # Compare results
 acc <- function(x) round(x$value[x$metric == "accuracy"] * 100, 1)
-cat("Original features (4):", acc(eval_original), "%\n")
-cat("PCA features (3):", acc(eval_pca), "%\n")
-cat("Feature reduction:", round((1 - 3 / 4) * 100, 1), "%\n")
+n_original <- ncol(split$train) - 1
+n_reduced <- sum(grepl("^PC", names(reduced_train$data)))
+cat("Original features:", n_original, "->", acc(eval_original), "%\n")
+cat("PCA features:", n_reduced, "->", acc(eval_pca), "%\n")
+cat("Feature reduction:",
+    round((1 - n_reduced / n_original) * 100, 1), "%\n")
 
 ## -----------------------------------------------------------------------------
 # Add cluster features
@@ -110,11 +113,11 @@ cat("With cluster features:", round(acc_with_cluster * 100, 1), "%\n")
 ## -----------------------------------------------------------------------------
 # Use only 10% of labels
 set.seed(123)
-labeled_indices <- sample(nrow(iris), size = 15)  # Only 15 out of 150 labeled!
+labeled_indices <- sample(nrow(iris), size = 15)  # 15 of 150 labelled
 
-# Train semi-supervised model. supervised_method defaults to "logistic",
-# which is binary only -- iris has three species, so name a multiclass
-# method explicitly.
+# supervised_method defaults to "tree". Named here because a forest is
+# the better fit for propagated labels: the propagation step introduces
+# noise, and averaging over trees absorbs more of it than one tree does.
 model_semi <- tl_semisupervised(iris, Species ~ .,
                                 labeled_indices = labeled_indices,
                                 cluster_method = "kmeans",
@@ -226,10 +229,11 @@ test_pca <- predict(workflow_reduced$reduction_model,
                     new_data = workflow_split$test[, -5])
 test_pca$Species <- workflow_split$test$Species
 
-# 2. Get cluster assignments
+# 2. Get cluster assignments. The cluster model was fitted on the PC
+# columns; predict() matches new_data to those columns by name and
+# errors on a mismatch rather than assigning against the wrong ones.
 cluster_model_wf <- attr(workflow_clustered, "cluster_model")
-test_clusters_wf <- predict(cluster_model_wf,
-                            new_data = test_pca[, grep("PC", names(test_pca))])
+test_clusters_wf <- predict(cluster_model_wf, new_data = test_pca)
 test_pca$cluster_kmeans <- as.factor(test_clusters_wf$cluster)
 
 # 3. Predict
@@ -283,25 +287,4 @@ preds_credit <- predict(model_credit, new_data = test_credit)
 accuracy_credit <- mean(preds_credit$.pred == credit_split$test$default)
 
 cat("Credit Risk Model Accuracy:", round(accuracy_credit * 100, 1), "%\n")
-
-## -----------------------------------------------------------------------------
-# Final integrated example
-final_data <- iris
-final_split <- tl_split(
-  final_data, prop = 0.7, stratify = "Species", seed = 999
-)
-
-# Combine PCA + clustering
-final_reduced <- tl_reduce_dimensions(final_split$train,
-                                      response = "Species",
-                                      method = "pca",
-                                      n_components = 3)
-final_clustered <- tl_add_cluster_features(final_reduced$data,
-                                           response = "Species",
-                                           method = "kmeans",
-                                           k = 3)
-final_model <- tl_model(final_clustered, Species ~ ., method = "forest")
-
-cat("Final integrated model created successfully!\n")
-print(final_model)
 

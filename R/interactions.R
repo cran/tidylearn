@@ -126,6 +126,17 @@ tl_test_interactions <- function(data, formula, var1 = NULL, var2 = NULL,
 #' @param ... Additional arguments to pass to predict()
 #' @return A \code{\link[ggplot2]{ggplot}} object.
 #' @export
+#' @examples
+#' \donttest{
+#' model <- tl_model(mtcars, mpg ~ wt * hp, method = "linear")
+#'
+#' # var2 is drawn as a set of lines across the range of var1
+#' tl_plot_interaction(model, var1 = "wt", var2 = "hp")
+#'
+#' # Coarser grid, no ribbon
+#' tl_plot_interaction(model, var1 = "wt", var2 = "hp",
+#'   n_points = 20, confidence = FALSE)
+#' }
 tl_plot_interaction <- function(model, var1, var2,
                                 n_points = 100,
                                 fixed_values = NULL,
@@ -398,10 +409,31 @@ tl_auto_interactions <- function(data, formula, top_n = 3, min_r2_change = 0.01,
 #' @param intervals Logical; whether to include confidence intervals
 #' @return For numeric \code{var}: a list with \code{effects} (data frame of
 #'   predicted values across the variable range for each level of
-#'   \code{by_var}) and \code{slopes} (data frame with estimated slopes and
-#'   standard errors per level). For categorical \code{var}: a data frame of
-#'   predicted values at each factor level for each level of \code{by_var}.
+#'   \code{by_var}) and \code{slopes} (data frame with the slope of
+#'   \code{var} at each level of \code{by_var}). For categorical
+#'   \code{var}: a data frame of predicted values at each factor level for
+#'   each level of \code{by_var}.
+#'
+#'   \code{slopes$slope_se} is the standard error of a straight line fitted
+#'   to the prediction grid, not the sampling uncertainty of the marginal
+#'   effect. For a linear model the grid is exactly linear in \code{var},
+#'   so this is near zero by construction and should not be read as a
+#'   precise estimate. Use \code{summary(model$fit)} for inference on the
+#'   interaction coefficient itself.
 #' @export
+#' @examples
+#' \donttest{
+#' model <- tl_model(mtcars, mpg ~ wt * hp, method = "linear")
+#'
+#' # How the effect of weight changes across horsepower
+#' effects <- tl_interaction_effects(model, var = "wt", by_var = "hp")
+#' head(effects$effects)
+#' effects$slopes
+#'
+#' # slopes$slope_se describes the fitted grid, not the sampling
+#' # uncertainty of the marginal effect -- for that, read the coefficient
+#' summary(model$fit)$coefficients["wt:hp", ]
+#' }
 tl_interaction_effects <- function(model, var, by_var,
                                    at_values = NULL,
                                    intervals = TRUE) {
@@ -532,10 +564,25 @@ tl_interaction_effects <- function(model, var, by_var,
         )
       }
 
-      # Fit linear model to get slope
+      # Fit linear model to get slope. The response here is the model's
+      # own fitted values on a regular grid, so for a linear model the
+      # points lie exactly on a line and summary.lm() warns about an
+      # "essentially perfect fit". That is expected by construction, not a
+      # problem with the data, so the warning is not passed on.
+      #
+      # Note this makes slope_se the standard error of the fit to the
+      # prediction grid, not the uncertainty in the marginal effect
+      # itself -- for a linear model it is near zero by construction.
       slope_formula <- stats::as.formula(paste("fit ~", var))
       slope_model <- lm(slope_formula, data = sub_grid)
-      slope_coef <- coef(summary(slope_model))
+      slope_coef <- withCallingHandlers(
+        coef(summary(slope_model)),
+        warning = function(w) {
+          if (grepl("perfect fit", conditionMessage(w), fixed = TRUE)) {
+            invokeRestart("muffleWarning")
+          }
+        }
+      )
 
       data.frame(
         by_value = bv,

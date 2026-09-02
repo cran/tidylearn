@@ -42,6 +42,10 @@ tl_prepare_data <- function(data, formula = NULL,
                             remove_correlated = FALSE,
                             correlation_cutoff = 0.95) {
 
+  if (!is.null(formula)) {
+    formula <- tl_as_formula(formula)
+  }
+
   processed_data <- data
   preprocessing_steps <- list()
 
@@ -327,9 +331,8 @@ scale_features <- function(data, numeric_cols, method = "standardize") {
 #' test <- split_data$test
 #' }
 tl_split <- function(data, prop = 0.8, stratify = NULL, seed = NULL) {
-  if (!is.null(seed)) {
-    set.seed(seed)
-  }
+  # Seed this call without rewriting the caller's random stream
+  tl_local_seed(seed)
 
   n <- nrow(data)
 
@@ -338,19 +341,55 @@ tl_split <- function(data, prop = 0.8, stratify = NULL, seed = NULL) {
       stop("Stratify variable not found in data", call. = FALSE)
     }
 
-    # Stratified sampling
+    # Stratified sampling. Each stratum keeps at least one training row
+    # and one test row where it has the rows to spare, so a small group
+    # cannot vanish from the training set entirely.
     groups <- split(seq_len(n), data[[stratify]])
     train_indices <- unlist(lapply(groups, function(idx) {
-      sample(idx, size = floor(length(idx) * prop))
+      sample(idx, size = tl_train_size(length(idx), prop))
     }))
 
   } else {
     # Simple random sampling
-    train_indices <- sample(seq_len(n), size = floor(n * prop))
+    train_indices <- sample(seq_len(n), size = tl_train_size(n, prop))
+  }
+
+  # data[-integer(0), ] selects NO rows, so an empty training set would
+  # hand back an empty test set too and silently lose every observation
+  if (length(train_indices) == 0) {
+    stop(
+      "Splitting ", n, " row(s) at prop = ", prop,
+      " leaves no training data. Use a larger sample or a higher prop.",
+      call. = FALSE
+    )
   }
 
   list(
     train = data[train_indices, ],
     test = data[-train_indices, ]
   )
+}
+
+#' Number of training rows to draw from a group
+#'
+#' \code{floor()} alone returns 0 for small groups, which empties the
+#' training set -- and \code{data[-integer(0), ]} then empties the test
+#' set as well.
+#'
+#' @param n_group Rows available in this group
+#' @param prop Target training proportion
+#' @return An integer count, at least 1 and at most \code{n_group - 1}
+#'   whenever the group has two or more rows
+#' @keywords internal
+#' @noRd
+tl_train_size <- function(n_group, prop) {
+  if (n_group == 0) {
+    return(0L)
+  }
+  if (n_group == 1L) {
+    return(1L)
+  }
+
+  size <- floor(n_group * prop)
+  min(max(size, 1L), n_group - 1L)
 }

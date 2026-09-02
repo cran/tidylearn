@@ -99,7 +99,11 @@ tl_predict_tree <- function(model, new_data, type = "response", ...) {
 #' @param is_classification Logical indicating if this is a
 #'   classification problem
 #' @param ntree Number of trees to grow (default: 500)
-#' @param mtry Number of variables randomly sampled at each split
+#' @param mtry Number of variables randomly sampled at each split. Left
+#'   to \code{randomForest::randomForest()} when \code{NULL}, which uses
+#'   \code{floor(sqrt(p))} for classification and
+#'   \code{max(floor(p / 3), 1)} for regression over the \code{p}
+#'   columns of the design matrix.
 #' @param importance Whether to compute variable importance (default: TRUE)
 #' @param ... Additional arguments to pass to randomForest()
 #' @return A fitted random forest model
@@ -109,28 +113,33 @@ tl_fit_forest <- function(data, formula, is_classification = FALSE,
   # Check if randomForest is installed
   tl_check_packages("randomForest")
 
-  # Set default mtry if not provided
-  if (is.null(mtry)) {
-    if (is_classification) {
-      # For classification, default is sqrt(p)
-      mtry <- floor(sqrt(ncol(data) - 1))
-    } else {
-      # For regression, default is p/3
-      mtry <- max(floor((ncol(data) - 1) / 3), 1)
-    }
+  # randomForest's classification path hangs rather than erroring when no
+  # predictor can produce a split, and the loop is uninterruptible
+  if (is_classification) {
+    tl_check_predictor_variance(data, formula, "forest")
   }
 
-  # Fit the random forest model
-  forest_model <- randomForest::randomForest(
+  # No default mtry. randomForest's own is floor(sqrt(p)) for
+  # classification and max(floor(p / 3), 1) for regression, over the p
+  # columns of the design matrix. Recomputing those here from
+  # ncol(data) - 1 counted every column in the frame rather than the
+  # formula's predictors, so `mpg ~ wt + hp` on mtcars asked for 3 of 2
+  # and randomForest warned that it had reset the value -- and
+  # `Species ~ Sepal.Length + Sepal.Width` on iris asked for 2 of 2,
+  # which it accepted in silence, sampling every predictor at every
+  # split. That is bagging, not a random forest.
+  args <- list(
     formula = formula,
     data = data,
     ntree = ntree,
-    mtry = mtry,
     importance = importance,
     ...
   )
+  if (!is.null(mtry)) {
+    args$mtry <- mtry
+  }
 
-  forest_model
+  tl_restore_call_data(do.call(randomForest::randomForest, args))
 }
 
 #' Predict using a random forest model
@@ -174,6 +183,49 @@ tl_predict_forest <- function(model, new_data, type = "response", ...) {
     preds <- predict(fit, newdata = new_data)
     preds
   }
+}
+
+#' Normalise multinomial gbm probabilities to an n x k matrix
+#'
+#' \code{predict.gbm} returns a 3-D array \code{[n, nclass, 1]} for the
+#' multinomial distribution, so \code{is.matrix()} is FALSE and naive
+#' handling collapses every row into one prediction. Drop the trailing
+#' dimension and restore the class names.
+#'
+#' @param probs The raw return value of \code{gbm::predict.gbm}
+#' @param model The tidylearn model, used for the class levels
+#' @return A numeric matrix with one row per observation and one named
+#'   column per class
+#' @keywords internal
+#' @noRd
+tl_gbm_multinomial_matrix <- function(probs, model) {
+  class_levels <- model$spec$response_levels
+  if (is.null(class_levels)) {
+    response_var <- all.vars(model$spec$formula)[1]
+    class_levels <- levels(factor(model$data[[response_var]]))
+  }
+
+  dims <- dim(probs)
+
+  out <- if (length(dims) == 3L) {
+    matrix(probs, nrow = dims[1], ncol = dims[2])
+  } else if (length(dims) == 2L) {
+    probs
+  } else {
+    # A bare vector is one observation's class probabilities
+    matrix(probs, nrow = 1)
+  }
+
+  if (ncol(out) != length(class_levels)) {
+    stop(
+      "gbm returned ", ncol(out), " probability columns for ",
+      length(class_levels), " classes.",
+      call. = FALSE
+    )
+  }
+
+  colnames(out) <- class_levels
+  out
 }
 
 #' Fit a gradient boosting model
@@ -339,7 +391,7 @@ tl_predict_boost <- function(
       }
     } else if (fit$distribution$name == "multinomial") {
       # Multiclass classification
-      if (type == "prob") {
+      if (type == "prob" || type == "class" || type == "response") {
         # Get class probabilities
         probs <- gbm::predict.gbm(
           fit, newdata = new_data,
@@ -347,60 +399,18 @@ tl_predict_boost <- function(
           type = "response", ...
         )
 
-        # Reshape to data frame
-        if (is.matrix(probs)) {
-          # Get class levels from column names
-          class_levels <- colnames(probs)
+        probs <- tl_gbm_multinomial_matrix(probs, model)
+
+        if (type == "prob") {
           prob_df <- as.data.frame(probs)
-          names(prob_df) <- class_levels
+          names(prob_df) <- colnames(probs)
+          tibble::as_tibble(prob_df)
         } else {
-          # For single prediction
-          response_var <- all.vars(
-            model$spec$formula
-          )[1]
-          class_levels <- levels(
-            factor(model$data[[response_var]])
-          )
-          prob_df <- as.data.frame(
-            matrix(probs, nrow = 1)
-          )
-          names(prob_df) <- class_levels
-        }
-
-        tibble::as_tibble(prob_df)
-      } else if (type == "class" || type == "response") {
-        # Get class probabilities
-        probs <- gbm::predict.gbm(
-          fit, newdata = new_data,
-          n.trees = n.trees,
-          type = "response", ...
-        )
-
-        # Convert to classes
-        if (is.matrix(probs)) {
-          # Find class with highest probability
-          class_idx <- apply(probs, 1, which.max)
+          # Find class with highest probability, one row at a time
           class_levels <- colnames(probs)
-          pred_classes <- factor(
-            class_levels[class_idx],
-            levels = class_levels
-          )
-        } else {
-          # For single prediction
-          response_var <- all.vars(
-            model$spec$formula
-          )[1]
-          class_levels <- levels(
-            factor(model$data[[response_var]])
-          )
-          class_idx <- which.max(probs)
-          pred_classes <- factor(
-            class_levels[class_idx],
-            levels = class_levels
-          )
+          class_idx <- max.col(probs, ties.method = "first")
+          factor(class_levels[class_idx], levels = class_levels)
         }
-
-        pred_classes
       } else {
         stop(
           "Invalid prediction type for boosting. ",

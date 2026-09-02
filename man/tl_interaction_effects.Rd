@@ -20,10 +20,32 @@ tl_interaction_effects(model, var, by_var, at_values = NULL, intervals = TRUE)
 \value{
 For numeric \code{var}: a list with \code{effects} (data frame of
 predicted values across the variable range for each level of
-\code{by_var}) and \code{slopes} (data frame with estimated slopes and
-standard errors per level). For categorical \code{var}: a data frame of
-predicted values at each factor level for each level of \code{by_var}.
+\code{by_var}) and \code{slopes} (data frame with the slope of
+\code{var} at each level of \code{by_var}). For categorical
+\code{var}: a data frame of predicted values at each factor level for
+each level of \code{by_var}.
+
+\code{slopes$slope_se} is the standard error of a straight line fitted
+to the prediction grid, not the sampling uncertainty of the marginal
+effect. For a linear model the grid is exactly linear in \code{var},
+so this is near zero by construction and should not be read as a
+precise estimate. Use \code{summary(model$fit)} for inference on the
+interaction coefficient itself.
 }
 \description{
 Calculate partial effects based on a model with interactions
+}
+\examples{
+\donttest{
+model <- tl_model(mtcars, mpg ~ wt * hp, method = "linear")
+
+# How the effect of weight changes across horsepower
+effects <- tl_interaction_effects(model, var = "wt", by_var = "hp")
+head(effects$effects)
+effects$slopes
+
+# slopes$slope_se describes the fitted grid, not the sampling
+# uncertainty of the marginal effect -- for that, read the coefficient
+summary(model$fit)$coefficients["wt:hp", ]
+}
 }

@@ -7,7 +7,9 @@
 #'   and dbscan. The underlying algorithms are unchanged -
 #'   tidylearn wraps them with consistent function signatures,
 #'   tidy tibble output, and unified ggplot2-based
-#'   visualization. Access raw model objects via model$fit.
+#'   visualization. Supervised models keep the wrapped object at
+#'   model$fit; unsupervised ones put it at model$fit$model,
+#'   alongside the tidied components.
 #' @importFrom magrittr %>%
 #' @importFrom rlang .data .env
 #' @importFrom dplyr filter select mutate group_by summarize arrange
@@ -47,7 +49,16 @@ NULL
 #' algorithms are unchanged - this function provides a
 #' consistent interface and returns tidy output.
 #'
-#' Access the raw model object from the underlying package via \code{model$fit}.
+#' For a supervised method, \code{model$fit} is the object the wrapped
+#' function returned. An unsupervised method returns tidied components as
+#' well, so the wrapped object sits at \code{model$fit$model} and
+#' \code{model$fit} is the list holding both.
+#'
+#' For classification, the response is reduced to the classes it
+#' actually contains: subsetting a data frame keeps every factor level,
+#' and a level no row uses would otherwise be reported as a class, given
+#' its own (zero) probability column, and counted when deciding whether
+#' the problem is binary. The fit is unaffected.
 #'
 #' @param data A data frame containing the training data
 #' @param formula A formula specifying the model. For
@@ -57,6 +68,11 @@ NULL
 #'   "forest" (randomForest), "boost" (gbm),
 #'   "ridge"/"lasso"/"elastic_net" (glmnet), "svm" (e1071),
 #'   "nn" (nnet), "deep" (keras), "xgboost" (xgboost).
+#'   The method and the response have to agree, and a mismatch is an
+#'   error rather than a meaningless fit: \code{"linear"} and
+#'   \code{"polynomial"} need a numeric response, \code{"logistic"}
+#'   needs exactly two classes, and every other supervised method takes
+#'   either.
 #'   Unsupervised: "pca" (stats::prcomp),
 #'   "mds" (stats/MASS/smacof), "kmeans" (stats::kmeans),
 #'   "pam"/"clara" (cluster), "hclust" (stats::hclust),
@@ -71,7 +87,8 @@ NULL
 #'   with a warning.
 #' @param ... Additional arguments passed to the underlying model function
 #' @return A \code{tidylearn_model} object (S3) containing the fitted model
-#'   (\code{$fit}), model specification (\code{$spec}), and training data
+#'   (\code{$fit}, or \code{$fit$model} for an unsupervised method),
+#'   model specification (\code{$spec}), and training data
 #'   (\code{$data}). The object also inherits from a method-specific class
 #'   (e.g., \code{tidylearn_linear}) and a paradigm class
 #'   (\code{tidylearn_supervised} or \code{tidylearn_unsupervised}).
@@ -88,11 +105,11 @@ NULL
 #'
 #' # PCA -> wraps stats::prcomp()
 #' model <- tl_model(iris, ~ ., method = "pca")
-#' model$fit  # Access the raw prcomp object
+#' model$fit$model  # The raw prcomp object, alongside tidied components
 #'
 #' # Clustering -> wraps stats::kmeans()
 #' model <- tl_model(iris, method = "kmeans", k = 3)
-#' model$fit  # Access the raw kmeans object
+#' model$fit$model  # The raw kmeans object
 #' }
 tl_model <- function(data, formula = NULL, method = "linear", ...,
                      compute = "cpu") {
@@ -101,16 +118,15 @@ tl_model <- function(data, formula = NULL, method = "linear", ...,
     stop("'data' must be a data frame", call. = FALSE)
   }
 
+  # Normalise once here so every downstream reader of all.vars() sees a
+  # formula. Unsupervised methods are called without one.
+  if (!is.null(formula)) {
+    formula <- tl_as_formula(formula)
+  }
+
   # Define supervised and unsupervised methods
-  supervised_methods <- c(
-    "linear", "polynomial", "logistic", "tree",
-    "forest", "boost", "ridge", "lasso",
-    "elastic_net", "svm", "nn", "deep", "xgboost"
-  )
-  unsupervised_methods <- c(
-    "pca", "mds", "kmeans", "pam",
-    "clara", "hclust", "dbscan"
-  )
+  supervised_methods <- tl_supervised_methods()
+  unsupervised_methods <- tl_unsupervised_methods()
 
   # Determine paradigm
   is_supervised <- method %in% supervised_methods
@@ -155,6 +171,24 @@ tl_model_supervised <- function(data, formula, method, ..., compute = "cpu") {
   y <- data[[response_var]]
   is_classification <- is.factor(y) || is.character(y)
 
+  # Refuse a method that cannot fit this response before anything
+  # reinterprets it, so the message describes what the caller passed.
+  tl_check_method_response(method, y, response_var, is_classification)
+
+  # Logistic regression is a classification method whatever the response
+  # is stored as. Left alone, a 0/1 integer response produced a binomial
+  # glm described by a spec that said is_classification = FALSE, so
+  # tl_evaluate() scored it with rmse, mae and rsq, and asking it for
+  # accuracy returned an empty tibble -- no error, no warning.
+  if (method == "logistic" && !is_classification) {
+    warning(
+      "Converting response variable to factor ",
+      "for logistic regression",
+      call. = FALSE
+    )
+    is_classification <- TRUE
+  }
+
   if (!is_classification && is.numeric(y) &&
         length(unique(y)) <= 10) {
     message(
@@ -163,6 +197,16 @@ tl_model_supervised <- function(data, formula, method, ..., compute = "cpu") {
       "Treating as regression. Convert to factor ",
       "for classification."
     )
+  }
+
+  # Normalise the response once, so the spec, the fitted model and every
+  # predict path agree on what the classes are. Writing it back into
+  # `data` matters as much as the local copy: `data` is what gets fitted
+  # and what is stored on the model, and predict methods read the levels
+  # back off it.
+  if (is_classification) {
+    y <- tl_normalise_response(y)
+    data[[response_var]] <- y
   }
 
   # Resolve the effective compute tier (handles auto/gpu fallbacks).
@@ -185,6 +229,17 @@ tl_model_supervised <- function(data, formula, method, ..., compute = "cpu") {
     compute = compute, hyperparams = hyperparams
   )
 
+  # Record the training-time factor levels. Predict methods that build
+  # their own design matrix need these to keep contrast coding identical
+  # to the fit; without them, new data missing a level silently changes
+  # the encoding.
+  predictor_vars <- intersect(get_formula_vars(formula, data), names(data))
+  xlev <- lapply(
+    Filter(function(v) is.factor(data[[v]]), predictor_vars),
+    function(v) levels(data[[v]])
+  )
+  names(xlev) <- Filter(function(v) is.factor(data[[v]]), predictor_vars)
+
   # Create model specification
   model_spec <- list(
     paradigm = "supervised",
@@ -192,6 +247,8 @@ tl_model_supervised <- function(data, formula, method, ..., compute = "cpu") {
     method = method,
     is_classification = is_classification,
     response_var = response_var,
+    response_levels = if (is_classification) levels(y) else NULL,
+    xlev = xlev,
     compute = effective_compute
   )
 
@@ -335,6 +392,11 @@ predict.tidylearn_model <- function(object,
 
   if (training) {
     new_data <- object$data
+  } else {
+    # A model fitted on engineered features cannot read raw new data: the
+    # columns it was trained on do not exist there. Models that carry a
+    # record of how their features were built rebuild them first.
+    new_data <- apply_feature_transform(object, new_data)
   }
 
   # Route to appropriate predict method
@@ -345,6 +407,168 @@ predict.tidylearn_model <- function(object,
   } else {
     stop("Unknown model type", call. = FALSE)
   }
+}
+
+#' Rebuild engineered features on new data
+#'
+#' `tl_auto_ml()` fits some of its candidates on PCA scores or on a cluster
+#' assignment rather than on the raw columns. Those models record how their
+#' features were produced, so that predicting on raw new data reproduces the
+#' same transformation -- fitted on the training data, replayed here -- instead
+#' of failing on a column that only ever existed inside the search.
+#'
+#' @param object A tidylearn model.
+#' @param new_data Raw data supplied to `predict()`.
+#' @return `new_data`, with the engineered columns present.
+#' @keywords internal
+#' @noRd
+apply_feature_transform <- function(object, new_data) {
+  transform <- object$feature_transform
+  if (is.null(transform)) {
+    return(new_data)
+  }
+
+  response <- transform$response
+  has_response <- !is.null(response) && response %in% names(new_data)
+  response_values <- if (has_response) new_data[[response]] else NULL
+  predictors <- if (has_response) {
+    new_data[, setdiff(names(new_data), response), drop = FALSE]
+  } else {
+    new_data
+  }
+
+  out <- switch(
+    transform$kind,
+    "pca" = {
+      scores <- predict(transform$reduction_model, new_data = predictors)
+      scores[, setdiff(names(scores), ".obs_id"), drop = FALSE]
+    },
+    "cluster" = {
+      assignment <- predict(transform$cluster_model, new_data = predictors)
+      new_data[[transform$column]] <- factor(
+        assignment$cluster,
+        levels = transform$levels
+      )
+      return(new_data)
+    },
+    stop("Unknown feature transform: ", transform$kind, call. = FALSE)
+  )
+
+  if (has_response) {
+    out[[response]] <- response_values
+  }
+  out
+}
+
+#' Methods to offer when the requested one cannot fit the response
+#'
+#' Every method that takes either a numeric or a categorical response,
+#' less the two whose packages are only suggested. \code{"deep"} needs
+#' keras and a Python backend and \code{"xgboost"} needs xgboost, so
+#' naming them here would answer one error with another on the machines
+#' that do not have them. Both still work when installed; they are absent
+#' from the advice, not from the package.
+#'
+#' @keywords internal
+#' @noRd
+tl_dual_task_suggestions <- function() {
+  c("tree", "forest", "boost", "ridge", "lasso",
+    "elastic_net", "svm", "nn")
+}
+
+#' Refuse a method that cannot fit the response it was handed
+#'
+#' Both directions of the mismatch used to be accepted.
+#' \code{lm()} on a factor estimates from the underlying integer codes, so
+#' \code{tl_model(iris, Species ~ ., method = "linear")} returned numbers on
+#' a scale where setosa is 1 and virginica is 3 -- and never failed, at any
+#' point, so nothing told the caller. Checking here keeps the complaint next
+#' to the decision that caused it.
+#'
+#' @param method The requested method
+#' @param y The response, as supplied
+#' @param response_var Its name, for the message
+#' @param is_classification Whether the response is a factor or character
+#' @return `TRUE`, invisibly, when the method can fit the response
+#' @keywords internal
+#' @noRd
+tl_check_method_response <- function(method, y, response_var,
+                                     is_classification) {
+  quoted <- function(x) paste0("\"", x, "\"", collapse = ", ")
+
+  if (method %in% c("linear", "polynomial") && is_classification) {
+    n_classes <- nlevels(tl_normalise_response(y))
+    alternatives <- if (n_classes == 2) {
+      c("logistic", tl_dual_task_suggestions())
+    } else {
+      tl_dual_task_suggestions()
+    }
+    kind <- if (is.factor(y)) "factor" else "character vector"
+
+    # A single-class response is not a task any method can take. The
+    # equally-spaced-codes argument does not apply to one class, and the
+    # usual "refit with one of these" tail would send the caller round a
+    # loop of methods that each refuse it in turn.
+    if (n_classes == 1) {
+      stop(
+        "Method \"", method, "\" fits a numeric response, but '",
+        response_var, "' is a ", kind, " holding a single class (",
+        quoted(levels(tl_normalise_response(y))),
+        "). It is not a regression target, and no classification method ",
+        "will fit it either -- there is nothing to discriminate.",
+        call. = FALSE
+      )
+    }
+
+    stop(
+      "Method \"", method, "\" fits a numeric response, but '",
+      response_var, "' is a ", kind,
+      " with ", n_classes, " classes. lm() estimates from the underlying ",
+      "integer codes, so the classes would be treated as equally spaced ",
+      "points on a scale and the predictions would be numbers between ",
+      "them. Refit with method = ", quoted(alternatives), ".",
+      call. = FALSE
+    )
+  }
+
+  # A 0/1 or 1/2 coding is a two-class response stored as a number, and is
+  # allowed. Anything with more distinct values is either a measurement or
+  # a multiclass coding, and neither is something binomial glm can fit.
+  if (method == "logistic" && is.numeric(y)) {
+    n_distinct <- length(unique(stats::na.omit(y)))
+    if (n_distinct > 2) {
+      stop(
+        "Logistic regression needs a two-class response, but '",
+        response_var, "' is numeric with ", n_distinct,
+        " distinct values. If those are measurements, use a regression ",
+        "method: ",
+        quoted(c("linear", "polynomial", tl_dual_task_suggestions())),
+        ". If they encode classes, convert '", response_var,
+        "' to a factor first -- though logistic still handles only two.",
+        call. = FALSE
+      )
+    }
+  }
+
+  # A response with one class gives every classification method something
+  # it cannot fit, but only logistic said so plainly. The rest reported
+  # whatever their backend hit first: rpart "number of rows of matrices
+  # must match (see arg 2)", glmnet "non-conformable arguments", e1071
+  # "Model is empty!", xgboost a complaint about num_class. None of them
+  # named the response or the cause.
+  if (is_classification && method != "logistic") {
+    present <- levels(tl_normalise_response(y))
+    if (length(present) == 1L) {
+      stop(
+        "Method \"", method, "\" needs a response with at least two ",
+        "classes, but '", response_var, "' has only one (",
+        quoted(present), "). There is nothing to discriminate.",
+        call. = FALSE
+      )
+    }
+  }
+
+  invisible(TRUE)
 }
 
 #' Predict using supervised models
@@ -383,6 +607,62 @@ predict_supervised <- function(object, new_data, type = "response", ...) {
   }
 }
 
+#' Keep only the leading components a reduction was asked for
+#'
+#' `tl_reduce_dimensions(n_components = k)` trims its returned data to the
+#' first k components. The fitted model has to trim its predictions the same
+#' way, or projecting a test set yields more columns than the model that
+#' consumes them was trained on.
+#'
+#' @param x Matrix or data frame of component scores, widest first.
+#' @param n_components Number of leading components to keep, or NULL for all.
+#' @return `x`, trimmed to its first `n_components` columns.
+#' @keywords internal
+#' @noRd
+truncate_components <- function(x, n_components) {
+  if (is.null(n_components)) {
+    return(x)
+  }
+  keep <- min(as.integer(n_components), ncol(x))
+  x[, seq_len(keep), drop = FALSE]
+}
+
+#' Align new data to the columns a fitted unsupervised model was built on
+#'
+#' Selecting "every numeric column" from `new_data` silently produces a matrix
+#' of the wrong width whenever the caller passes extra columns, or the same
+#' columns in a different order. Downstream arithmetic then either recycles
+#' (k-means centres) or transposes meaning (PCA rotation) without complaint.
+#' Matching on name and erroring on a mismatch keeps that failure loud.
+#'
+#' @param new_data Data frame supplied to `predict()`.
+#' @param expected Character vector of column names the fit was built on.
+#' @param what Label used in the error message.
+#' @return A numeric matrix with columns in `expected` order.
+#' @keywords internal
+#' @noRd
+align_new_data <- function(new_data, expected, what) {
+  missing_cols <- setdiff(expected, names(new_data))
+  if (length(missing_cols) > 0) {
+    stop(
+      what, " was fitted on ", length(expected), " column(s) (",
+      paste(expected, collapse = ", "), ") but new_data is missing: ",
+      paste(missing_cols, collapse = ", "), ".",
+      call. = FALSE
+    )
+  }
+  x <- new_data[, expected, drop = FALSE]
+  non_numeric <- expected[!vapply(x, is.numeric, logical(1))]
+  if (length(non_numeric) > 0) {
+    stop(
+      what, " requires numeric columns, but new_data has non-numeric: ",
+      paste(non_numeric, collapse = ", "), ".",
+      call. = FALSE
+    )
+  }
+  as.matrix(x)
+}
+
 #' Predict using unsupervised models
 #' @keywords internal
 #' @noRd
@@ -409,10 +689,13 @@ predict_unsupervised <- function(object, new_data, type = "response",
       if (training) {
         object$fit$scores
       } else {
-        # Transform new data using the PCA rotation
-        x_mat <- new_data %>%
-          dplyr::select(where(is.numeric)) %>%
-          as.matrix()
+        # Transform new data using the PCA rotation. The rotation's row
+        # names are the training predictors, in the order prcomp() saw them.
+        x_mat <- align_new_data(
+          new_data,
+          rownames(object$fit$model$rotation),
+          "PCA"
+        )
         if (object$fit$settings$center) {
           x_mat <- scale(
             x_mat,
@@ -431,6 +714,7 @@ predict_unsupervised <- function(object, new_data, type = "response",
         colnames(scores) <- paste0(
           "PC", seq_len(ncol(scores))
         )
+        scores <- truncate_components(scores, object$spec$n_components)
         tibble::as_tibble(scores) %>%
           dplyr::mutate(
             .obs_id = as.character(seq_len(nrow(scores))),
@@ -442,15 +726,23 @@ predict_unsupervised <- function(object, new_data, type = "response",
       if (training) {
         object$fit$clusters
       } else {
-        # Assign to nearest center
-        x_mat <- new_data %>%
-          dplyr::select(where(is.numeric)) %>%
-          as.matrix()
+        # Assign to nearest center. Columns are matched to the centre
+        # matrix by name: recycling a mismatched row against a centre
+        # returns a cluster number that looks valid and is not.
         centers <- object$fit$model$centers
-        dists <- apply(x_mat, 1, function(x) {
-          apply(centers, 1, function(c) sum((x - c)^2))
-        })
-        clusters <- apply(dists, 2, which.min)
+        x_mat <- align_new_data(new_data, colnames(centers), "k-means")
+        # apply() drops to a length-k vector when x_mat has a single row,
+        # and max.col() then reads that as k rows of one column -- three
+        # cluster numbers for one observation, with no error. Pin the
+        # shape rather than trusting simplification.
+        dists <- matrix(
+          apply(centers, 1, function(centre) {
+            rowSums((x_mat - rep(centre, each = nrow(x_mat)))^2)
+          }),
+          nrow = nrow(x_mat),
+          ncol = nrow(centers)
+        )
+        clusters <- max.col(-dists, ties.method = "first")
         tibble::tibble(cluster = as.integer(clusters))
       }
     },
@@ -461,7 +753,7 @@ predict_unsupervised <- function(object, new_data, type = "response",
     },
     "mds" = {
       no_out_of_sample("Multidimensional scaling")
-      object$fit$points
+      truncate_components(object$fit$points, object$spec$n_components)
     },
     "hclust" = {
       no_out_of_sample("Hierarchical clustering")
