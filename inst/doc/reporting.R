@@ -61,8 +61,14 @@ tl_table_metrics(model_reg)
 ## ----table-coef---------------------------------------------------------------
 tl_table_coefficients(model_reg)
 
+## ----table-coef-ci------------------------------------------------------------
+tl_table_coefficients(model_reg, conf_int = TRUE, level = 0.9)
+
 ## ----table-coef-lasso---------------------------------------------------------
 tl_table_coefficients(model_lasso)
+
+## ----coef-tibble--------------------------------------------------------------
+tl_coefficients(model_reg, conf_int = TRUE)
 
 ## ----table-confusion----------------------------------------------------------
 tl_table_confusion(model_clf, new_data = split$test)

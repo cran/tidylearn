@@ -360,11 +360,13 @@ might not.</li>
 <h2>What this machine can do</h2>
 <div class="sourceCode" id="cb2"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb2-1"><a href="#cb2-1" tabindex="-1"></a><span class="fu">tl_check_gpu</span>()</span></code></pre></div>
 <p><code>tl_check_gpu()</code> parses <code>nvidia-smi</code> and checks
-which GPU-capable backends are installed. It is cheap by design: it does
-not load Python, import TensorFlow, or fit anything. It returns an
-object with a <code>print()</code> method describing the CUDA driver,
-the devices found, and which of xgboost, keras, tensorflow and torch are
-installed.</p>
+which GPU-capable backends are installed. It is cheap by design: it
+reads which packages are installed from the library without loading
+them, so it does not start Python, import TensorFlow, or fit anything,
+and it gives <code>nvidia-smi</code> 10 seconds to answer before warning
+and reporting no GPU. It returns an object with a <code>print()</code>
+method describing the CUDA driver, the devices found, and which of
+xgboost, keras and tensorflow are installed.</p>
 </div>
 <div id="only-two-methods-have-a-gpu-path" class="section level2">
 <h2>Only two methods have a GPU path</h2>

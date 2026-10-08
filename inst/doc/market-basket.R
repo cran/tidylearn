@@ -79,27 +79,27 @@ data.frame(
 )
 
 ## -----------------------------------------------------------------------------
-rules$rules_tbl %>%
-  filter(lift > 5, count >= 15) %>%
-  arrange(desc(confidence)) %>%
+rules$rules_tbl |>
+  filter(lift > 5, count >= 15) |>
+  arrange(desc(confidence)) |>
   select(lhs, rhs, confidence, lift, count)
 
 ## -----------------------------------------------------------------------------
 # What predicts a purchase of whole milk?
-filter_rules_by_item(rules, "whole milk", where = "rhs") %>%
-  arrange(desc(lift)) %>%
-  select(lhs, confidence, lift, count) %>%
+filter_rules_by_item(rules, "whole milk", where = "rhs") |>
+  arrange(desc(lift)) |>
+  select(lhs, confidence, lift, count) |>
   head(5)
 
 ## -----------------------------------------------------------------------------
 # And what does a basket containing yoghurt lead to?
-filter_rules_by_item(rules, "yogurt", where = "lhs") %>%
-  arrange(desc(lift)) %>%
-  select(lhs, rhs, confidence, lift) %>%
+filter_rules_by_item(rules, "yogurt", where = "lhs") |>
+  arrange(desc(lift)) |>
+  select(lhs, rhs, confidence, lift) |>
   head(5)
 
 ## -----------------------------------------------------------------------------
-find_related_items(rules, "yogurt", min_lift = 1.5, top_n = 5) %>%
+find_related_items(rules, "yogurt", min_lift = 1.5, top_n = 5) |>
   select(lhs, rhs, confidence, lift)
 
 ## -----------------------------------------------------------------------------
@@ -155,7 +155,7 @@ small_rules <- tidy_apriori(
   support = 0.4, confidence = 0.6, minlen = 2
 )
 
-small_rules$rules_tbl %>%
-  arrange(desc(lift)) %>%
+small_rules$rules_tbl |>
+  arrange(desc(lift)) |>
   select(lhs, rhs, support, confidence, lift)
 

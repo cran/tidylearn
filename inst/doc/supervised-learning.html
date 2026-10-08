@@ -345,9 +345,9 @@ code > span.er { color: #a61717; background-color: #e3d2d2; }
 <span id="cb1-2"><a href="#cb1-2" tabindex="-1"></a><span class="fu">library</span>(dplyr)</span></code></pre></div>
 <div id="introduction" class="section level2">
 <h2>Introduction</h2>
-<p>Classification and regression across the eleven supervised methods,
-and the one piece of bookkeeping that catches people out — replaying
-training preprocessing on the test set.</p>
+<p>Classification and regression with tidylearn’s thirteen supervised
+methods, and the one piece of bookkeeping that catches people out —
+replaying training preprocessing on the test set.</p>
 <p><strong>Wrapped packages include:</strong></p>
 <ul>
 <li>stats (<code>lm()</code>, <code>glm()</code>) for linear and
@@ -375,8 +375,8 @@ dataset:</p>
 <span id="cb2-5"><a href="#cb2-5" tabindex="-1"></a><span class="co"># versicolor and virginica overlap, so this is a real classification</span></span>
 <span id="cb2-6"><a href="#cb2-6" tabindex="-1"></a><span class="co"># problem. Even here, a 70% split of 100 rows is separable at some seeds;</span></span>
 <span id="cb2-7"><a href="#cb2-7" tabindex="-1"></a><span class="co"># this one is not.</span></span>
-<span id="cb2-8"><a href="#cb2-8" tabindex="-1"></a>iris_binary <span class="ot">&lt;-</span> iris <span class="sc">%&gt;%</span></span>
-<span id="cb2-9"><a href="#cb2-9" tabindex="-1"></a>  <span class="fu">filter</span>(Species <span class="sc">%in%</span> <span class="fu">c</span>(<span class="st">&quot;versicolor&quot;</span>, <span class="st">&quot;virginica&quot;</span>)) <span class="sc">%&gt;%</span></span>
+<span id="cb2-8"><a href="#cb2-8" tabindex="-1"></a>iris_binary <span class="ot">&lt;-</span> iris <span class="sc">|&gt;</span></span>
+<span id="cb2-9"><a href="#cb2-9" tabindex="-1"></a>  <span class="fu">filter</span>(Species <span class="sc">%in%</span> <span class="fu">c</span>(<span class="st">&quot;versicolor&quot;</span>, <span class="st">&quot;virginica&quot;</span>)) <span class="sc">|&gt;</span></span>
 <span id="cb2-10"><a href="#cb2-10" tabindex="-1"></a>  <span class="fu">mutate</span>(<span class="at">Species =</span> <span class="fu">droplevels</span>(Species))</span>
 <span id="cb2-11"><a href="#cb2-11" tabindex="-1"></a></span>
 <span id="cb2-12"><a href="#cb2-12" tabindex="-1"></a><span class="co"># Split data</span></span>
@@ -587,7 +587,7 @@ against class labels, and computes whichever metrics you ask for:</p>
 <span id="cb19-4"><a href="#cb19-4" tabindex="-1"></a><span class="co"># RMSE</span></span>
 <span id="cb19-5"><a href="#cb19-5" tabindex="-1"></a>rmse_rf <span class="ot">&lt;-</span> <span class="fu">sqrt</span>(<span class="fu">mean</span>((preds_rf<span class="sc">$</span>.pred <span class="sc">-</span> split_reg<span class="sc">$</span>test<span class="sc">$</span>mpg)<span class="sc">^</span><span class="dv">2</span>))</span>
 <span id="cb19-6"><a href="#cb19-6" tabindex="-1"></a><span class="fu">cat</span>(<span class="st">&quot;Random Forest RMSE:&quot;</span>, <span class="fu">round</span>(rmse_rf, <span class="dv">2</span>), <span class="st">&quot;</span><span class="sc">\n</span><span class="st">&quot;</span>)</span>
-<span id="cb19-7"><a href="#cb19-7" tabindex="-1"></a><span class="co">#&gt; Random Forest RMSE: 2.02</span></span></code></pre></div>
+<span id="cb19-7"><a href="#cb19-7" tabindex="-1"></a><span class="co">#&gt; Random Forest RMSE: 2.04</span></span></code></pre></div>
 </div>
 </div>
 <div id="regularized-regression" class="section level2">
@@ -674,10 +674,10 @@ complexity.</p>
 <span id="cb24-15"><a href="#cb24-15" tabindex="-1"></a>  ))</span>
 <span id="cb24-16"><a href="#cb24-16" tabindex="-1"></a>}</span>
 <span id="cb24-17"><a href="#cb24-17" tabindex="-1"></a></span>
-<span id="cb24-18"><a href="#cb24-18" tabindex="-1"></a>results <span class="ot">&lt;-</span> results <span class="sc">%&gt;%</span> <span class="fu">arrange</span>(RMSE)</span>
+<span id="cb24-18"><a href="#cb24-18" tabindex="-1"></a>results <span class="ot">&lt;-</span> results <span class="sc">|&gt;</span> <span class="fu">arrange</span>(RMSE)</span>
 <span id="cb24-19"><a href="#cb24-19" tabindex="-1"></a><span class="fu">print</span>(results)</span>
 <span id="cb24-20"><a href="#cb24-20" tabindex="-1"></a><span class="co">#&gt;    Model     RMSE</span></span>
-<span id="cb24-21"><a href="#cb24-21" tabindex="-1"></a><span class="co">#&gt; 1 forest 1.944675</span></span>
+<span id="cb24-21"><a href="#cb24-21" tabindex="-1"></a><span class="co">#&gt; 1 forest 1.976691</span></span>
 <span id="cb24-22"><a href="#cb24-22" tabindex="-1"></a><span class="co">#&gt; 2 linear 2.281450</span></span>
 <span id="cb24-23"><a href="#cb24-23" tabindex="-1"></a><span class="co">#&gt; 3   tree 4.095888</span></span></code></pre></div>
 </div>
@@ -693,7 +693,7 @@ complexity.</p>
 <span id="cb25-6"><a href="#cb25-6" tabindex="-1"></a>  <span class="at">remove_correlated =</span> <span class="cn">TRUE</span>,</span>
 <span id="cb25-7"><a href="#cb25-7" tabindex="-1"></a>  <span class="at">correlation_cutoff =</span> <span class="fl">0.9</span></span>
 <span id="cb25-8"><a href="#cb25-8" tabindex="-1"></a>)</span>
-<span id="cb25-9"><a href="#cb25-9" tabindex="-1"></a><span class="co">#&gt; Removing 1 highly correlated features</span></span>
+<span id="cb25-9"><a href="#cb25-9" tabindex="-1"></a><span class="co">#&gt; Removing 1 highly correlated feature</span></span>
 <span id="cb25-10"><a href="#cb25-10" tabindex="-1"></a><span class="co">#&gt; Scaling numeric features using method: standardize</span></span></code></pre></div>
 <div class="sourceCode" id="cb26"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb26-1"><a href="#cb26-1" tabindex="-1"></a><span class="co"># Train on preprocessed data</span></span>
 <span id="cb26-2"><a href="#cb26-2" tabindex="-1"></a>model_processed <span class="ot">&lt;-</span> <span class="fu">tl_model</span>(processed<span class="sc">$</span>data, mpg <span class="sc">~</span> ., <span class="at">method =</span> <span class="st">&quot;linear&quot;</span>)</span>
@@ -728,7 +728,7 @@ complexity.</p>
 <div id="categorical-predictors" class="section level3">
 <h3>Categorical Predictors</h3>
 <div class="sourceCode" id="cb28"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb28-1"><a href="#cb28-1" tabindex="-1"></a><span class="co"># Create dataset with categorical variables</span></span>
-<span id="cb28-2"><a href="#cb28-2" tabindex="-1"></a>mtcars_cat <span class="ot">&lt;-</span> mtcars <span class="sc">%&gt;%</span></span>
+<span id="cb28-2"><a href="#cb28-2" tabindex="-1"></a>mtcars_cat <span class="ot">&lt;-</span> mtcars <span class="sc">|&gt;</span></span>
 <span id="cb28-3"><a href="#cb28-3" tabindex="-1"></a>  <span class="fu">mutate</span>(</span>
 <span id="cb28-4"><a href="#cb28-4" tabindex="-1"></a>    <span class="at">cyl =</span> <span class="fu">as.factor</span>(cyl),</span>
 <span id="cb28-5"><a href="#cb28-5" tabindex="-1"></a>    <span class="at">gear =</span> <span class="fu">as.factor</span>(gear),</span>
@@ -779,10 +779,12 @@ complexity.</p>
 rows the model was fitted to tells you how well it memorised them.</li>
 <li><strong>Stratify classification splits</strong> so both sets carry
 the same class proportions as the source data.</li>
-<li><strong>Scale inputs for methods that need it</strong> – regularised
-regression, SVM and neural networks – and replay the training
-transformation on the test set, as shown below. Trees and forests are
-scale-invariant.</li>
+<li><strong>Scale inputs for <code>&quot;nn&quot;</code></strong> and replay the
+training transformation on the test set, as shown below. nnet fits on
+the values it is given. The other methods do not need it: glmnet and
+e1071 standardise internally by default for the regularised methods and
+SVM, <code>&quot;deep&quot;</code> normalises its own inputs, and linear models
+and trees are scale-invariant.</li>
 <li><strong>Compare several models</strong> on the same split before
 committing to one.</li>
 <li><strong>Reach for regularisation</strong> when predictors outnumber

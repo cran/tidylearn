@@ -53,14 +53,14 @@ influence <- tl_influence_measures(model)
 dim(influence)
 
 ## -----------------------------------------------------------------------------
-influence %>%
-  filter(is_influential) %>%
+influence |>
+  filter(is_influential) |>
   select(observation, cooks_distance, leverage, dffits, std_residual)
 
 ## -----------------------------------------------------------------------------
-influence %>%
-  select(observation, starts_with("dfbetas_")) %>%
-  arrange(desc(abs(dfbetas_wt))) %>%
+influence |>
+  select(observation, starts_with("dfbetas_")) |>
+  arrange(desc(abs(dfbetas_wt))) |>
   head(4)
 
 ## -----------------------------------------------------------------------------
@@ -129,6 +129,14 @@ tl_test_model_difference(
 )
 
 ## -----------------------------------------------------------------------------
+tl_test_model_difference(
+  cv,
+  baseline_model = "simple",
+  metric = "rmse",
+  test = "wilcox"
+)
+
+## -----------------------------------------------------------------------------
 interactions <- tl_test_interactions(
   mtcars, mpg ~ wt + hp + disp,
   all_pairs = TRUE
@@ -143,7 +151,7 @@ effects <- tl_interaction_effects(model_int, var = "wt", by_var = "hp")
 effects$slopes
 
 ## -----------------------------------------------------------------------------
-summary(model_int$fit)$coefficients
+tl_coefficients(model_int, conf_int = TRUE)
 
 ## -----------------------------------------------------------------------------
 auto <- tl_auto_interactions(mtcars, mpg ~ wt + hp + disp)

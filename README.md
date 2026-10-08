@@ -25,7 +25,7 @@ implementations with the convenience of a consistent, tidy API.
   (13 supervised, 7 unsupervised)
 - Returns tidy tibbles instead of varied output formats
 - Offers unified ggplot2-based visualization and formatted `gt` tables
-- Enables pipe-friendly workflows with `%>%`
+- Enables pipe-friendly workflows with `|>`
 - Orchestrates complex workflows combining multiple techniques
 
 **What tidylearn is NOT:**
@@ -123,10 +123,14 @@ predictions <- predict(model, new_data = test_data)
 metrics <- tl_evaluate(model, test_data)
 metrics <- tl_evaluate(model, test_data, metrics = c("rmse", "rsq"))
 
+# Coefficients too, with a confidence interval when you ask for one
+coefs <- tl_coefficients(model)
+coefs <- tl_coefficients(model, conf_int = TRUE, level = 0.9)
+
 # Easy to pipe
-model %>%
-  predict(new_data = test_data) %>%
-  bind_cols(test_data) %>%
+model |>
+  predict(new_data = test_data) |>
+  bind_cols(test_data) |>
   ggplot(aes(x = mpg, y = .pred)) +
   geom_point() +
   geom_abline(slope = 1, intercept = 0)
@@ -321,15 +325,15 @@ file.show(system.file("security/threat-model.md", package = "tidylearn"))
 
 ## Unified Visualization
 
-Consistent ggplot2-based plotting regardless of model type:
+ggplot2-based plotting for most model types:
 
 ```r
 # Generic plot method works for all model types
 plot(forest_model)       # Automatic visualization based on model type
-plot(linear_model)       # Diagnostic plots for regression
+plot(linear_model)       # Actual vs predicted for regression
 plot(pca_model)          # Variance explained for PCA
 plot(kmeans_model)       # Cluster scatter plot
-plot(hclust_model)       # Dendrogram
+plot(hclust_model)       # Dendrogram, drawn with base graphics
 
 # The lower-level helpers take data frames rather than models
 plot_clusters(cluster_data, cluster_col = "cluster")
@@ -359,15 +363,19 @@ tl_table_comparison(model1, model2, model3,
                     names = c("Linear", "Forest", "XGBoost"))
 ```
 
+`gt` is a suggested dependency, so these need it installed. The numbers
+behind the coefficient table are available without it through
+`tl_coefficients()`.
+
 ## Philosophy
 
 The underlying packages do the real work, and tidylearn does not hide what
 they are doing — every method documents the function it calls, and a
 supervised model's `$fit` is the object that function returned (an
 unsupervised one keeps it at `$fit$model`, next to the tidied components).
-What tidylearn adds is one signature across all 20 methods, and output that
-is already a tibble or a ggplot2 object, so results move into dplyr and the
-rest of the tidyverse without conversion.
+What tidylearn adds is one signature across all 20 methods, and predictions,
+metrics and most plots that are already tibbles or ggplot2 objects, so
+results move into dplyr and the rest of the tidyverse without conversion.
 
 ## Documentation
 

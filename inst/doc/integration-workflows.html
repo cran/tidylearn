@@ -427,7 +427,7 @@ smaller, less collinear feature space.</p>
 <span id="cb5-17"><a href="#cb5-17" tabindex="-1"></a><span class="co"># data -- refitting PCA on the test set would leak information</span></span>
 <span id="cb5-18"><a href="#cb5-18" tabindex="-1"></a>test_transformed <span class="ot">&lt;-</span> <span class="fu">predict</span>(</span>
 <span id="cb5-19"><a href="#cb5-19" tabindex="-1"></a>  reduced_train<span class="sc">$</span>reduction_model,</span>
-<span id="cb5-20"><a href="#cb5-20" tabindex="-1"></a>  <span class="at">new_data =</span> split<span class="sc">$</span>test <span class="sc">%&gt;%</span> <span class="fu">select</span>(<span class="sc">-</span>Species)</span>
+<span id="cb5-20"><a href="#cb5-20" tabindex="-1"></a>  <span class="at">new_data =</span> split<span class="sc">$</span>test <span class="sc">|&gt;</span> <span class="fu">select</span>(<span class="sc">-</span>Species)</span>
 <span id="cb5-21"><a href="#cb5-21" tabindex="-1"></a>)</span>
 <span id="cb5-22"><a href="#cb5-22" tabindex="-1"></a>test_transformed<span class="sc">$</span>Species <span class="ot">&lt;-</span> split<span class="sc">$</span>test<span class="sc">$</span>Species</span>
 <span id="cb5-23"><a href="#cb5-23" tabindex="-1"></a></span>
@@ -440,7 +440,7 @@ smaller, less collinear feature space.</p>
 <span id="cb5-30"><a href="#cb5-30" tabindex="-1"></a><span class="fu">cat</span>(<span class="st">&quot;Original features:&quot;</span>, n_original, <span class="st">&quot;-&gt;&quot;</span>, <span class="fu">acc</span>(eval_original), <span class="st">&quot;%</span><span class="sc">\n</span><span class="st">&quot;</span>)</span>
 <span id="cb5-31"><a href="#cb5-31" tabindex="-1"></a><span class="co">#&gt; Original features: 4 -&gt; 93.3 %</span></span>
 <span id="cb5-32"><a href="#cb5-32" tabindex="-1"></a><span class="fu">cat</span>(<span class="st">&quot;PCA features:&quot;</span>, n_reduced, <span class="st">&quot;-&gt;&quot;</span>, <span class="fu">acc</span>(eval_pca), <span class="st">&quot;%</span><span class="sc">\n</span><span class="st">&quot;</span>)</span>
-<span id="cb5-33"><a href="#cb5-33" tabindex="-1"></a><span class="co">#&gt; PCA features: 3 -&gt; 91.1 %</span></span>
+<span id="cb5-33"><a href="#cb5-33" tabindex="-1"></a><span class="co">#&gt; PCA features: 3 -&gt; 88.9 %</span></span>
 <span id="cb5-34"><a href="#cb5-34" tabindex="-1"></a><span class="fu">cat</span>(<span class="st">&quot;Feature reduction:&quot;</span>,</span>
 <span id="cb5-35"><a href="#cb5-35" tabindex="-1"></a>    <span class="fu">round</span>((<span class="dv">1</span> <span class="sc">-</span> n_reduced <span class="sc">/</span> n_original) <span class="sc">*</span> <span class="dv">100</span>, <span class="dv">1</span>), <span class="st">&quot;%</span><span class="sc">\n</span><span class="st">&quot;</span>)</span>
 <span id="cb5-36"><a href="#cb5-36" tabindex="-1"></a><span class="co">#&gt; Feature reduction: 25 %</span></span></code></pre></div>
@@ -619,14 +619,13 @@ fit to be estimable.</p>
 <span id="cb15-4"><a href="#cb15-4" tabindex="-1"></a>                                          <span class="at">k =</span> <span class="dv">3</span>,</span>
 <span id="cb15-5"><a href="#cb15-5" tabindex="-1"></a>                                          <span class="at">supervised_method =</span> <span class="st">&quot;linear&quot;</span>)</span>
 <span id="cb15-6"><a href="#cb15-6" tabindex="-1"></a><span class="co">#&gt; Note: Response &#39;mpg&#39; has 6 unique numeric values. Treating as regression. Convert to factor for classification.</span></span>
-<span id="cb15-7"><a href="#cb15-7" tabindex="-1"></a><span class="co">#&gt; Note: Response &#39;mpg&#39; has 8 unique numeric values. Treating as regression. Convert to factor for classification.</span></span>
-<span id="cb15-8"><a href="#cb15-8" tabindex="-1"></a></span>
-<span id="cb15-9"><a href="#cb15-9" tabindex="-1"></a><span class="co"># Check structure</span></span>
-<span id="cb15-10"><a href="#cb15-10" tabindex="-1"></a><span class="fu">names</span>(stratified_models)</span>
-<span id="cb15-11"><a href="#cb15-11" tabindex="-1"></a><span class="co">#&gt; [1] &quot;cluster_model&quot;     &quot;supervised_models&quot; &quot;formula&quot;          </span></span>
-<span id="cb15-12"><a href="#cb15-12" tabindex="-1"></a><span class="co">#&gt; [4] &quot;data&quot;</span></span>
-<span id="cb15-13"><a href="#cb15-13" tabindex="-1"></a><span class="fu">length</span>(stratified_models<span class="sc">$</span>supervised_models)</span>
-<span id="cb15-14"><a href="#cb15-14" tabindex="-1"></a><span class="co">#&gt; [1] 3</span></span></code></pre></div>
+<span id="cb15-7"><a href="#cb15-7" tabindex="-1"></a></span>
+<span id="cb15-8"><a href="#cb15-8" tabindex="-1"></a><span class="co"># Check structure</span></span>
+<span id="cb15-9"><a href="#cb15-9" tabindex="-1"></a><span class="fu">names</span>(stratified_models)</span>
+<span id="cb15-10"><a href="#cb15-10" tabindex="-1"></a><span class="co">#&gt; [1] &quot;cluster_model&quot;         &quot;clusters&quot;              &quot;supervised_models&quot;    </span></span>
+<span id="cb15-11"><a href="#cb15-11" tabindex="-1"></a><span class="co">#&gt; [4] &quot;single_class_clusters&quot; &quot;formula&quot;               &quot;data&quot;</span></span>
+<span id="cb15-12"><a href="#cb15-12" tabindex="-1"></a><span class="fu">length</span>(stratified_models<span class="sc">$</span>supervised_models)</span>
+<span id="cb15-13"><a href="#cb15-13" tabindex="-1"></a><span class="co">#&gt; [1] 3</span></span></code></pre></div>
 <div class="sourceCode" id="cb16"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb16-1"><a href="#cb16-1" tabindex="-1"></a><span class="co"># Predictions using stratified models</span></span>
 <span id="cb16-2"><a href="#cb16-2" tabindex="-1"></a>preds_stratified <span class="ot">&lt;-</span> <span class="fu">predict</span>(stratified_models)</span>
 <span id="cb16-3"><a href="#cb16-3" tabindex="-1"></a><span class="fu">head</span>(preds_stratified)</span>

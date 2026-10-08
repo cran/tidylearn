@@ -9,9 +9,27 @@ knitr::opts_chunk$set(
   message = FALSE
 )
 
+# xgboost and the BLAS both parallelise. On 16 cores with a threaded BLAS
+# this page used 14.9 times as much CPU time as elapsed time, and 0.97 with
+# this cap; R CMD check times vignettes against a CPU-to-elapsed threshold
+# as it does the tests. Setting OMP_NUM_THREADS from here would do nothing,
+# because OpenMP and the BLAS read their thread counts when they load,
+# before this chunk runs. The runtime API changes the pools themselves, as
+# in tests/testthat.R.
+if (requireNamespace("RhpcBLASctl", quietly = TRUE)) {
+  RhpcBLASctl::blas_set_num_threads(2)
+  RhpcBLASctl::omp_set_num_threads(2)
+}
+
 ## ----setup--------------------------------------------------------------------
 library(tidylearn)
 library(dplyr)
+
+# Cross-validation folds, forests and the k-means behind the cluster
+# features all draw random numbers. Seeding once here makes the page
+# reproduce when run from the top, unless a machine is slow enough to close
+# one of the time gates described below.
+set.seed(42)
 
 ## -----------------------------------------------------------------------------
 result <- tl_auto_ml(
@@ -48,8 +66,8 @@ names(result$models)
 
 ## ----warning = FALSE----------------------------------------------------------
 # The same search on a two-class problem picks up the logistic variants
-iris_binary <- iris %>%
-  filter(Species != "setosa") %>%
+iris_binary <- iris |>
+  filter(Species != "setosa") |>
   mutate(Species = droplevels(Species))
 
 binary_result <- tl_auto_ml(iris_binary, Species ~ ., time_budget = 30,
@@ -128,7 +146,7 @@ scores <- vapply(available, function(nm) {
 }, numeric(1))
 
 data.frame(model = available, test_accuracy = round(scores, 3),
-           row.names = NULL) %>%
+           row.names = NULL) |>
   arrange(desc(test_accuracy))
 
 ## -----------------------------------------------------------------------------

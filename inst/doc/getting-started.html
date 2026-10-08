@@ -344,10 +344,10 @@ code > span.er { color: #a61717; background-color: #e3d2d2; }
 <div id="introduction" class="section level2">
 <h2>Introduction</h2>
 <p>Every machine learning package in R has its own API and its own
-output format. tidylearn puts one signature over 20 of them:
-<code>tl_model()</code> picks the underlying package from the
-<code>method</code> you name, and whatever comes back is a tibble or a
-ggplot2 object.</p>
+output format. tidylearn puts one signature over 20 methods from 13 of
+them: <code>tl_model()</code> picks the underlying package from the
+<code>method</code> you name, and predictions, metrics and most plots
+come back as tibbles or ggplot2 objects.</p>
 <p>The algorithms are untouched. glmnet, randomForest, xgboost, e1071,
 cluster and dbscan do the fitting, and <code>model$fit</code> hands you
 the object they returned — <code>model$fit$model</code> for an
@@ -382,8 +382,8 @@ subset of iris here. For three or more classes use <code>&quot;tree&quot;</code>
 <div class="sourceCode" id="cb3"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb3-1"><a href="#cb3-1" tabindex="-1"></a><span class="co"># versicolor and virginica overlap, so this is a real classification</span></span>
 <span id="cb3-2"><a href="#cb3-2" tabindex="-1"></a><span class="co"># problem -- setosa is linearly separable from the other two, which makes</span></span>
 <span id="cb3-3"><a href="#cb3-3" tabindex="-1"></a><span class="co"># logistic regression fail to converge</span></span>
-<span id="cb3-4"><a href="#cb3-4" tabindex="-1"></a>iris_binary <span class="ot">&lt;-</span> iris <span class="sc">%&gt;%</span></span>
-<span id="cb3-5"><a href="#cb3-5" tabindex="-1"></a>  <span class="fu">filter</span>(Species <span class="sc">%in%</span> <span class="fu">c</span>(<span class="st">&quot;versicolor&quot;</span>, <span class="st">&quot;virginica&quot;</span>)) <span class="sc">%&gt;%</span></span>
+<span id="cb3-4"><a href="#cb3-4" tabindex="-1"></a>iris_binary <span class="ot">&lt;-</span> iris <span class="sc">|&gt;</span></span>
+<span id="cb3-5"><a href="#cb3-5" tabindex="-1"></a>  <span class="fu">filter</span>(Species <span class="sc">%in%</span> <span class="fu">c</span>(<span class="st">&quot;versicolor&quot;</span>, <span class="st">&quot;virginica&quot;</span>)) <span class="sc">|&gt;</span></span>
 <span id="cb3-6"><a href="#cb3-6" tabindex="-1"></a>  <span class="fu">mutate</span>(<span class="at">Species =</span> <span class="fu">droplevels</span>(Species))</span>
 <span id="cb3-7"><a href="#cb3-7" tabindex="-1"></a></span>
 <span id="cb3-8"><a href="#cb3-8" tabindex="-1"></a>model_logistic <span class="ot">&lt;-</span> <span class="fu">tl_model</span>(iris_binary, Species <span class="sc">~</span> ., <span class="at">method =</span> <span class="st">&quot;logistic&quot;</span>)</span>
@@ -507,27 +507,29 @@ handle it:</p>
 <span id="cb12-4"><a href="#cb12-4" tabindex="-1"></a><span class="co">#&gt; # A tibble: 6 × 2</span></span>
 <span id="cb12-5"><a href="#cb12-5" tabindex="-1"></a><span class="co">#&gt;   .obs_id cluster</span></span>
 <span id="cb12-6"><a href="#cb12-6" tabindex="-1"></a><span class="co">#&gt;   &lt;chr&gt;     &lt;int&gt;</span></span>
-<span id="cb12-7"><a href="#cb12-7" tabindex="-1"></a><span class="co">#&gt; 1 1             3</span></span>
-<span id="cb12-8"><a href="#cb12-8" tabindex="-1"></a><span class="co">#&gt; 2 2             3</span></span>
-<span id="cb12-9"><a href="#cb12-9" tabindex="-1"></a><span class="co">#&gt; 3 3             3</span></span>
-<span id="cb12-10"><a href="#cb12-10" tabindex="-1"></a><span class="co">#&gt; 4 4             3</span></span>
-<span id="cb12-11"><a href="#cb12-11" tabindex="-1"></a><span class="co">#&gt; 5 5             3</span></span>
-<span id="cb12-12"><a href="#cb12-12" tabindex="-1"></a><span class="co">#&gt; 6 6             3</span></span></code></pre></div>
+<span id="cb12-7"><a href="#cb12-7" tabindex="-1"></a><span class="co">#&gt; 1 1             1</span></span>
+<span id="cb12-8"><a href="#cb12-8" tabindex="-1"></a><span class="co">#&gt; 2 2             1</span></span>
+<span id="cb12-9"><a href="#cb12-9" tabindex="-1"></a><span class="co">#&gt; 3 3             1</span></span>
+<span id="cb12-10"><a href="#cb12-10" tabindex="-1"></a><span class="co">#&gt; 4 4             1</span></span>
+<span id="cb12-11"><a href="#cb12-11" tabindex="-1"></a><span class="co">#&gt; 5 5             1</span></span>
+<span id="cb12-12"><a href="#cb12-12" tabindex="-1"></a><span class="co">#&gt; 6 6             1</span></span></code></pre></div>
 <div class="sourceCode" id="cb13"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb13-1"><a href="#cb13-1" tabindex="-1"></a><span class="co"># Compare with actual species</span></span>
 <span id="cb13-2"><a href="#cb13-2" tabindex="-1"></a><span class="fu">table</span>(clusters<span class="sc">$</span>cluster, iris<span class="sc">$</span>Species)</span>
 <span id="cb13-3"><a href="#cb13-3" tabindex="-1"></a><span class="co">#&gt;    </span></span>
 <span id="cb13-4"><a href="#cb13-4" tabindex="-1"></a><span class="co">#&gt;     setosa versicolor virginica</span></span>
-<span id="cb13-5"><a href="#cb13-5" tabindex="-1"></a><span class="co">#&gt;   1      0          2        36</span></span>
-<span id="cb13-6"><a href="#cb13-6" tabindex="-1"></a><span class="co">#&gt;   2      0         48        14</span></span>
-<span id="cb13-7"><a href="#cb13-7" tabindex="-1"></a><span class="co">#&gt;   3     50          0         0</span></span></code></pre></div>
+<span id="cb13-5"><a href="#cb13-5" tabindex="-1"></a><span class="co">#&gt;   1     50          0         0</span></span>
+<span id="cb13-6"><a href="#cb13-6" tabindex="-1"></a><span class="co">#&gt;   2      0          2        36</span></span>
+<span id="cb13-7"><a href="#cb13-7" tabindex="-1"></a><span class="co">#&gt;   3      0         48        14</span></span></code></pre></div>
 </div>
 </div>
 </div>
 <div id="data-preprocessing" class="section level2">
 <h2>Data Preprocessing</h2>
 <p><code>tl_prepare_data()</code> handles imputation, scaling and
-encoding in one call, and records what it did so the same transformation
-can be replayed on new data:</p>
+encoding in one call, and records the parameters it learned, such as
+each column’s training mean and standard deviation. Applying them to new
+data is a step you take yourself; <code>tl_pipeline()</code> takes it
+for you:</p>
 <div class="sourceCode" id="cb14"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb14-1"><a href="#cb14-1" tabindex="-1"></a><span class="co"># Prepare data with multiple preprocessing steps</span></span>
 <span id="cb14-2"><a href="#cb14-2" tabindex="-1"></a>processed <span class="ot">&lt;-</span> <span class="fu">tl_prepare_data</span>(</span>
 <span id="cb14-3"><a href="#cb14-3" tabindex="-1"></a>  iris,</span>
@@ -740,7 +742,7 @@ the order they run:</p>
 <span id="cb21-9"><a href="#cb21-9" tabindex="-1"></a></span>
 <span id="cb21-10"><a href="#cb21-10" tabindex="-1"></a>accuracy <span class="ot">&lt;-</span> <span class="fu">mean</span>(test_preds<span class="sc">$</span>.pred <span class="sc">==</span> data_split<span class="sc">$</span>test<span class="sc">$</span>Species)</span>
 <span id="cb21-11"><a href="#cb21-11" tabindex="-1"></a><span class="fu">cat</span>(<span class="st">&quot;Test accuracy:&quot;</span>, <span class="fu">round</span>(accuracy <span class="sc">*</span> <span class="dv">100</span>, <span class="dv">1</span>), <span class="st">&quot;%</span><span class="sc">\n</span><span class="st">&quot;</span>)</span>
-<span id="cb21-12"><a href="#cb21-12" tabindex="-1"></a><span class="co">#&gt; Test accuracy: 95.6 %</span></span></code></pre></div>
+<span id="cb21-12"><a href="#cb21-12" tabindex="-1"></a><span class="co">#&gt; Test accuracy: 93.3 %</span></span></code></pre></div>
 </div>
 <div id="next-steps" class="section level2">
 <h2>Next Steps</h2>

@@ -117,8 +117,8 @@ dim(influence)
 ```
 
 ```{r}
-influence %>%
-  filter(is_influential) %>%
+influence |>
+  filter(is_influential) |>
   select(observation, cooks_distance, leverage, dffits, std_residual)
 ```
 
@@ -129,9 +129,9 @@ The DFBETAS columns say *which coefficient* an observation moved, which is
 usually the more useful question:
 
 ```{r}
-influence %>%
-  select(observation, starts_with("dfbetas_")) %>%
-  arrange(desc(abs(dfbetas_wt))) %>%
+influence |>
+  select(observation, starts_with("dfbetas_")) |>
+  arrange(desc(abs(dfbetas_wt))) |>
   head(4)
 ```
 
@@ -178,7 +178,7 @@ outliers$outlier_counts$by_variable
 mtcars[outliers$outlier_indices, c("mpg", "hp", "wt")]
 ```
 
-`method` also takes `"zscore"` and `"mahalanobis"`. The first two treat each
+`method` also takes `"z-score"` and `"mahalanobis"`. The first two treat each
 variable separately; Mahalanobis distance accounts for the correlation
 between them, so it finds points that are unremarkable on every single axis
 and unusual in combination.
@@ -242,8 +242,21 @@ tl_test_model_difference(
 
 With five folds this has very little power, so treat a non-significant result
 as "these folds do not separate the models" rather than as evidence they are
-equivalent. `test = "wilcox.test"` drops the normality assumption, which
-matters more at small fold counts than the loss of power costs you.
+equivalent.
+
+`test = "wilcox"` runs the signed-rank test instead, which drops the
+normality assumption but needs at least six folds to return a p-value below
+0.05. On five pairs of fold scores the smallest two-sided p-value it can give
+is 0.0625, and only when one model wins every fold:
+
+```{r}
+tl_test_model_difference(
+  cv,
+  baseline_model = "simple",
+  metric = "rmse",
+  test = "wilcox"
+)
+```
 
 ## Interactions
 
@@ -283,10 +296,10 @@ fuel economy in a high-powered car, which already had little to lose.
 `slope_se` describes the straight line fitted to the prediction grid rather
 than the sampling uncertainty of the marginal effect — for a linear model the
 grid is exactly linear, so it is near zero by construction. Use
-`summary(model_int$fit)` for inference on the interaction coefficient.
+`tl_coefficients()` for inference on the interaction coefficient itself.
 
 ```{r}
-summary(model_int$fit)$coefficients
+tl_coefficients(model_int, conf_int = TRUE)
 ```
 
 `tl_auto_interactions()` does the search and the refit in one step, returning

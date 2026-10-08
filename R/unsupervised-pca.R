@@ -9,6 +9,8 @@
 #' @param scale Logical; should variables be scaled to
 #'   unit variance? Default TRUE.
 #' @param center Logical; should variables be centered? Default TRUE.
+#'   \code{method = "princomp"} always centres, so it warns and records
+#'   \code{center = TRUE} when asked not to.
 #' @param method Character; "prcomp" (default, recommended) or "princomp"
 #'
 #' @return A list of class "tidy_pca" containing:
@@ -37,14 +39,9 @@ tidy_pca <- function(data, cols = NULL, scale = TRUE,
   # Convert to data frame if needed
   data <- as.data.frame(data)
 
-  # Select columns
-  if (!is.null(cols)) {
-    cols_enquo <- rlang::enquo(cols)
-    data_selected <- data %>% dplyr::select(!!cols_enquo)
-  } else {
-    # Select only numeric columns
-    data_selected <- data %>% dplyr::select(where(is.numeric))
-  }
+  data_selected <- tl_select_columns(
+    data, rlang::enquo(cols), numeric_only = TRUE, what = "PCA"
+  )
 
   tl_check_complete_numeric(data_selected, "PCA", tolerates = NULL)
 
@@ -62,6 +59,16 @@ tidy_pca <- function(data, cols = NULL, scale = TRUE,
     loadings_matrix <- pca_model$rotation
     sdev <- pca_model$sdev
   } else if (method == "princomp") {
+    # princomp() has no way to skip centring, so center = FALSE is
+    # overridden, and the settings record what was done
+    if (isFALSE(center)) {
+      warning(
+        "method = \"princomp\" always centres the data, so center = FALSE ",
+        "was ignored. Use method = \"prcomp\" to fit without centring.",
+        call. = FALSE
+      )
+      center <- TRUE
+    }
     pca_model <- stats::princomp(data_selected, cor = scale, scores = TRUE)
     scores_matrix <- pca_model$scores
     loadings_matrix <- pca_model$loadings
@@ -71,7 +78,7 @@ tidy_pca <- function(data, cols = NULL, scale = TRUE,
   }
 
   # Create tidy scores tibble
-  scores_tbl <- tibble::as_tibble(scores_matrix) %>%
+  scores_tbl <- tibble::as_tibble(scores_matrix) |>
     dplyr::mutate(.obs_id = obs_id, .before = 1)
 
   # princomp() returns its loadings as a "loadings" object rather than a
@@ -82,7 +89,7 @@ tidy_pca <- function(data, cols = NULL, scale = TRUE,
   loadings_matrix <- as.matrix(unclass(loadings_matrix))
 
   # Create tidy loadings tibble (long format)
-  loadings_tbl <- tibble::as_tibble(loadings_matrix, rownames = "variable") %>%
+  loadings_tbl <- tibble::as_tibble(loadings_matrix, rownames = "variable") |>
     tidyr::pivot_longer(
       cols = -variable,
       names_to = "component",
@@ -180,12 +187,16 @@ get_pca_loadings <- function(pca_obj, n_components = NULL) {
   loadings <- pca_obj$loadings
 
   if (!is.null(n_components)) {
-    components_to_keep <- unique(loadings$component)[1:n_components]
-    loadings <- loadings %>%
-      dplyr::filter(component %in% components_to_keep)
+    components <- unique(loadings$component)
+    # 1:n_components with n_components = 0 is c(1, 0), which would keep PC1
+    tl_check_whole_number(
+      n_components, "n_components", min = 1, max = length(components)
+    )
+    loadings <- loadings |>
+      dplyr::filter(component %in% components[seq_len(n_components)])
   }
 
-  loadings %>%
+  loadings |>
     tidyr::pivot_wider(
       names_from = component,
       values_from = loading
@@ -240,10 +251,13 @@ augment_pca <- function(pca_obj, data, n_components = NULL) {
     stop("pca_obj must be a tidy_pca object")
   }
 
-  scores <- pca_obj$scores %>% dplyr::select(-.obs_id)
+  scores <- pca_obj$scores |> dplyr::select(-.obs_id)
 
   if (!is.null(n_components)) {
-    scores <- scores %>% dplyr::select(1:n_components)
+    tl_check_whole_number(
+      n_components, "n_components", min = 1, max = ncol(scores)
+    )
+    scores <- scores |> dplyr::select(dplyr::all_of(seq_len(n_components)))
   }
 
   dplyr::bind_cols(data, scores)
@@ -358,8 +372,8 @@ tidy_pca_biplot <- function(pca_obj, pc_x = 1, pc_y = 2,
   }
 
   # Get loadings for these PCs
-  loadings_wide <- pca_obj$loadings %>%
-    dplyr::filter(component %in% c(pc_x_name, pc_y_name)) %>%
+  loadings_wide <- pca_obj$loadings |>
+    dplyr::filter(component %in% c(pc_x_name, pc_y_name)) |>
     tidyr::pivot_wider(names_from = component, values_from = loading)
 
   # Scale factor for arrows
@@ -369,7 +383,7 @@ tidy_pca_biplot <- function(pca_obj, pc_x = 1, pc_y = 2,
   )
   arrow_scale_factor <- (score_range / loading_range) * 0.8 * arrow_scale
 
-  loadings_wide <- loadings_wide %>%
+  loadings_wide <- loadings_wide |>
     dplyr::mutate(
       x_end = .data[[pc_x_name]] * arrow_scale_factor,
       y_end = .data[[pc_y_name]] * arrow_scale_factor
@@ -497,16 +511,14 @@ print.tidy_pca <- function(x, ...) {
 #' @keywords internal
 #' @noRd
 tl_fit_pca <- function(data, formula = NULL, scale = TRUE, center = TRUE, ...) {
-  # Extract variables to use
+  # Without a formula, tidy_pca() takes the numeric columns itself
+  data <- tl_ungroup(data)
   if (!is.null(formula)) {
-    vars <- get_formula_vars(formula, data)
-    data_for_pca <- data[, vars, drop = FALSE]
-  } else {
-    data_for_pca <- data %>% dplyr::select(where(is.numeric))
+    data <- data[, tl_formula_columns(formula, data, "PCA"), drop = FALSE]
   }
 
   # Fit PCA using tidy_pca
-  pca_result <- tidy_pca(data_for_pca, scale = scale, center = center, ...)
+  pca_result <- tidy_pca(data, scale = scale, center = center, ...)
 
   # Return in expected format
   list(

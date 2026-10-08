@@ -11,6 +11,10 @@ library(tidylearn)
 library(dplyr)
 library(ggplot2)
 
+# k-means, CLARA and the gap statistic start from random draws. Seeding once
+# here makes the whole page reproduce when run from the top.
+set.seed(42)
+
 ## -----------------------------------------------------------------------------
 # Same algorithm, two interfaces
 model <- tl_model(iris[, 1:4], method = "kmeans", k = 3)
@@ -158,7 +162,7 @@ eps_suggestion <- suggest_eps(iris[, 1:4], minPts = 5)
 eps_suggestion$eps
 
 ## -----------------------------------------------------------------------------
-plot_knn_dist(iris[, 1:4], k = 5)
+plot_knn_dist(iris[, 1:4], k = 4)
 
 ## -----------------------------------------------------------------------------
 db <- tidy_dbscan(iris[, 1:4], eps = eps_suggestion$eps, minPts = 5)
@@ -209,7 +213,7 @@ comparison
 
 ## -----------------------------------------------------------------------------
 plot_cluster_comparison(
-  iris[, 1:4] %>%
+  iris[, 1:4] |>
     mutate(kmeans = km$clusters$cluster, hclust = cuts$cluster),
   cluster_cols = c("kmeans", "hclust"),
   x_col = "Petal.Length",

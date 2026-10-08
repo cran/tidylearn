@@ -19,19 +19,26 @@ tl_anomaly_aware(
 
 \item{formula}{Model formula}
 
-\item{response}{Response variable name}
+\item{response}{Response variable name, left out of the detection}
 
-\item{anomaly_method}{Method for anomaly detection:
-"dbscan", "isolation_forest"}
+\item{anomaly_method}{Method for anomaly detection. Only "dbscan" is
+implemented; its noise points are the anomalies.}
 
-\item{action}{Action to take: "remove", "flag", "downweight"}
+\item{action}{Action to take: "remove", "flag", "downweight".
+\code{"downweight"} gives anomalies a case weight of 0.1, and needs a
+\code{supervised_method} that takes case weights: \code{"linear"},
+\code{"polynomial"}, \code{"logistic"}, \code{"tree"}, \code{"ridge"},
+\code{"lasso"}, \code{"elastic_net"}, \code{"forest"}, \code{"boost"},
+\code{"nn"} or \code{"xgboost"}. A forest reads them as sampling
+weights. \code{"svm"} and \code{"deep"} take none and are refused.}
 
 \item{supervised_method}{Supervised learning method (default:
 \code{"tree"}, which handles both regression and classification with
 any number of classes). \code{"logistic"} is binary-only and errors
 on a response with more than two levels.}
 
-\item{...}{Additional arguments}
+\item{...}{Additional arguments for DBSCAN, such as \code{eps} and
+\code{minPts}}
 }
 \value{
 A tidylearn model object with additional class
@@ -43,6 +50,12 @@ A tidylearn model object with additional class
 \description{
 Detect outliers using DBSCAN or other methods, then optionally
 remove them or down-weight them before supervised learning.
+}
+\details{
+DBSCAN runs on the predictors the formula names, on their own scale: its
+\code{eps} and \code{minPts} (defaults 0.5 and 5, passed through
+\code{...}) are a distance and a count in those units. If every row comes
+out as noise the call stops, since no normal data would be left to model.
 }
 \examples{
 \donttest{

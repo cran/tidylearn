@@ -1,6 +1,6 @@
 Package: tidylearn
 Title: A Unified Tidy Interface to R's Machine Learning Ecosystem
-Version: 0.5.0
+Version: 0.6.0
 Authors@R: 
     person("Cesaire", "Tobias", email = "cesaire@sheetsolved.com", role = c("aut", "cre"))
 Description: Provides a unified tidyverse-compatible interface to R's machine
@@ -23,9 +23,9 @@ Description: Provides a unified tidyverse-compatible interface to R's machine
 License: MIT + file LICENSE
 Encoding: UTF-8
 RoxygenNote: 7.3.3
-Depends: R (>= 3.6.0)
-Imports: dplyr (>= 1.0.0), ggplot2 (>= 3.3.0), tibble (>= 3.0.0), tidyr
-        (>= 1.0.0), purrr (>= 0.3.0), rlang (>= 0.4.0), magrittr,
+Depends: R (>= 4.1.0)
+Imports: dplyr (>= 1.0.0), ggplot2 (>= 3.4.0), tibble (>= 3.0.0), tidyr
+        (>= 1.0.0), purrr (>= 0.3.0), rlang (>= 1.0.0), magrittr,
         parallel, stats, e1071, gbm, glmnet, nnet, randomForest, rpart,
         rsample, ROCR, yardstick, cluster (>= 2.1.0), dbscan (>=
         1.1.0), MASS, smacof (>= 2.1.0)
@@ -53,11 +53,11 @@ Collate: 'tidylearn-package.R' 'utils.R' 'read.R' 'read-backends.R'
         'model-selection.R' 'compute-detection.R' 'compute-advisor.R'
         'compute-routing.R' 'cloud-consent.R' 'cloud-endpoint.R'
         'cloud-cost.R' 'cloud-serialize.R' 'tuning.R' 'interactions.R'
-        'diagnostics.R' 'metrics.R' 'visualization.R' 'tables.R'
-        'workflows.R'
+        'diagnostics.R' 'metrics.R' 'coefficients.R' 'visualization.R'
+        'tables.R' 'workflows.R'
 NeedsCompilation: no
-Packaged: 2026-09-02 05:57:17 UTC; CesaireTobias
+Packaged: 2026-10-08 15:50:50 UTC; CesaireTobias
 Author: Cesaire Tobias [aut, cre]
 Maintainer: Cesaire Tobias <cesaire@sheetsolved.com>
 Repository: CRAN
-Date/Publication: 2026-09-02 06:20:02 UTC
+Date/Publication: 2026-10-08 18:20:02 UTC

@@ -13,17 +13,38 @@ tl_interaction_effects(model, var, by_var, at_values = NULL, intervals = TRUE)
 
 \item{by_var}{Variable to calculate effects by (interaction variable)}
 
-\item{at_values}{Named list of values at which to hold other variables}
+\item{at_values}{Named list of values at which to hold other variables.
+A variable not named is held at its median if it is numeric, and
+otherwise at its most frequent value, a tie going to the earlier level.}
 
-\item{intervals}{Logical; whether to include confidence intervals}
+\item{intervals}{Logical; whether to add 95\\% confidence limits as columns
+\code{lower} and \code{upper}. This needs a model whose underlying fit is
+an \code{lm} or \code{glm}; for any other fit a message is shown and only
+point estimates are returned. For a \code{glm} the interval is built on
+the link scale and transformed to the response scale.}
 }
 \value{
 For numeric \code{var}: a list with \code{effects} (data frame of
-predicted values across the variable range for each level of
+predicted values across the variable range for each value of
 \code{by_var}) and \code{slopes} (data frame with the slope of
-\code{var} at each level of \code{by_var}). For categorical
+\code{var} at each value of \code{by_var}). For categorical
 \code{var}: a data frame of predicted values at each factor level for
-each level of \code{by_var}.
+each level of \code{by_var}. A numeric \code{by_var} is evaluated at its
+quartiles; quartiles that tie are evaluated once, with a label naming
+each quartile they stand for, such as \code{"Q0/Q25"}. A factor,
+character or logical variable is categorical, and is evaluated at the
+values the data holds: a level no row uses, and a missing value, are
+left out. A factor is returned as a factor with the model's levels.
+
+\code{fit}, \code{lower}, \code{upper} and \code{slope} are on the
+response scale whatever \code{intervals} is set to. For a
+classification model that is the predicted probability of the second
+class, so the response must have two classes. \code{slope} is the slope
+of a straight line fitted to \code{fit} across the range of \code{var},
+so for a non-linear link it is an average rate of change over that
+range. A model variable named \code{fit}, \code{by_value} or
+\code{by_label}, or with intervals \code{lower} or \code{upper}, would
+be overwritten by these columns and is refused.
 
 \code{slopes$slope_se} is the standard error of a straight line fitted
 to the prediction grid, not the sampling uncertainty of the marginal
