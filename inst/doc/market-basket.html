@@ -461,7 +461,7 @@ steep.</p>
 <span id="cb7-20"><a href="#cb7-20" tabindex="-1"></a><span class="co">#&gt; 9   0.010        0.7       0</span></span></code></pre></div>
 <p>Dropping the support floor by a factor of ten multiplies the rule
 count by more than a hundred. A high-confidence rule at very low support
-is usually a description of a handful of shoppers, not of the shop.</p>
+is usually a description of a handful of shoppers.</p>
 </div>
 </div>
 <div id="reading-the-rules" class="section level2">
@@ -694,10 +694,10 @@ of the input. Anything <code>arules</code> accepts as
 <ol style="list-style-type: decimal">
 <li><strong>Lift is symmetric; the rule is not.</strong> <em>A ⇒ B</em>
 and <em>B ⇒ A</em> have the same lift and usually different confidence.
-Which direction you act on is a decision about the business, not a
-result from the data.</li>
+Which direction you act on is a business decision the data cannot
+make.</li>
 <li><strong>A rule is not a cause.</strong> Bread and butter co-occur
-because people buy both, not because one drives the other. Moving butter
+because people buy both, and neither drives the other. Moving butter
 next to bread is a testable hypothesis, and the test is an
 experiment.</li>
 <li><strong>Rules describe the period you mined.</strong> A month of

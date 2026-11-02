@@ -662,8 +662,8 @@ distances:</p>
 <span id="cb36-8"><a href="#cb36-8" tabindex="-1"></a><span class="co">#&gt;       98       64       72       64</span></span></code></pre></div>
 <p>Single linkage chains: its largest cluster takes 98 of the 150 rows,
 all of <em>versicolor</em> and nearly all of <em>virginica</em>, and
-leaves two rows as a cluster of their own. That is a property of the
-linkage, not a finding about irises.</p>
+leaves two rows as a cluster of their own. The linkage causes that, and
+it says nothing about irises.</p>
 </div>
 <div id="dbscan" class="section level2">
 <h2>DBSCAN</h2>
@@ -692,7 +692,7 @@ which is the radius you want.</p>
 <span id="cb40-5"><a href="#cb40-5" tabindex="-1"></a><span class="co">#&gt;       0      0          0         3</span></span>
 <span id="cb40-6"><a href="#cb40-6" tabindex="-1"></a><span class="co">#&gt;       1     50          0         0</span></span>
 <span id="cb40-7"><a href="#cb40-7" tabindex="-1"></a><span class="co">#&gt;       2      0         50        47</span></span></code></pre></div>
-<p>Cluster 0 is noise, not a cluster.</p>
+<p>Cluster 0 holds the noise points.</p>
 <p><code>explore_dbscan_params()</code> sweeps the two parameters
 together, which is more informative than tuning either alone:</p>
 <div class="sourceCode" id="cb41"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb41-1"><a href="#cb41-1" tabindex="-1"></a><span class="fu">explore_dbscan_params</span>(</span>

@@ -366,7 +366,7 @@ them, so it does not start Python, import TensorFlow, or fit anything,
 and it gives <code>nvidia-smi</code> 10 seconds to answer before warning
 and reporting no GPU. It returns an object with a <code>print()</code>
 method describing the CUDA driver, the devices found, and which of
-xgboost, keras and tensorflow are installed.</p>
+xgboost, keras3 and tensorflow are installed.</p>
 </div>
 <div id="only-two-methods-have-a-gpu-path" class="section level2">
 <h2>Only two methods have a GPU path</h2>
@@ -385,7 +385,8 @@ for a GPU gets you a warning and a CPU fit:</p>
 <span id="cb3-7"><a href="#cb3-7" tabindex="-1"></a><span class="co"># Let tidylearn decide per call</span></span>
 <span id="cb3-8"><a href="#cb3-8" tabindex="-1"></a>model <span class="ot">&lt;-</span> <span class="fu">tl_model</span>(data, y <span class="sc">~</span> ., <span class="at">method =</span> <span class="st">&quot;xgboost&quot;</span>, <span class="at">compute =</span> <span class="st">&quot;auto&quot;</span>)</span></code></pre></div>
 <p>For those eleven methods the question to ask is whether the job fits
-in memory, and how many cores you can throw at it.</p>
+in memory. Their fits ran on one core when timed for the advisor, so
+extra cores do not speed them up.</p>
 </div>
 <div id="estimating-before-you-commit" class="section level2">
 <h2>Estimating before you commit</h2>
@@ -404,9 +405,9 @@ package installed:</p>
 <span id="cb5-3"><a href="#cb5-3" tabindex="-1"></a><span class="co">#&gt; Problem:        xgboost on 150 rows x 4 cols (~0.0 MB)</span></span>
 <span id="cb5-4"><a href="#cb5-4" tabindex="-1"></a><span class="co">#&gt; </span></span>
 <span id="cb5-5"><a href="#cb5-5" tabindex="-1"></a><span class="co">#&gt; Tier estimates (order-of-magnitude):</span></span>
-<span id="cb5-6"><a href="#cb5-6" tabindex="-1"></a><span class="co">#&gt;   Local CPU:    0.0s   (peak RAM ~0 MB, 16 cores)</span></span>
+<span id="cb5-6"><a href="#cb5-6" tabindex="-1"></a><span class="co">#&gt;   Local CPU:    0.0s   (peak RAM ~0 MB)</span></span>
 <span id="cb5-7"><a href="#cb5-7" tabindex="-1"></a><span class="co">#&gt;   Local GPU:    --   [not applicable]</span></span>
-<span id="cb5-8"><a href="#cb5-8" tabindex="-1"></a><span class="co">#&gt;   Cloud:        45.0s   (~$0.01) [T4 (16 GB VRAM / 16 GB RAM)]   [not configured]</span></span>
+<span id="cb5-8"><a href="#cb5-8" tabindex="-1"></a><span class="co">#&gt;   Cloud:        45.0s   (~$0.04) [A10G (24 GB VRAM / 24 GB RAM)]   [not configured]</span></span>
 <span id="cb5-9"><a href="#cb5-9" tabindex="-1"></a><span class="co">#&gt; </span></span>
 <span id="cb5-10"><a href="#cb5-10" tabindex="-1"></a><span class="co">#&gt; Recommendation: cpu</span></span>
 <span id="cb5-11"><a href="#cb5-11" tabindex="-1"></a><span class="co">#&gt; </span></span>
@@ -421,8 +422,12 @@ as a <em>memory headroom</em> tier. It will recommend cloud for a
 CPU-only method such as random forest or SVM when the job is
 RAM-infeasible locally, which is the common case for large data. On a
 small dataset like <code>iris</code> it will tell you to stay local.</p>
-<p>Estimates are order-of-magnitude. Runtime constants are calibrated
-per method, and Modal pricing is approximate as of early 2026. Treat the
+<p>Estimates are order-of-magnitude. Each method’s runtime constant
+comes from timing fits of three sizes on one laptop, where the estimates
+land within about a factor of 3 of those fits. Two runs on that laptop
+differed by up to 2.5x, and other hardware or data shapes can be further
+off. The memory multiples and GPU speedups are assumptions. Modal’s
+prices were read from <a href="https://modal.com/pricing" class="uri">https://modal.com/pricing</a> on 2026-10-30. Treat the
 output as a decision aid.</p>
 <p>Unsupervised methods are not modelled. Calling the advisor on one
 errors.</p>
@@ -431,10 +436,12 @@ errors.</p>
 <h2>Cloud compute</h2>
 <p><strong>Cloud execution is not available yet.</strong>
 <code>compute = &quot;cloud&quot;</code> errors with a message saying so, and the
-advisor’s cloud tier is reported for planning only. What follows
-describes what is already in place, so that you can see the safety model
-before the feature that uses it.</p>
-<p>A cloud fit uploads your training data to your own Modal account.
+advisor’s cloud tier is reported for planning only. The consent gate,
+the host allowlist and the cost calculations below are in the package
+today, ahead of the submission path that will use them. The job timeout,
+the worker’s retry setting and cancelling a job are the design that path
+will follow, and have no code yet.</p>
+<p>A cloud fit will upload your training data to your own Modal account.
 That is a third party, and it may be something your organisation’s
 data-handling rules forbid. tidylearn treats that transfer as the
 consequential step it is.</p>
@@ -454,10 +461,11 @@ and does not survive an R restart. There is also no interactive prompt
 anywhere in the cloud path, so <code>Rscript</code>, CI and knitted
 documents behave exactly like an interactive session. A prompt that
 cannot be answered in batch would block them.</p>
-<p>Per call, the equivalent is <code>confirm_upload = TRUE</code>.</p>
+<p>Per call, the equivalent will be <code>confirm_upload = TRUE</code>,
+which <code>tl_model()</code> does not take yet.</p>
 </div>
-<div id="destinations-are-checked-not-trusted" class="section level3">
-<h3>Destinations are checked, not trusted</h3>
+<div id="destinations-are-checked" class="section level3">
+<h3>Destinations are checked</h3>
 <p>The endpoint is read from an environment variable:</p>
 <div class="sourceCode" id="cb7"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb7-1"><a href="#cb7-1" tabindex="-1"></a><span class="fu">Sys.setenv</span>(</span>
 <span id="cb7-2"><a href="#cb7-2" tabindex="-1"></a>  <span class="at">TIDYLEARN_MODAL_ENDPOINT =</span> <span class="st">&quot;https://you--tidylearn-fit.modal.run&quot;</span></span>
@@ -494,34 +502,37 @@ until it finishes or something kills it.</p>
 <p>No amount of care in the R client can guarantee anything against
 that, because a killed session runs no cleanup handlers. So the controls
 are layered by what survives:</p>
-<p><strong>What holds even if your session dies.</strong> Every
-submission sets an explicit timeout, derived from the estimate with
-headroom and capped well below Modal’s 24-hour maximum. Modal’s
-inherited default is never used and neither is no timeout at all. The
-worker runs with retries disabled, because Modal applies timeouts per
-attempt and three retries would bill four full timeouts for one hung
-job. You should also set a spend budget on your Modal workspace, which
-is the only true hard cap and is not tidylearn’s to set.</p>
-<p><strong>What is best-effort.</strong> The pre-flight gates, the job
-registry and cancel-on-interrupt catch the ordinary cases, and none of
-them survive a killed session.</p>
-<p>Before a fit, the figure you are asked to accept is the <strong>worst
-case</strong> — the timeout at the tier’s rate — rather than the
-estimate:</p>
+<p><strong>What will hold even if your session dies.</strong> Each
+submission will set an explicit timeout, derived from the estimate with
+headroom and capped well below Modal’s 24-hour maximum, so Modal’s
+default is never inherited. The worker will run with retries disabled,
+because Modal applies timeouts per attempt and three retries would bill
+four full timeouts for one hung job. You should also set a spend budget
+on your Modal workspace, which is the only true hard cap and is not
+tidylearn’s to set.</p>
+<p><strong>What will be best-effort.</strong> The pre-flight gates, the
+job registry and cancel-on-interrupt will catch the ordinary cases, and
+none of them survive a killed session.</p>
+<p>Before a fit, the figure you will be asked to accept is the
+<strong>worst case</strong> rather than the estimate: the timeout plus
+the load and idle time Modal also bills, at the tier’s rate. This is the
+planned call, which errors today:</p>
 <div class="sourceCode" id="cb10"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb10-1"><a href="#cb10-1" tabindex="-1"></a>model <span class="ot">&lt;-</span> <span class="fu">tl_model</span>(data, y <span class="sc">~</span> ., <span class="at">method =</span> <span class="st">&quot;xgboost&quot;</span>, <span class="at">compute =</span> <span class="st">&quot;cloud&quot;</span>,</span>
 <span id="cb10-2"><a href="#cb10-2" tabindex="-1"></a>                  <span class="at">confirm_upload =</span> <span class="cn">TRUE</span>, <span class="at">max_cost =</span> <span class="dv">5</span>)</span></code></pre></div>
-<p>That refuses before anything is uploaded if the worst case exceeds
-<code>max_cost</code>. It also refuses a fit whose estimate is so large
-that the job would be killed by its own timeout before finishing —
-submitting that would bill the full timeout and return nothing.</p>
-<p>Nothing in flight is invisible:</p>
+<p>That will refuse before anything is uploaded if the worst case
+exceeds <code>max_cost</code>. It will also refuse a fit whose estimate
+is so large that the job would be killed by its own timeout before
+finishing — submitting that would bill the full timeout and return
+nothing.</p>
+<p><code>tl_cloud_jobs()</code> lists the jobs in flight, which is none
+until submission exists:</p>
 <div class="sourceCode" id="cb11"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb11-1"><a href="#cb11-1" tabindex="-1"></a><span class="fu">tl_cloud_jobs</span>()</span>
 <span id="cb11-2"><a href="#cb11-2" tabindex="-1"></a><span class="co">#&gt; # A tibble: 0 × 5</span></span>
 <span id="cb11-3"><a href="#cb11-3" tabindex="-1"></a><span class="co">#&gt; # ℹ 5 variables: call_id &lt;chr&gt;, method &lt;chr&gt;, submitted_at &lt;dttm&gt;,</span></span>
 <span id="cb11-4"><a href="#cb11-4" tabindex="-1"></a><span class="co">#&gt; #   timeout_seconds &lt;int&gt;, worst_case_cost &lt;dbl&gt;</span></span></code></pre></div>
-<p>A job leaves that list when its result is collected or it is
-cancelled. The list itself does not outlive the session; the timeout
-does.</p>
+<p>A job will leave that list when its result is collected or it is
+cancelled. The list itself does not outlive the session, and a job’s
+timeout does.</p>
 </div>
 <div id="the-contract-is-written-down" class="section level3">
 <h3>The contract is written down</h3>
@@ -541,8 +552,9 @@ absence of telemetry, and destination validation.</p>
 authenticated request, uploading, polling for the result, and restoring
 the fitted model in your session. Models cross that boundary as bytes;
 twelve of the thirteen methods serialise natively, and
-<code>&quot;deep&quot;</code> carries its keras weights separately because a keras
-model is a reference to a Python object rather than an R one.</p>
+<code>&quot;deep&quot;</code> carries its keras model as a separate
+<code>.keras</code> archive because a keras model is a reference to a
+Python object rather than an R one.</p>
 <p>Until that lands, use <code>tl_compute_advisor()</code> to size the
 problem and run locally.</p>
 </div>

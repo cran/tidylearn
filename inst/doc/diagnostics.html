@@ -388,8 +388,8 @@ verdict on each.</p>
 <span id="cb4-11"><a href="#cb4-11" tabindex="-1"></a><span class="co">#&gt; $n_satisfied</span></span>
 <span id="cb4-12"><a href="#cb4-12" tabindex="-1"></a><span class="co">#&gt; [1] 1</span></span></code></pre></div>
 <p>Each entry carries the test that was run, the verdict, and what to do
-about it. Nothing here is a pass/fail gate — the recommendation is a
-prompt, not an instruction.</p>
+about it. The recommendation is a prompt to look closer, and nothing
+here is a pass/fail gate.</p>
 <div class="sourceCode" id="cb5"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb5-1"><a href="#cb5-1" tabindex="-1"></a>assumptions<span class="sc">$</span>normality</span>
 <span id="cb5-2"><a href="#cb5-2" tabindex="-1"></a><span class="co">#&gt; $assumption</span></span>
 <span id="cb5-3"><a href="#cb5-3" tabindex="-1"></a><span class="co">#&gt; [1] &quot;Normality of Residuals&quot;</span></span>
@@ -696,8 +696,8 @@ the formula:</p>
 <div id="exploring-before-modelling" class="section level2">
 <h2>Exploring Before Modelling</h2>
 <p><code>tl_explore()</code> runs PCA, picks a cluster count, clusters,
-and computes a distance summary in one call. It is a first look at a
-dataset, not a diagnostic of a fit.</p>
+and computes a distance summary in one call. It looks at the dataset and
+says nothing about a fit.</p>
 <div class="sourceCode" id="cb27"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb27-1"><a href="#cb27-1" tabindex="-1"></a>eda <span class="ot">&lt;-</span> <span class="fu">tl_explore</span>(iris, <span class="at">response =</span> <span class="st">&quot;Species&quot;</span>, <span class="at">max_components =</span> <span class="dv">4</span>, <span class="at">k_range =</span> <span class="dv">2</span><span class="sc">:</span><span class="dv">5</span>)</span>
 <span id="cb27-2"><a href="#cb27-2" tabindex="-1"></a><span class="co">#&gt; Running Exploratory Data Analysis...</span></span>
 <span id="cb27-3"><a href="#cb27-3" tabindex="-1"></a><span class="co">#&gt; [1/4] PCA analysis...</span></span>
